@@ -13,7 +13,11 @@ import {
   NativeScrollEvent,
   AppState,
   PanResponder,
+  Animated,
+  Dimensions,
 } from "react-native";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
 import { Card } from "../src/components/Card";
 import { ArticleSheet } from "../src/components/ArticleSheet";
 import { CategoryTabs } from "../src/components/CategoryTabs";
@@ -170,23 +174,49 @@ export default function FeedScreen() {
     }
   }
 
-  // Swipe left/right to change category (disabled when a sheet is open)
-  const swipeHandlerRef = useRef<(dx: number) => void>(() => {});
-  useEffect(() => {
-    swipeHandlerRef.current = (dx: number) => {
-      if (openPost || profileVisible || signInVisible) return;
-      const idx = CATEGORY_IDS.indexOf(category);
-      if (dx < 0 && idx < CATEGORY_IDS.length - 1) setCategory(CATEGORY_IDS[idx + 1]);
-      else if (dx > 0 && idx > 0) setCategory(CATEGORY_IDS[idx - 1]);
-    };
-  }, [openPost, profileVisible, signInVisible, category]);
+  // Refs so PanResponder (created once) can read current state without stale closures
+  const categoryRef = useRef(category);
+  useEffect(() => { categoryRef.current = category; }, [category]);
+  const openPostRef = useRef<Post | null>(null);
+  useEffect(() => { openPostRef.current = openPost; }, [openPost]);
+  const profileVisibleRef = useRef(false);
+  useEffect(() => { profileVisibleRef.current = profileVisible; }, [profileVisible]);
+  const signInVisibleRef = useRef(false);
+  useEffect(() => { signInVisibleRef.current = signInVisible; }, [signInVisible]);
+
+  const slideAnim = useRef(new Animated.Value(0)).current;
 
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, { dx, dy }) =>
+        !openPostRef.current && !profileVisibleRef.current && !signInVisibleRef.current &&
         Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 2,
+      onPanResponderMove: (_, { dx }) => {
+        slideAnim.setValue(dx);
+      },
       onPanResponderRelease: (_, { dx }) => {
-        if (Math.abs(dx) >= 50) swipeHandlerRef.current(dx);
+        const idx = CATEGORY_IDS.indexOf(categoryRef.current);
+        const nextIdx = dx < 0 ? idx + 1 : idx - 1;
+        if (Math.abs(dx) >= 50 && nextIdx >= 0 && nextIdx < CATEGORY_IDS.length) {
+          Animated.timing(slideAnim, {
+            toValue: dx < 0 ? -SCREEN_WIDTH : SCREEN_WIDTH,
+            duration: 180,
+            useNativeDriver: true,
+          }).start(() => {
+            setCategory(CATEGORY_IDS[nextIdx]);
+            slideAnim.setValue(dx < 0 ? SCREEN_WIDTH : -SCREEN_WIDTH);
+            Animated.timing(slideAnim, {
+              toValue: 0,
+              duration: 180,
+              useNativeDriver: true,
+            }).start();
+          });
+        } else {
+          Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start();
       },
     })
   ).current;
@@ -231,6 +261,7 @@ export default function FeedScreen() {
       <CategoryTabs active={category} onChange={setCategory} />
 
       {/* Masonry feed — two independent columns in a ScrollView */}
+      <Animated.View style={{ flex: 1, transform: [{ translateX: slideAnim }] }}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -287,6 +318,7 @@ export default function FeedScreen() {
           <ActivityIndicator color="#ff2442" style={{ marginVertical: 20 }} />
         )}
       </ScrollView>
+      </Animated.View>
 
       {/* Article detail */}
       <ArticleSheet
