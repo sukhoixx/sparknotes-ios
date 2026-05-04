@@ -149,7 +149,7 @@ export default function FeedScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.logo}>📰 Newsblock</Text>
+        <Text style={styles.logo}>📰 NewsBlock</Text>
         <View style={styles.searchRow}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput

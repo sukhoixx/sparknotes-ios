@@ -49,7 +49,7 @@ export function SignInSheet({ visible, onClose, onSignedIn }: Props) {
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
       <View style={styles.sheet}>
         <View style={styles.handle} />
-        <Text style={styles.title}>Sign in to Newsblock</Text>
+        <Text style={styles.title}>Sign in to NewsBlock</Text>
         <Text style={styles.subtitle}>
           Save your likes, comments, and preferences across devices
         </Text>
