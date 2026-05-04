@@ -11,6 +11,7 @@ import {
   RefreshControl,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  AppState,
 } from "react-native";
 import { Card } from "../src/components/Card";
 import { ArticleSheet } from "../src/components/ArticleSheet";
@@ -50,6 +51,15 @@ export default function FeedScreen() {
       fetchMyLikes().then((ids) => setLiked(new Set(ids)));
     });
   }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        loadPosts("all", null, true);
+      }
+    });
+    return () => sub.remove();
+  }, [loadPosts]);
 
   function getLikeCount(post: Post) {
     return likeCounts[post.id] ?? post.likes;
@@ -195,7 +205,11 @@ export default function FeedScreen() {
           />
         }
       >
-        {posts.length === 0 && !loading ? (
+        {posts.length === 0 && loading ? (
+          <View style={styles.initialLoader}>
+            <ActivityIndicator size="large" color="#ff2442" />
+          </View>
+        ) : posts.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>📭</Text>
             <Text style={styles.emptyText}>No posts yet — check back soon!</Text>
@@ -257,7 +271,14 @@ export default function FeedScreen() {
         visible={profileVisible}
         profile={profile}
         onClose={() => setProfileVisible(false)}
-        onSaved={(p) => setProfile(p)}
+        onSaved={(p) => {
+          setProfile(p);
+          setCategory("all");
+          setPosts([]);
+          setCursor(null);
+          setHasMore(true);
+          loadPosts("all", null, true);
+        }}
         onSignedOut={() => {
           setIsAuthenticated(false);
           setProfile(null);
@@ -344,6 +365,11 @@ const styles = StyleSheet.create({
   },
   col: {
     flex: 1,
+  },
+  initialLoader: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 120,
   },
   empty: {
     alignItems: "center",
