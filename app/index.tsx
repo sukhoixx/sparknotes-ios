@@ -12,6 +12,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   AppState,
+  PanResponder,
 } from "react-native";
 import { Card } from "../src/components/Card";
 import { ArticleSheet } from "../src/components/ArticleSheet";
@@ -20,6 +21,12 @@ import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
 import { fetchPosts, fetchMyLikes, getJwt, fetchProfile, toggleLike } from "../src/api";
 import type { Post, UserProfile, PageData } from "../src/types";
+
+const CATEGORY_IDS = [
+  "all", "news", "us", "world", "politics", "military", "science",
+  "technology", "entertainment", "celebrity", "sports", "business",
+  "gaming", "travel", "animals", "inventions", "finance", "health", "beauty",
+];
 
 export default function FeedScreen() {
   const [category, setCategory] = useState("all");
@@ -163,12 +170,33 @@ export default function FeedScreen() {
     }
   }
 
+  // Swipe left/right to change category (disabled when a sheet is open)
+  const swipeHandlerRef = useRef<(dx: number) => void>(() => {});
+  useEffect(() => {
+    swipeHandlerRef.current = (dx: number) => {
+      if (openPost || profileVisible || signInVisible) return;
+      const idx = CATEGORY_IDS.indexOf(category);
+      if (dx < 0 && idx < CATEGORY_IDS.length - 1) setCategory(CATEGORY_IDS[idx + 1]);
+      else if (dx > 0 && idx > 0) setCategory(CATEGORY_IDS[idx - 1]);
+    };
+  }, [openPost, profileVisible, signInVisible, category]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, { dx, dy }) =>
+        Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 2,
+      onPanResponderRelease: (_, { dx }) => {
+        if (Math.abs(dx) >= 50) swipeHandlerRef.current(dx);
+      },
+    })
+  ).current;
+
   // Independent columns for true masonry — no shared row height
   const leftPosts = posts.filter((_, i) => i % 2 === 0);
   const rightPosts = posts.filter((_, i) => i % 2 === 1);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} {...panResponder.panHandlers}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.logo}>📰 NewsBlock</Text>
