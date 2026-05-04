@@ -256,12 +256,15 @@ export default function FeedScreen() {
           const cat = pendingCatRef.current!;
           const snapshotPosts = pendingPostsRef.current;
           const snapshotCursor = pendingCursorRef.current;
-          // Update current panel's content before the animation so when
-          // we reset positions there's no content flash
-          skipNextLoadRef.current = true;
-          setPosts(snapshotPosts);
-          setCursor(snapshotCursor);
-          setHasMore(!!snapshotCursor);
+          // If posts already loaded, swap them in before the animation to
+          // avoid a content flash on reset. If still loading, let the
+          // useEffect reload normally after category changes.
+          if (snapshotPosts.length > 0) {
+            skipNextLoadRef.current = true;
+            setPosts(snapshotPosts);
+            setCursor(snapshotCursor);
+            setHasMore(!!snapshotCursor);
+          }
           setCategory(cat);
           Animated.parallel([
             Animated.timing(slideAnim, { toValue: dx < 0 ? -SCREEN_WIDTH : SCREEN_WIDTH, duration: 150, useNativeDriver: true }),
