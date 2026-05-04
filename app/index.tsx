@@ -68,7 +68,7 @@ export default function FeedScreen() {
   const [activeSearch, setActiveSearch] = useState("");
 
   const loadPosts = useCallback(
-    async (cat: string, nextCursor: string | null, reset = false, q = "") => {
+    async (cat: string, nextCursor: string | null, reset = false, q = "", catsOverride?: string) => {
       // Reset loads always proceed; append loads skip if already loading
       if (!reset && loadingRef.current) return;
       if (reset) loadingRef.current = false;
@@ -76,9 +76,11 @@ export default function FeedScreen() {
       setLoading(true);
       try {
         const cats =
-          !q && cat === "all" && profile?.categories?.length
-            ? profile.categories.join(",")
-            : undefined;
+          catsOverride !== undefined
+            ? (catsOverride || undefined)
+            : (!q && cat === "all" && profile?.categories?.length
+                ? profile.categories.join(",")
+                : undefined);
         const data: PageData = await fetchPosts(cat, nextCursor, cats, q || undefined);
         setPosts((prev) => {
           if (reset) return data.posts;
@@ -277,7 +279,8 @@ export default function FeedScreen() {
           setPosts([]);
           setCursor(null);
           setHasMore(true);
-          loadPosts("all", null, true);
+          const cats = p?.categories?.length ? (p.categories as string[]).join(",") : "";
+          loadPosts("all", null, true, "", cats);
         }}
         onSignedOut={() => {
           setIsAuthenticated(false);
