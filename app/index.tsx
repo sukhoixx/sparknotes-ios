@@ -142,6 +142,22 @@ export default function FeedScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, activeSearch]);
 
+  // Pre-fetch adjacent categories into cache so swipes are always instant
+  useEffect(() => {
+    if (activeSearch) return;
+    const idx = CATEGORY_IDS.indexOf(category);
+    [CATEGORY_IDS[idx - 1], CATEGORY_IDS[idx + 1]]
+      .filter(Boolean)
+      .forEach((cat) => {
+        if (postsCache.current[cat]) return;
+        fetchPosts(cat, null)
+          .then((data: PageData) => {
+            postsCache.current[cat] = { posts: data.posts, cursor: data.nextCursor };
+          })
+          .catch(() => {});
+      });
+  }, [category, activeSearch]);
+
   function handleSearchChange(text: string) {
     setSearchText(text);
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
