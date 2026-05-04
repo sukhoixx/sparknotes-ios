@@ -258,22 +258,29 @@ export default function FeedScreen() {
             const cat = pendingCatRef.current!;
             const snapshotPosts = pendingPostsRef.current;
             const snapshotCursor = pendingCursorRef.current;
-            clearPending();
-            skipNextLoadRef.current = true;
-            setPosts(snapshotPosts);
-            setCursor(snapshotCursor);
-            setHasMore(!!snapshotCursor);
-            setCategory(cat);
-            slideAnim.setValue(0);
+            // Wait one frame so the native layer finishes rendering at the final
+            // animation position before we jump slideAnim back to 0
+            requestAnimationFrame(() => {
+              slideAnim.setValue(0);
+              clearPending();
+              skipNextLoadRef.current = true;
+              setPosts(snapshotPosts);
+              setCursor(snapshotCursor);
+              setHasMore(!!snapshotCursor);
+              setCategory(cat);
+            });
           });
         } else {
-          clearPending();
-          Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start();
+          // Let the spring finish before unmounting the pending panel
+          Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start(() => {
+            clearPending();
+          });
         }
       },
       onPanResponderTerminate: () => {
-        clearPending();
-        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start();
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start(() => {
+          clearPending();
+        });
       },
     })
   ).current;
