@@ -5,7 +5,7 @@ export const BASE_URL = (
   process.env.EXPO_PUBLIC_API_URL ?? "https://sparknotes.up.railway.app"
 ).replace(/\/$/, "");
 
-const JWT_KEY = "sparknotes_jwt";
+const JWT_KEY = "newsblock_jwt";
 
 export async function getJwt(): Promise<string | null> {
   return SecureStore.getItemAsync(JWT_KEY);

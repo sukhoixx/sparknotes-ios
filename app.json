@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "SparkNotes",
-    "slug": "sparknotes",
+    "name": "Newsblock",
+    "slug": "newsblock",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "scheme": "sparknotes",
+    "scheme": "newsblock",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.sparknotes.app",
+      "bundleIdentifier": "com.newsblock.app",
       "usesAppleSignIn": true
     },
     "plugins": [

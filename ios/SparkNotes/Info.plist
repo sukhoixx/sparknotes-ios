@@ -9,7 +9,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>SparkNotes</string>
+    <string>Newsblock</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -29,8 +29,8 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>sparknotes</string>
-          <string>com.sparknotes.app</string>
+          <string>newsblock</string>
+          <string>com.newsblock.app</string>
         </array>
       </dict>
       <dict>
