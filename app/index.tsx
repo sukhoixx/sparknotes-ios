@@ -63,7 +63,8 @@ export default function FeedScreen() {
   const pendingCursorRef = useRef<string | null>(null);
   const swipeInitiatedRef = useRef(false);
   const skipNextLoadRef = useRef(false);
-  const pendingOffsetAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+  const pendingStartRef = useRef(SCREEN_WIDTH);
+  const pendingAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
 
   useEffect(() => {
     getJwt().then((jwt) => {
@@ -230,57 +231,59 @@ export default function FeedScreen() {
         !openPostRef.current && !profileVisibleRef.current && !signInVisibleRef.current &&
         Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 2,
       onPanResponderMove: (_, { dx }) => {
-        // On first move, determine direction and start loading the adjacent category
         if (!swipeInitiatedRef.current) {
           swipeInitiatedRef.current = true;
           const idx = CATEGORY_IDS.indexOf(categoryRef.current);
           const nextIdx = dx < 0 ? idx + 1 : idx - 1;
           if (nextIdx >= 0 && nextIdx < CATEGORY_IDS.length) {
+            const pendingStart = dx < 0 ? SCREEN_WIDTH : -SCREEN_WIDTH;
+            pendingStartRef.current = pendingStart;
+            pendingAnim.setValue(pendingStart);
             const cat = CATEGORY_IDS[nextIdx];
-            pendingOffsetAnim.setValue(dx < 0 ? SCREEN_WIDTH : -SCREEN_WIDTH);
             pendingCatRef.current = cat;
             setPendingCat(cat);
             pendingLoaderRef.current(cat);
           }
         }
         slideAnim.setValue(dx);
+        pendingAnim.setValue(pendingStartRef.current + dx);
       },
       onPanResponderRelease: (_, { dx }) => {
         const idx = CATEGORY_IDS.indexOf(categoryRef.current);
         const nextIdx = dx < 0 ? idx + 1 : idx - 1;
         const committed = Math.abs(dx) >= 50 && nextIdx >= 0 && nextIdx < CATEGORY_IDS.length && !!pendingCatRef.current;
         if (committed) {
-          Animated.timing(slideAnim, {
-            toValue: dx < 0 ? -SCREEN_WIDTH : SCREEN_WIDTH,
-            duration: 150,
-            useNativeDriver: true,
-          }).start(() => {
-            const cat = pendingCatRef.current!;
-            const snapshotPosts = pendingPostsRef.current;
-            const snapshotCursor = pendingCursorRef.current;
-            // Wait one frame so the native layer finishes rendering at the final
-            // animation position before we jump slideAnim back to 0
-            requestAnimationFrame(() => {
-              slideAnim.setValue(0);
-              clearPending();
-              skipNextLoadRef.current = true;
-              setPosts(snapshotPosts);
-              setCursor(snapshotCursor);
-              setHasMore(!!snapshotCursor);
-              setCategory(cat);
-            });
-          });
-        } else {
-          // Let the spring finish before unmounting the pending panel
-          Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start(() => {
+          const cat = pendingCatRef.current!;
+          const snapshotPosts = pendingPostsRef.current;
+          const snapshotCursor = pendingCursorRef.current;
+          // Update current panel's content before the animation so when
+          // we reset positions there's no content flash
+          skipNextLoadRef.current = true;
+          setPosts(snapshotPosts);
+          setCursor(snapshotCursor);
+          setHasMore(!!snapshotCursor);
+          setCategory(cat);
+          Animated.parallel([
+            Animated.timing(slideAnim, { toValue: dx < 0 ? -SCREEN_WIDTH : SCREEN_WIDTH, duration: 150, useNativeDriver: true }),
+            Animated.timing(pendingAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+          ]).start(() => {
+            // Both anims settle in same native frame — no gap, no flash
+            slideAnim.setValue(0);
+            pendingAnim.setValue(pendingStartRef.current);
             clearPending();
           });
+        } else {
+          Animated.parallel([
+            Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 0 }),
+            Animated.spring(pendingAnim, { toValue: pendingStartRef.current, useNativeDriver: true, bounciness: 0 }),
+          ]).start(() => clearPending());
         }
       },
       onPanResponderTerminate: () => {
-        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start(() => {
-          clearPending();
-        });
+        Animated.parallel([
+          Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 0 }),
+          Animated.spring(pendingAnim, { toValue: pendingStartRef.current, useNativeDriver: true, bounciness: 0 }),
+        ]).start(() => clearPending());
       },
     })
   ).current;
@@ -367,7 +370,7 @@ export default function FeedScreen() {
 
         {/* Pending category panel — slides in alongside current */}
         {pendingCat && (
-          <Animated.View style={[styles.panel, { transform: [{ translateX: Animated.add(slideAnim, pendingOffsetAnim) }] }]}>
+          <Animated.View style={[styles.panel, { transform: [{ translateX: pendingAnim }] }]}>
             <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
               {pendingLoading || pendingPosts.length === 0 ? (
                 <View style={styles.initialLoader}>
