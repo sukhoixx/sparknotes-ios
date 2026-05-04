@@ -57,7 +57,7 @@ export default function FeedScreen() {
 
   const [pendingCat, setPendingCat] = useState<string | null>(null);
   const [pendingPosts, setPendingPosts] = useState<Post[]>([]);
-  const [pendingLoading, setPendingLoading] = useState(false);
+  const postsCache = useRef<Record<string, { posts: Post[]; cursor: string | null }>>({});
   const pendingCatRef = useRef<string | null>(null);
   const pendingPostsRef = useRef<Post[]>([]);
   const pendingCursorRef = useRef<string | null>(null);
@@ -115,6 +115,9 @@ export default function FeedScreen() {
                 ? profile.categories.join(",")
                 : undefined);
         const data: PageData = await fetchPosts(cat, nextCursor, cats, q || undefined);
+        if (reset && !q) {
+          postsCache.current[cat] = { posts: data.posts, cursor: data.nextCursor };
+        }
         setPosts((prev) => {
           if (reset) return data.posts;
           const seen = new Set(prev.map((p) => p.id));
@@ -199,22 +202,6 @@ export default function FeedScreen() {
 
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  // Updated each render — called from stable PanResponder to load the pending panel's posts
-  const pendingLoaderRef = useRef((_cat: string) => {});
-  pendingLoaderRef.current = (cat: string) => {
-    setPendingLoading(true);
-    setPendingPosts([]);
-    pendingPostsRef.current = [];
-    fetchPosts(cat, null)
-      .then((data: PageData) => {
-        pendingPostsRef.current = data.posts;
-        pendingCursorRef.current = data.nextCursor;
-        setPendingPosts(data.posts);
-      })
-      .catch(() => {})
-      .finally(() => setPendingLoading(false));
-  };
-
   function clearPending() {
     swipeInitiatedRef.current = false;
     pendingCatRef.current = null;
@@ -222,7 +209,6 @@ export default function FeedScreen() {
     pendingCursorRef.current = null;
     setPendingCat(null);
     setPendingPosts([]);
-    setPendingLoading(false);
   }
 
   const panResponder = useRef(
@@ -240,9 +226,12 @@ export default function FeedScreen() {
             pendingStartRef.current = pendingStart;
             pendingAnim.setValue(pendingStart);
             const cat = CATEGORY_IDS[nextIdx];
+            const cached = postsCache.current[cat];
+            pendingPostsRef.current = cached?.posts ?? [];
+            pendingCursorRef.current = cached?.cursor ?? null;
             pendingCatRef.current = cat;
             setPendingCat(cat);
-            pendingLoaderRef.current(cat);
+            setPendingPosts(cached?.posts ?? []);
           }
         }
         slideAnim.setValue(dx);
@@ -375,7 +364,7 @@ export default function FeedScreen() {
         {pendingCat && (
           <Animated.View style={[styles.panel, { transform: [{ translateX: pendingAnim }] }]}>
             <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-              {pendingLoading || pendingPosts.length === 0 ? (
+              {pendingPosts.length === 0 ? (
                 <View style={styles.initialLoader}>
                   <ActivityIndicator size="large" color="#ff2442" />
                 </View>
