@@ -47,9 +47,19 @@ export default function FeedScreen() {
     getJwt().then((jwt) => {
       if (!jwt) return;
       setIsAuthenticated(true);
-      fetchProfile().then((p) => setProfile(p));
+      fetchProfile().then((p) => {
+        setProfile(p);
+        if (p?.categories?.length) {
+          const cats = (p.categories as string[]).join(",");
+          setPosts([]);
+          setCursor(null);
+          setHasMore(true);
+          loadPosts("all", null, true, "", cats);
+        }
+      });
       fetchMyLikes().then((ids) => setLiked(new Set(ids)));
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
