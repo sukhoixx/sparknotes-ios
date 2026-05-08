@@ -237,6 +237,7 @@ export default function FeedScreen() {
                   likeCount={getLikeCount(post)}
                   onLike={() => handleLike(post)}
                   onPress={() => setOpenPost(post)}
+                  hideBadge={category !== "all"}
                 />
               ))}
             </View>
@@ -249,6 +250,7 @@ export default function FeedScreen() {
                   likeCount={getLikeCount(post)}
                   onLike={() => handleLike(post)}
                   onPress={() => setOpenPost(post)}
+                  hideBadge={category !== "all"}
                 />
               ))}
             </View>

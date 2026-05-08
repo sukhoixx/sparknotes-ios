@@ -15,18 +15,21 @@ interface Props {
   likeCount: number;
   onLike: () => void;
   onPress: () => void;
+  hideBadge?: boolean;
 }
 
-export function Card({ post, liked, likeCount, onLike, onPress }: Props) {
+export function Card({ post, liked, likeCount, onLike, onPress, hideBadge }: Props) {
   const lightCss = getLightGradient(post.category, post.gradient);
   const { colors, start, end } = parseGradient(lightCss);
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={styles.container}>
       <LinearGradient colors={[...colors]} start={start} end={end} style={styles.gradient}>
-        <View style={styles.badgeWrap}>
-          <Text style={styles.badge}>{post.badge}</Text>
-        </View>
+        {!hideBadge && (
+          <View style={styles.badgeWrap}>
+            <Text style={styles.badge}>{post.badge}</Text>
+          </View>
+        )}
         <Text style={styles.title} numberOfLines={5}>
           {post.title}
         </Text>
