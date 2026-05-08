@@ -25,7 +25,7 @@ export function Card({ post, liked, likeCount, onLike, onPress }: Props) {
     <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={styles.container}>
       <LinearGradient colors={[...colors]} start={start} end={end} style={styles.gradient}>
         <View style={styles.badgeWrap}>
-          <Text style={styles.badge}>{post.categoryEmojis ?? post.emoji}</Text>
+          <Text style={styles.badge}>{post.badge}</Text>
         </View>
         <Text style={styles.title} numberOfLines={5}>
           {post.title}
@@ -72,7 +72,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   badge: {
-    fontSize: 13,
+    fontSize: 9,
+    fontWeight: "600",
+    color: "rgba(0,0,0,0.65)",
   },
   title: {
     fontSize: 13,
