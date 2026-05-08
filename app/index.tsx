@@ -172,7 +172,19 @@ export default function FeedScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.logo}>📰 NewsBlock</Text>
+        <TouchableOpacity onPress={() => setCategory("all")}>
+          <TouchableOpacity onPress={() => {
+          setSearchText("");
+          setActiveSearch("");
+          setCategory("all");
+          setPosts([]);
+          setCursor(null);
+          setHasMore(true);
+          loadPosts("all", null, true, "");
+        }}>
+          <Text style={styles.logo}>📰 NewsBlock</Text>
+        </TouchableOpacity>
+        </TouchableOpacity>
         <View style={styles.searchRow}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
