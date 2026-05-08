@@ -30,6 +30,7 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const loadingRef = useRef(false);
+  const forYouCache = useRef<{ posts: Post[]; cursor: string | null; hasMore: boolean } | null>(null);
 
   const [liked, setLiked] = useState<Set<number>>(new Set());
   const [likeCounts, setLikeCounts] = useState<Record<number, number>>({});
@@ -51,6 +52,7 @@ export default function FeedScreen() {
       fetchProfile().then((p) => {
         setProfile(p);
         if (p?.categories?.length) {
+          forYouCache.current = null;
           const cats = (p.categories as string[]).join(",");
           setPosts([]);
           setCursor(null);
@@ -108,7 +110,22 @@ export default function FeedScreen() {
     [profile]
   );
 
+  // Keep For You cache in sync as posts/cursor/hasMore change
   useEffect(() => {
+    if (category === "all" && !activeSearch && posts.length > 0) {
+      forYouCache.current = { posts, cursor, hasMore };
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posts, cursor, hasMore]);
+
+  useEffect(() => {
+    // Switching back to For You: restore cache instead of reloading
+    if (category === "all" && !activeSearch && forYouCache.current) {
+      setPosts(forYouCache.current.posts);
+      setCursor(forYouCache.current.cursor);
+      setHasMore(forYouCache.current.hasMore);
+      return;
+    }
     setPosts([]);
     setCursor(null);
     setHasMore(true);
@@ -149,6 +166,7 @@ export default function FeedScreen() {
   }
 
   async function handleRefresh() {
+    if (category === "all") forYouCache.current = null;
     setRefreshing(true);
     loadingRef.current = false;
     await loadPosts(category, null, true, activeSearch);
@@ -174,6 +192,7 @@ export default function FeedScreen() {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setCategory("all")}>
           <TouchableOpacity onPress={() => {
+          forYouCache.current = null;
           setSearchText("");
           setActiveSearch("");
           setCategory("all");
