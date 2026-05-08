@@ -12,11 +12,7 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   AppState,
-  PanResponder,
-  Animated,
-  Dimensions,
 } from "react-native";
-
 import { Card } from "../src/components/Card";
 import { ArticleSheet } from "../src/components/ArticleSheet";
 import { CategoryTabs } from "../src/components/CategoryTabs";
@@ -24,14 +20,6 @@ import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
 import { fetchPosts, fetchMyLikes, getJwt, fetchProfile, toggleLike } from "../src/api";
 import type { Post, UserProfile, PageData } from "../src/types";
-
-const SCREEN_WIDTH = Dimensions.get("window").width;
-
-const CATEGORY_IDS = [
-  "all", "news", "us", "world", "politics", "military", "science",
-  "technology", "entertainment", "celebrity", "sports", "business",
-  "gaming", "travel", "animals", "inventions", "finance", "health", "beauty",
-];
 
 export default function FeedScreen() {
   const [category, setCategory] = useState("all");
@@ -54,17 +42,6 @@ export default function FeedScreen() {
 
   const [searchText, setSearchText] = useState("");
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const [pendingCat, setPendingCat] = useState<string | null>(null);
-  const [pendingPosts, setPendingPosts] = useState<Post[]>([]);
-  const postsCache = useRef<Record<string, { posts: Post[]; cursor: string | null }>>({});
-  const pendingCatRef = useRef<string | null>(null);
-  const pendingPostsRef = useRef<Post[]>([]);
-  const pendingCursorRef = useRef<string | null>(null);
-  const swipeInitiatedRef = useRef(false);
-  const skipNextLoadRef = useRef(false);
-  const pendingStartRef = useRef(SCREEN_WIDTH);
-  const pendingAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
 
   useEffect(() => {
     getJwt().then((jwt) => {
@@ -115,9 +92,6 @@ export default function FeedScreen() {
                 ? profile.categories.join(",")
                 : undefined);
         const data: PageData = await fetchPosts(cat, nextCursor, cats, q || undefined);
-        if (reset && !q) {
-          postsCache.current[cat] = { posts: data.posts, cursor: data.nextCursor };
-        }
         setPosts((prev) => {
           if (reset) return data.posts;
           const seen = new Set(prev.map((p) => p.id));
@@ -134,28 +108,11 @@ export default function FeedScreen() {
   );
 
   useEffect(() => {
-    if (skipNextLoadRef.current) { skipNextLoadRef.current = false; return; }
     setPosts([]);
     setCursor(null);
     setHasMore(true);
     loadPosts(category, null, true, activeSearch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, activeSearch]);
-
-  // Pre-fetch adjacent categories into cache so swipes are always instant
-  useEffect(() => {
-    if (activeSearch) return;
-    const idx = CATEGORY_IDS.indexOf(category);
-    [CATEGORY_IDS[idx - 1], CATEGORY_IDS[idx + 1]]
-      .filter(Boolean)
-      .forEach((cat) => {
-        if (postsCache.current[cat]) return;
-        fetchPosts(cat, null)
-          .then((data: PageData) => {
-            postsCache.current[cat] = { posts: data.posts, cursor: data.nextCursor };
-          })
-          .catch(() => {});
-      });
   }, [category, activeSearch]);
 
   function handleSearchChange(text: string) {
@@ -206,102 +163,12 @@ export default function FeedScreen() {
     }
   }
 
-  // Refs so PanResponder (created once) reads current state without stale closures
-  const categoryRef = useRef(category);
-  useEffect(() => { categoryRef.current = category; }, [category]);
-  const openPostRef = useRef<Post | null>(null);
-  useEffect(() => { openPostRef.current = openPost; }, [openPost]);
-  const profileVisibleRef = useRef(false);
-  useEffect(() => { profileVisibleRef.current = profileVisible; }, [profileVisible]);
-  const signInVisibleRef = useRef(false);
-  useEffect(() => { signInVisibleRef.current = signInVisible; }, [signInVisible]);
-
-  const slideAnim = useRef(new Animated.Value(0)).current;
-
-  function clearPending() {
-    swipeInitiatedRef.current = false;
-    pendingCatRef.current = null;
-    pendingPostsRef.current = [];
-    pendingCursorRef.current = null;
-    setPendingCat(null);
-    setPendingPosts([]);
-  }
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, { dx, dy }) =>
-        !openPostRef.current && !profileVisibleRef.current && !signInVisibleRef.current &&
-        Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 2,
-      onPanResponderMove: (_, { dx }) => {
-        if (!swipeInitiatedRef.current) {
-          swipeInitiatedRef.current = true;
-          const idx = CATEGORY_IDS.indexOf(categoryRef.current);
-          const nextIdx = dx < 0 ? idx + 1 : idx - 1;
-          if (nextIdx >= 0 && nextIdx < CATEGORY_IDS.length) {
-            const pendingStart = dx < 0 ? SCREEN_WIDTH : -SCREEN_WIDTH;
-            pendingStartRef.current = pendingStart;
-            pendingAnim.setValue(pendingStart);
-            const cat = CATEGORY_IDS[nextIdx];
-            const cached = postsCache.current[cat];
-            pendingPostsRef.current = cached?.posts ?? [];
-            pendingCursorRef.current = cached?.cursor ?? null;
-            pendingCatRef.current = cat;
-            setPendingCat(cat);
-            setPendingPosts(cached?.posts ?? []);
-          }
-        }
-        slideAnim.setValue(dx);
-        pendingAnim.setValue(pendingStartRef.current + dx);
-      },
-      onPanResponderRelease: (_, { dx }) => {
-        const idx = CATEGORY_IDS.indexOf(categoryRef.current);
-        const nextIdx = dx < 0 ? idx + 1 : idx - 1;
-        const committed = Math.abs(dx) >= 50 && nextIdx >= 0 && nextIdx < CATEGORY_IDS.length && !!pendingCatRef.current;
-        if (committed) {
-          const cat = pendingCatRef.current!;
-          const snapshotPosts = pendingPostsRef.current;
-          const snapshotCursor = pendingCursorRef.current;
-          // If posts already loaded, swap them in before the animation to
-          // avoid a content flash on reset. If still loading, let the
-          // useEffect reload normally after category changes.
-          if (snapshotPosts.length > 0) {
-            skipNextLoadRef.current = true;
-            setPosts(snapshotPosts);
-            setCursor(snapshotCursor);
-            setHasMore(!!snapshotCursor);
-          }
-          setCategory(cat);
-          Animated.parallel([
-            Animated.timing(slideAnim, { toValue: dx < 0 ? -SCREEN_WIDTH : SCREEN_WIDTH, duration: 150, useNativeDriver: true }),
-            Animated.timing(pendingAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
-          ]).start(() => {
-            // Both anims settle in same native frame — no gap, no flash
-            slideAnim.setValue(0);
-            pendingAnim.setValue(pendingStartRef.current);
-            clearPending();
-          });
-        } else {
-          Animated.parallel([
-            Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 0 }),
-            Animated.spring(pendingAnim, { toValue: pendingStartRef.current, useNativeDriver: true, bounciness: 0 }),
-          ]).start(() => clearPending());
-        }
-      },
-      onPanResponderTerminate: () => {
-        Animated.parallel([
-          Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, bounciness: 0 }),
-          Animated.spring(pendingAnim, { toValue: pendingStartRef.current, useNativeDriver: true, bounciness: 0 }),
-        ]).start(() => clearPending());
-      },
-    })
-  ).current;
-
   // Independent columns for true masonry — no shared row height
   const leftPosts = posts.filter((_, i) => i % 2 === 0);
   const rightPosts = posts.filter((_, i) => i % 2 === 1);
 
   return (
-    <SafeAreaView style={styles.container} {...panResponder.panHandlers}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.logo}>📰 NewsBlock</Text>
@@ -335,73 +202,63 @@ export default function FeedScreen() {
       {/* Category tabs */}
       <CategoryTabs active={category} onChange={setCategory} />
 
-      {/* Two-panel feed: current + pending slide together */}
-      <View style={styles.feedContainer}>
-        {/* Current category panel */}
-        <Animated.View style={[styles.panel, { transform: [{ translateX: slideAnim }] }]}>
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            onScroll={handleScroll}
-            scrollEventThrottle={200}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#ff2442" />
-            }
-          >
-            {posts.length === 0 && loading ? (
-              <View style={styles.initialLoader}>
-                <ActivityIndicator size="large" color="#ff2442" />
-              </View>
-            ) : posts.length === 0 ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyIcon}>📭</Text>
-                <Text style={styles.emptyText}>No posts yet — check back soon!</Text>
-              </View>
-            ) : (
-              <View style={styles.columns}>
-                <View style={styles.col}>
-                  {leftPosts.map((post) => (
-                    <Card key={post.id} post={post} liked={liked.has(post.id)} likeCount={getLikeCount(post)} onLike={() => handleLike(post)} onPress={() => setOpenPost(post)} />
-                  ))}
-                </View>
-                <View style={styles.col}>
-                  {rightPosts.map((post) => (
-                    <Card key={post.id} post={post} liked={liked.has(post.id)} likeCount={getLikeCount(post)} onLike={() => handleLike(post)} onPress={() => setOpenPost(post)} />
-                  ))}
-                </View>
-              </View>
-            )}
-            {loading && <ActivityIndicator color="#ff2442" style={{ marginVertical: 20 }} />}
-          </ScrollView>
-        </Animated.View>
-
-        {/* Pending category panel — slides in alongside current */}
-        {pendingCat && (
-          <Animated.View style={[styles.panel, { transform: [{ translateX: pendingAnim }] }]}>
-            <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-              {pendingPosts.length === 0 ? (
-                <View style={styles.initialLoader}>
-                  <ActivityIndicator size="large" color="#ff2442" />
-                </View>
-              ) : (
-                <View style={styles.columns}>
-                  <View style={styles.col}>
-                    {pendingPosts.filter((_, i) => i % 2 === 0).map((post) => (
-                      <Card key={post.id} post={post} liked={liked.has(post.id)} likeCount={getLikeCount(post)} onLike={() => handleLike(post)} onPress={() => setOpenPost(post)} />
-                    ))}
-                  </View>
-                  <View style={styles.col}>
-                    {pendingPosts.filter((_, i) => i % 2 === 1).map((post) => (
-                      <Card key={post.id} post={post} liked={liked.has(post.id)} likeCount={getLikeCount(post)} onLike={() => handleLike(post)} onPress={() => setOpenPost(post)} />
-                    ))}
-                  </View>
-                </View>
-              )}
-            </ScrollView>
-          </Animated.View>
+      {/* Masonry feed — two independent columns in a ScrollView */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={200}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#ff2442"
+          />
+        }
+      >
+        {posts.length === 0 && loading ? (
+          <View style={styles.initialLoader}>
+            <ActivityIndicator size="large" color="#ff2442" />
+          </View>
+        ) : posts.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyIcon}>📭</Text>
+            <Text style={styles.emptyText}>No posts yet — check back soon!</Text>
+          </View>
+        ) : (
+          <View style={styles.columns}>
+            <View style={styles.col}>
+              {leftPosts.map((post) => (
+                <Card
+                  key={post.id}
+                  post={post}
+                  liked={liked.has(post.id)}
+                  likeCount={getLikeCount(post)}
+                  onLike={() => handleLike(post)}
+                  onPress={() => setOpenPost(post)}
+                />
+              ))}
+            </View>
+            <View style={styles.col}>
+              {rightPosts.map((post) => (
+                <Card
+                  key={post.id}
+                  post={post}
+                  liked={liked.has(post.id)}
+                  likeCount={getLikeCount(post)}
+                  onLike={() => handleLike(post)}
+                  onPress={() => setOpenPost(post)}
+                />
+              ))}
+            </View>
+          </View>
         )}
-      </View>
+
+        {loading && (
+          <ActivityIndicator color="#ff2442" style={{ marginVertical: 20 }} />
+        )}
+      </ScrollView>
 
       {/* Article detail */}
       <ArticleSheet
@@ -506,13 +363,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#111111",
     paddingVertical: 0,
-  },
-  feedContainer: {
-    flex: 1,
-    overflow: "hidden",
-  },
-  panel: {
-    ...StyleSheet.absoluteFillObject,
   },
   scroll: {
     flex: 1,

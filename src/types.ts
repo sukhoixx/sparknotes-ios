@@ -14,6 +14,7 @@ export interface Post {
   sourceUrl: string | null;
   likes: number;
   createdAt: string;
+  categoryEmojis?: string;
   _count: { comments: number };
 }
 
