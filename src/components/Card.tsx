@@ -16,10 +16,11 @@ interface Props {
   onLike: () => void;
   onPress: () => void;
   hideBadge?: boolean;
+  overrideGradient?: string;
 }
 
-export function Card({ post, liked, likeCount, onLike, onPress, hideBadge }: Props) {
-  const lightCss = getLightGradient(post.category, post.gradient);
+export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, overrideGradient }: Props) {
+  const lightCss = overrideGradient ?? getLightGradient(post.category, post.gradient);
   const { colors, start, end } = parseGradient(lightCss);
 
   return (

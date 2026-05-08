@@ -19,6 +19,7 @@ import { CategoryTabs } from "../src/components/CategoryTabs";
 import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
 import { fetchPosts, fetchMyLikes, getJwt, fetchProfile, toggleLike } from "../src/api";
+import { CATEGORY_GRADIENTS } from "../src/categories";
 import type { Post, UserProfile, PageData } from "../src/types";
 
 export default function FeedScreen() {
@@ -238,6 +239,7 @@ export default function FeedScreen() {
                   onLike={() => handleLike(post)}
                   onPress={() => setOpenPost(post)}
                   hideBadge={category !== "all"}
+                  overrideGradient={category !== "all" ? CATEGORY_GRADIENTS[category] : undefined}
                 />
               ))}
             </View>
@@ -251,6 +253,7 @@ export default function FeedScreen() {
                   onLike={() => handleLike(post)}
                   onPress={() => setOpenPost(post)}
                   hideBadge={category !== "all"}
+                  overrideGradient={category !== "all" ? CATEGORY_GRADIENTS[category] : undefined}
                 />
               ))}
             </View>
