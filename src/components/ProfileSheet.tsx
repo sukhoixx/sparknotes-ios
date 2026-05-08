@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { saveProfile } from "../api";
+import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
 import type { UserProfile } from "../types";
 
@@ -124,6 +124,30 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
     ]);
   }
 
+  function handleDeleteAccount() {
+    Alert.alert(
+      "Delete account",
+      "This will permanently delete your account and all associated data. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete account",
+          style: "destructive",
+          onPress: async () => {
+            const ok = await deleteAccount();
+            if (ok) {
+              await signOut();
+              onSignedOut();
+              onClose();
+            } else {
+              Alert.alert("Error", "Could not delete account. Please try again.");
+            }
+          },
+        },
+      ]
+    );
+  }
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={styles.container}>
@@ -220,6 +244,11 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
           {/* Sign out */}
           <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
             <Text style={styles.signOutLabel}>Sign out</Text>
+          </TouchableOpacity>
+
+          {/* Delete account */}
+          <TouchableOpacity onPress={handleDeleteAccount} style={styles.deleteBtn}>
+            <Text style={styles.deleteLabel}>Delete account</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -346,6 +375,14 @@ const styles = StyleSheet.create({
   signOutLabel: {
     fontSize: 14,
     color: "#9ca3af",
+  },
+  deleteBtn: {
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+  deleteLabel: {
+    fontSize: 14,
+    color: "#ff2442",
   },
   noProfileBanner: {
     backgroundColor: "#fff7ed",

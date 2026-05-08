@@ -112,6 +112,15 @@ export async function saveProfile(
   return data.profile ?? null;
 }
 
+export async function deleteAccount(): Promise<boolean> {
+  try {
+    const res = await apiFetch("/api/account", { method: "DELETE" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function signInMobile(
   provider: "apple" | "google",
   idToken: string

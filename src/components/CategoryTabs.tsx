@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from "react-native";
 
 const TABS = [
@@ -29,8 +29,17 @@ interface Props {
 }
 
 export function CategoryTabs({ active, onChange }: Props) {
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (active === "all") {
+      scrollRef.current?.scrollTo({ x: 0, animated: true });
+    }
+  }, [active]);
+
   return (
     <ScrollView
+      ref={scrollRef}
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
