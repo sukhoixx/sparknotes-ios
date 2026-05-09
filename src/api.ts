@@ -121,6 +121,17 @@ export async function deleteAccount(): Promise<boolean> {
   }
 }
 
+export async function fetchOgImage(sourceUrl: string): Promise<string | null> {
+  try {
+    const res = await apiFetch(`/api/og?url=${encodeURIComponent(sourceUrl)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.imageUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function signInMobile(
   provider: "apple" | "google",
   idToken: string

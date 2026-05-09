@@ -19,7 +19,7 @@ import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import RenderHtml from "react-native-render-html";
 import type { Post, Comment } from "../types";
-import { fetchComments, postComment } from "../api";
+import { fetchComments, postComment, fetchOgImage } from "../api";
 
 function formatNum(n: number): string {
   return n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
@@ -101,6 +101,14 @@ export function ArticleSheet({
       }
     }
   }
+
+  const [ogImage, setOgImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!post?.sourceUrl) { setOgImage(null); return; }
+    setOgImage(null);
+    fetchOgImage(post.sourceUrl).then(setOgImage);
+  }, [post?.id]);
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -193,10 +201,10 @@ export function ArticleSheet({
                 {/* Title */}
                 <Text style={styles.title}>{post.title}</Text>
 
-                {/* Hero image */}
-                {!!post.imageUrl && (
+                {/* Hero image — og:image (high-res) with fallback to RSS thumbnail */}
+                {!!(ogImage ?? post.imageUrl) && (
                   <Image
-                    source={{ uri: post.imageUrl }}
+                    source={{ uri: (ogImage ?? post.imageUrl)! }}
                     style={{ width: contentWidth, height: 200, borderRadius: 12, marginBottom: 16 }}
                     resizeMode="cover"
                   />
