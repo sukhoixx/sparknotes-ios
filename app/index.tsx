@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   columns: {
     flexDirection: "row",
-    gap: 8,
+    gap: 4,
     alignItems: "flex-start",
   },
   col: {

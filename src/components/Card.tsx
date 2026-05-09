@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 14,
     overflow: "hidden",
-    marginBottom: 8,
+    marginBottom: 4,
     backgroundColor: "#ffffff",
   },
   badgeWrap: {
