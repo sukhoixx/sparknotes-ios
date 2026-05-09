@@ -45,6 +45,32 @@ const FUN_FACT_TAG_STYLES = {
   strong: { color: "#92400e", fontWeight: "700" as const },
 };
 
+function HeroImage({ lowRes, highRes, width }: { lowRes?: string; highRes?: string; width: number }) {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  function onHighResLoad() {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+  }
+
+  const imageStyle = { width, height: 200, borderRadius: 12, marginBottom: 16 };
+
+  return (
+    <View style={imageStyle}>
+      {!!lowRes && (
+        <Image source={{ uri: lowRes }} style={[imageStyle, { position: "absolute" }]} resizeMode="cover" />
+      )}
+      {!!highRes && (
+        <Animated.Image
+          source={{ uri: highRes }}
+          style={[imageStyle, { position: "absolute", opacity: fadeAnim }]}
+          resizeMode="cover"
+          onLoad={onHighResLoad}
+        />
+      )}
+    </View>
+  );
+}
+
 export function ArticleSheet({
   post,
   liked,
@@ -201,12 +227,12 @@ export function ArticleSheet({
                 {/* Title */}
                 <Text style={styles.title}>{post.title}</Text>
 
-                {/* Hero image — og:image (high-res) with fallback to RSS thumbnail */}
+                {/* Hero image — low-res shown immediately, high-res fades in on top */}
                 {!!(ogImage ?? post.imageUrl) && (
-                  <Image
-                    source={{ uri: (ogImage ?? post.imageUrl)! }}
-                    style={{ width: contentWidth, height: 200, borderRadius: 12, marginBottom: 16 }}
-                    resizeMode="cover"
+                  <HeroImage
+                    lowRes={post.imageUrl ?? undefined}
+                    highRes={ogImage ?? undefined}
+                    width={contentWidth}
                   />
                 )}
 
