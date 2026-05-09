@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
 import {
   View,
   ScrollView,
@@ -24,6 +25,7 @@ import { CATEGORY_GRADIENTS } from "../src/categories";
 import type { Post, UserProfile, PageData } from "../src/types";
 
 export default function FeedScreen() {
+  const { openPostId } = useLocalSearchParams<{ openPostId?: string }>();
   const [category, setCategory] = useState("all");
   const [posts, setPosts] = useState<Post[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -75,9 +77,14 @@ export default function FeedScreen() {
     return () => sub.remove();
   }, [loadPosts]);
 
+  useEffect(() => {
+    if (!openPostId) return;
+    fetchPost(parseInt(openPostId)).then((post) => { if (post) setOpenPost(post); });
+  }, [openPostId]);
+
   function handleDeepLink(url: string | null) {
     if (!url) return;
-    const match = url.match(/\/posts\/(\d+)/) ?? url.match(/newsblock:\/\/post\/(\d+)/);
+    const match = url.match(/\/posts\/(\d+)/);
     if (!match) return;
     fetchPost(parseInt(match[1])).then((post) => { if (post) setOpenPost(post); });
   }
