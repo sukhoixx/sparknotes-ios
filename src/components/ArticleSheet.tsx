@@ -18,6 +18,8 @@ import {
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import RenderHtml from "react-native-render-html";
+import * as Clipboard from "expo-clipboard";
+import { Ionicons } from "@expo/vector-icons";
 import type { Post, Comment } from "../types";
 import { fetchComments, postComment, fetchOgImage } from "../api";
 
@@ -265,14 +267,38 @@ export function ArticleSheet({
                   </View>
                 )}
 
-                {/* Source link */}
+                {/* Source link + share buttons */}
                 {!!post.sourceUrl && (
-                  <TouchableOpacity
-                    onPress={() => Linking.openURL(post.sourceUrl!)}
-                    style={styles.sourceBtn}
-                  >
-                    <Text style={styles.sourceBtnLabel}>View Source Article →</Text>
-                  </TouchableOpacity>
+                  <View style={styles.sourceRow}>
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(post.sourceUrl!)}
+                      style={styles.sourceBtn}
+                    >
+                      <Text style={styles.sourceBtnLabel}>View Source Article →</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.shareBtn}
+                      onPress={() => Linking.openURL(
+                        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(post.sourceUrl!)}`
+                      )}
+                    >
+                      <Ionicons name="logo-facebook" size={20} color="#1877f2" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.shareBtn}
+                      onPress={() => Linking.openURL(
+                        `https://twitter.com/intent/tweet?url=${encodeURIComponent(post.sourceUrl!)}&text=${encodeURIComponent(post.title)}`
+                      )}
+                    >
+                      <Ionicons name="logo-twitter" size={20} color="#1da1f2" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.shareBtn}
+                      onPress={() => Clipboard.setStringAsync(post.sourceUrl!)}
+                    >
+                      <Ionicons name="link-outline" size={20} color="#6b7280" />
+                    </TouchableOpacity>
+                  </View>
                 )}
 
                 {/* Comments */}
@@ -384,16 +410,28 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   tagText: { color: "#6b7280", fontSize: 12 },
+  sourceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 24,
+  },
   sourceBtn: {
-    alignSelf: "flex-start",
     borderWidth: 1.5,
     borderColor: "#ff2442",
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 7,
-    marginBottom: 24,
   },
   sourceBtnLabel: { color: "#ff2442", fontSize: 13, fontWeight: "700" },
+  shareBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   commentsHeader: { fontSize: 16, fontWeight: "700", color: "#111111", marginBottom: 16 },
   comment: {
     marginBottom: 16,
