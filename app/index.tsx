@@ -12,13 +12,14 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   AppState,
+  Linking,
 } from "react-native";
 import { Card } from "../src/components/Card";
 import { ArticleSheet } from "../src/components/ArticleSheet";
 import { CategoryTabs } from "../src/components/CategoryTabs";
 import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
-import { fetchPosts, fetchMyLikes, getJwt, fetchProfile, toggleLike } from "../src/api";
+import { fetchPosts, fetchMyLikes, getJwt, fetchProfile, toggleLike, fetchPost } from "../src/api";
 import { CATEGORY_GRADIENTS } from "../src/categories";
 import type { Post, UserProfile, PageData } from "../src/types";
 
@@ -73,6 +74,20 @@ export default function FeedScreen() {
     });
     return () => sub.remove();
   }, [loadPosts]);
+
+  function handleDeepLink(url: string | null) {
+    if (!url) return;
+    const match = url.match(/\/posts\/(\d+)/) ?? url.match(/newsblock:\/\/post\/(\d+)/);
+    if (!match) return;
+    fetchPost(parseInt(match[1])).then((post) => { if (post) setOpenPost(post); });
+  }
+
+  useEffect(() => {
+    Linking.getInitialURL().then(handleDeepLink);
+    const sub = Linking.addEventListener("url", ({ url }) => handleDeepLink(url));
+    return () => sub.remove();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function getLikeCount(post: Post) {
     return likeCounts[post.id] ?? post.likes;

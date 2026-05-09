@@ -121,6 +121,17 @@ export async function deleteAccount(): Promise<boolean> {
   }
 }
 
+export async function fetchPost(id: number): Promise<Post | null> {
+  try {
+    const res = await apiFetch(`/api/posts/${id}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.post ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchOgImage(sourceUrl: string): Promise<string | null> {
   try {
     const res = await apiFetch(`/api/og?url=${encodeURIComponent(sourceUrl)}`);

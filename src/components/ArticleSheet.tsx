@@ -277,23 +277,28 @@ export function ArticleSheet({
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.shareBtn}
-                      onPress={() => Linking.openURL(
-                        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(post.sourceUrl!)}`
-                      )}
+                      onPress={() => {
+                        const appLink = `https://sparknotes.up.railway.app/posts/${post.id}`;
+                        Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(appLink)}`);
+                      }}
                     >
                       <Text style={[styles.shareBtnText, { color: "#1877f2" }]}>f</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.shareBtn}
-                      onPress={() => Linking.openURL(
-                        `https://twitter.com/intent/tweet?url=${encodeURIComponent(post.sourceUrl!)}&text=${encodeURIComponent(post.title)}`
-                      )}
+                      onPress={() => {
+                        const appLink = `https://sparknotes.up.railway.app/posts/${post.id}`;
+                        Linking.openURL(`https://twitter.com/intent/tweet?url=${encodeURIComponent(appLink)}&text=${encodeURIComponent(post.title)}`);
+                      }}
                     >
                       <Text style={[styles.shareBtnText, { color: "#000000" }]}>𝕏</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.shareBtn}
-                      onPress={() => Share.share({ message: post.sourceUrl!, url: post.sourceUrl! })}
+                      onPress={() => {
+                        const appLink = `https://sparknotes.up.railway.app/posts/${post.id}`;
+                        Share.share({ message: appLink, url: appLink });
+                      }}
                     >
                       <Text style={styles.shareBtnText}>🔗</Text>
                     </TouchableOpacity>

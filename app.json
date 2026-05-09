@@ -11,7 +11,8 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.newsblock.app",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "associatedDomains": ["applinks:sparknotes.up.railway.app"]
     },
     "plugins": [
       "expo-router",
@@ -23,7 +24,8 @@
           "iosUrlScheme": "com.googleusercontent.apps.228391293170-82itthm8uao5q6g2nkvd856rfj570qub"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
