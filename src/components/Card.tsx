@@ -1,9 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import type { Post } from "../types";
-import { parseGradient } from "../gradients";
-import { getLightGradient } from "../categories";
 
 function formatNum(n: number): string {
   return n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
@@ -19,21 +16,18 @@ interface Props {
   overrideGradient?: string;
 }
 
-export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, overrideGradient }: Props) {
-  const lightCss = overrideGradient ?? getLightGradient(post.category, post.gradient);
-  const { colors, start, end } = parseGradient(lightCss);
-
+export function Card({ post, liked, likeCount, onLike, onPress, hideBadge }: Props) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={styles.container}>
+      {!hideBadge && (
+        <View style={styles.badgeWrap}>
+          <Text style={styles.badge}>{post.badge}</Text>
+        </View>
+      )}
       {!!post.imageUrl && (
         <Image source={{ uri: post.imageUrl }} style={styles.image} resizeMode="cover" />
       )}
-      <LinearGradient colors={[...colors]} start={start} end={end} style={styles.gradient}>
-        {!hideBadge && (
-          <View style={styles.badgeWrap}>
-            <Text style={styles.badge}>{post.badge}</Text>
-          </View>
-        )}
+      <View style={styles.content}>
         <Text style={styles.title} numberOfLines={5}>
           {post.title}
         </Text>
@@ -52,7 +46,7 @@ export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, overr
             </Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -62,30 +56,27 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
     marginBottom: 8,
+    backgroundColor: "#ffffff",
+  },
+  badgeWrap: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    backgroundColor: "#ffffff",
+  },
+  badge: {
+    fontSize: 9,
+    fontWeight: "600",
+    color: "rgba(0,0,0,0.5)",
   },
   image: {
     width: "100%",
     height: 120,
   },
-  gradient: {
+  content: {
     paddingHorizontal: 10,
-    paddingTop: 30,
+    paddingTop: 8,
     paddingBottom: 10,
-    minHeight: 110,
-  },
-  badgeWrap: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    backgroundColor: "rgba(0,0,0,0.1)",
-    borderRadius: 10,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  badge: {
-    fontSize: 9,
-    fontWeight: "600",
-    color: "rgba(0,0,0,0.65)",
+    minHeight: 80,
   },
   title: {
     fontSize: 13,
