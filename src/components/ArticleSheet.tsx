@@ -13,12 +13,12 @@ import {
   Keyboard,
   Animated,
   Linking,
+  Share,
   Image,
 } from "react-native";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import RenderHtml from "react-native-render-html";
-import * as Clipboard from "expo-clipboard";
 import type { Post, Comment } from "../types";
 import { fetchComments, postComment, fetchOgImage } from "../api";
 
@@ -293,7 +293,7 @@ export function ArticleSheet({
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.shareBtn}
-                      onPress={() => Clipboard.setStringAsync(post.sourceUrl!)}
+                      onPress={() => Share.share({ message: post.sourceUrl!, url: post.sourceUrl! })}
                     >
                       <Text style={styles.shareBtnText}>🔗</Text>
                     </TouchableOpacity>
