@@ -19,7 +19,6 @@ import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import RenderHtml from "react-native-render-html";
 import * as Clipboard from "expo-clipboard";
-import { Ionicons } from "@expo/vector-icons";
 import type { Post, Comment } from "../types";
 import { fetchComments, postComment, fetchOgImage } from "../api";
 
@@ -282,7 +281,7 @@ export function ArticleSheet({
                         `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(post.sourceUrl!)}`
                       )}
                     >
-                      <Ionicons name="logo-facebook" size={20} color="#1877f2" />
+                      <Text style={[styles.shareBtnText, { color: "#1877f2" }]}>f</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.shareBtn}
@@ -290,13 +289,13 @@ export function ArticleSheet({
                         `https://twitter.com/intent/tweet?url=${encodeURIComponent(post.sourceUrl!)}&text=${encodeURIComponent(post.title)}`
                       )}
                     >
-                      <Ionicons name="logo-twitter" size={20} color="#1da1f2" />
+                      <Text style={[styles.shareBtnText, { color: "#000000" }]}>𝕏</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.shareBtn}
                       onPress={() => Clipboard.setStringAsync(post.sourceUrl!)}
                     >
-                      <Ionicons name="link-outline" size={20} color="#6b7280" />
+                      <Text style={styles.shareBtnText}>🔗</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -431,6 +430,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#f3f4f6",
     alignItems: "center",
     justifyContent: "center",
+  },
+  shareBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#6b7280",
   },
   commentsHeader: { fontSize: 16, fontWeight: "700", color: "#111111", marginBottom: 16 },
   comment: {
