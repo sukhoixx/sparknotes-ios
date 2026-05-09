@@ -13,6 +13,7 @@ import {
   Keyboard,
   Animated,
   Linking,
+  Image,
 } from "react-native";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -191,6 +192,15 @@ export function ArticleSheet({
 
                 {/* Title */}
                 <Text style={styles.title}>{post.title}</Text>
+
+                {/* Hero image */}
+                {!!post.imageUrl && (
+                  <Image
+                    source={{ uri: post.imageUrl }}
+                    style={{ width: contentWidth, height: 200, borderRadius: 12, marginBottom: 16 }}
+                    resizeMode="cover"
+                  />
+                )}
 
                 {/* Body */}
                 <RenderHtml

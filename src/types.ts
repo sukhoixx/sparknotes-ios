@@ -12,6 +12,7 @@ export interface Post {
   authorEmoji: string;
   authorBg: string;
   sourceUrl: string | null;
+  imageUrl?: string | null;
   likes: number;
   createdAt: string;
   categoryEmojis?: string;

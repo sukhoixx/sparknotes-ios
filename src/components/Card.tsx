@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import type { Post } from "../types";
 import { parseGradient } from "../gradients";
@@ -25,6 +25,9 @@ export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, overr
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.88} style={styles.container}>
+      {!!post.imageUrl && (
+        <Image source={{ uri: post.imageUrl }} style={styles.image} resizeMode="cover" />
+      )}
       <LinearGradient colors={[...colors]} start={start} end={end} style={styles.gradient}>
         {!hideBadge && (
           <View style={styles.badgeWrap}>
@@ -59,6 +62,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
     marginBottom: 8,
+  },
+  image: {
+    width: "100%",
+    height: 120,
   },
   gradient: {
     paddingHorizontal: 10,
