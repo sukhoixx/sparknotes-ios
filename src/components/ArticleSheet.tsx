@@ -278,7 +278,7 @@ export function ArticleSheet({
                     <TouchableOpacity
                       style={styles.shareBtn}
                       onPress={() => {
-                        const appLink = `https://sparknotes.up.railway.app/posts/${post.id}`;
+                        const appLink = `https://sparknotes-production.up.railway.app/posts/${post.id}`;
                         Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(appLink)}`);
                       }}
                     >
@@ -287,7 +287,7 @@ export function ArticleSheet({
                     <TouchableOpacity
                       style={styles.shareBtn}
                       onPress={() => {
-                        const appLink = `https://sparknotes.up.railway.app/posts/${post.id}`;
+                        const appLink = `https://sparknotes-production.up.railway.app/posts/${post.id}`;
                         Linking.openURL(`https://twitter.com/intent/tweet?url=${encodeURIComponent(appLink)}&text=${encodeURIComponent(post.title)}`);
                       }}
                     >
@@ -296,7 +296,7 @@ export function ArticleSheet({
                     <TouchableOpacity
                       style={styles.shareBtn}
                       onPress={() => {
-                        const appLink = `https://sparknotes.up.railway.app/posts/${post.id}`;
+                        const appLink = `https://sparknotes-production.up.railway.app/posts/${post.id}`;
                         Share.share({ url: appLink });
                       }}
                     >

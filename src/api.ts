@@ -2,7 +2,7 @@ import * as SecureStore from "expo-secure-store";
 import type { Post, UserProfile, Comment, PageData } from "./types";
 
 export const BASE_URL = (
-  process.env.EXPO_PUBLIC_API_URL ?? "https://sparknotes.up.railway.app"
+  process.env.EXPO_PUBLIC_API_URL ?? "https://sparknotes-production.up.railway.app"
 ).replace(/\/$/, "");
 
 const JWT_KEY = "newsblock_jwt";

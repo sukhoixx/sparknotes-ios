@@ -12,7 +12,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.newsblock.app",
       "usesAppleSignIn": true,
-      "associatedDomains": ["applinks:sparknotes.up.railway.app"]
+      "associatedDomains": ["applinks:sparknotes-production.up.railway.app"]
     },
     "plugins": [
       "expo-router",
