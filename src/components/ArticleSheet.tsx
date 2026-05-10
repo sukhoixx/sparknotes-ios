@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -16,9 +16,11 @@ import {
   Share,
   Image,
 } from "react-native";
-import { PanGestureHandler, State } from "react-native-gesture-handler";
+import { PanGestureHandler, TapGestureHandler, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import RenderHtml from "react-native-render-html";
+import { useTheme } from "../theme";
+import type { Colors } from "../theme";
 import type { Post, Comment } from "../types";
 import { fetchComments, postComment, fetchOgImage } from "../api";
 
@@ -35,16 +37,6 @@ interface Props {
   isAuthenticated: boolean;
   onSignInRequired: () => void;
 }
-
-const HTML_TAG_STYLES = {
-  p: { color: "#374151", fontSize: 15, lineHeight: 24, marginBottom: 12 },
-  strong: { color: "#111111", fontWeight: "700" as const },
-};
-
-const FUN_FACT_TAG_STYLES = {
-  p: { color: "#92400e", fontSize: 13, lineHeight: 20, margin: 0 },
-  strong: { color: "#92400e", fontWeight: "700" as const },
-};
 
 function HeroImage({ lowRes, highRes, width }: { lowRes?: string; highRes?: string; width: number }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -81,23 +73,52 @@ export function ArticleSheet({
   isAuthenticated,
   onSignInRequired,
 }: Props) {
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
+  const htmlTagStyles = useMemo(() => ({
+    p: { color: colors.textSub, fontSize: 15, lineHeight: 24, marginBottom: 12 },
+    strong: { color: colors.text, fontWeight: "700" as const },
+  }), [colors]);
+
+  const bodySource = useMemo(() => ({ html: post?.body ?? "" }), [post?.body]);
+  const funFactSource = useMemo(() => ({ html: `<p>${post?.funFact ?? ""}</p>` }), [post?.funFact]);
+  const funFactTagStyles = useMemo(() => ({
+    p: { color: "#92400e", fontSize: 13, lineHeight: 20, margin: 0 },
+    strong: { color: "#92400e", fontWeight: "700" as const },
+  }), []);
 
   const translateX = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(height)).current;
+  const scale = useRef(new Animated.Value(0.88)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
-  // useLayoutEffect fires before paint — animation starts the same frame the post is set
+  const doubleTapRef = useRef(null);
+  const heartScale = useRef(new Animated.Value(0)).current;
+  const heartOpacity = useRef(new Animated.Value(0)).current;
+
+  function onDoubleTap({ nativeEvent }: any) {
+    if (nativeEvent.state !== State.ACTIVE) return;
+    if (!liked) onLike();
+    heartScale.setValue(0);
+    heartOpacity.setValue(1);
+    Animated.sequence([
+      Animated.spring(heartScale, { toValue: 1, useNativeDriver: true, bounciness: 12 }),
+      Animated.delay(350),
+      Animated.timing(heartOpacity, { toValue: 0, duration: 250, useNativeDriver: true }),
+    ]).start();
+  }
+
   useLayoutEffect(() => {
     if (post) {
       translateX.setValue(0);
-      translateY.setValue(height);
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        bounciness: 0,
-        speed: 16,
-      }).start();
+      scale.setValue(0.88);
+      opacity.setValue(0);
+      Animated.parallel([
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true, bounciness: 0, speed: 18 }),
+        Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: true }),
+      ]).start();
     }
   }, [post?.id]);
 
@@ -107,11 +128,10 @@ export function ArticleSheet({
   );
 
   function handleClose() {
-    Animated.timing(translateY, {
-      toValue: height,
-      duration: 220,
-      useNativeDriver: true,
-    }).start(() => onClose());
+    Animated.parallel([
+      Animated.timing(scale, { toValue: 0.88, duration: 200, useNativeDriver: true }),
+      Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start(() => onClose());
   }
 
   function onHandlerStateChange({ nativeEvent }: any) {
@@ -170,7 +190,6 @@ export function ArticleSheet({
   const contentWidth = width - 32;
 
   return (
-    // Always mounted — no Modal mount delay. pointerEvents blocks touches when off-screen.
     <PanGestureHandler
       onGestureEvent={onGestureEvent}
       onHandlerStateChange={onHandlerStateChange}
@@ -181,7 +200,7 @@ export function ArticleSheet({
       <Animated.View
         style={[
           styles.container,
-          { paddingTop: insets.top, transform: [{ translateX }, { translateY }] },
+          { paddingTop: insets.top, opacity, transform: [{ translateX }, { scale }] },
         ]}
         pointerEvents={post ? "auto" : "none"}
       >
@@ -201,6 +220,11 @@ export function ArticleSheet({
           )}
         </View>
 
+        <TapGestureHandler
+          ref={doubleTapRef}
+          numberOfTaps={2}
+          onHandlerStateChange={onDoubleTap}
+        >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -213,22 +237,17 @@ export function ArticleSheet({
           >
             {post && (
               <>
-                {/* AI badge + date */}
-                <View style={styles.badgeRow}>
-                  <View style={styles.aiBadge}>
-                    <Text style={styles.aiBadgeText}>✨ AI Summary</Text>
-                  </View>
-                  <Text style={styles.dateText}>
-                    {new Date(post.createdAt).toLocaleDateString("en-US", {
-                      month: "short", day: "numeric", year: "numeric",
-                    })}
-                  </Text>
-                </View>
+                {/* Date */}
+                <Text style={[styles.dateText, { marginBottom: 12 }]}>
+                  {new Date(post.createdAt).toLocaleDateString("en-US", {
+                    month: "short", day: "numeric", year: "numeric",
+                  })}
+                </Text>
 
                 {/* Title */}
                 <Text style={styles.title}>{post.title}</Text>
 
-                {/* Hero image — low-res shown immediately, high-res fades in on top */}
+                {/* Hero image */}
                 {!!(ogImage ?? post.imageUrl) && (
                   <HeroImage
                     lowRes={post.imageUrl ?? undefined}
@@ -240,8 +259,8 @@ export function ArticleSheet({
                 {/* Body */}
                 <RenderHtml
                   contentWidth={contentWidth}
-                  source={{ html: post.body }}
-                  tagsStyles={HTML_TAG_STYLES}
+                  source={bodySource}
+                  tagsStyles={htmlTagStyles}
                 />
 
                 {/* Fun fact */}
@@ -249,8 +268,8 @@ export function ArticleSheet({
                   <View style={styles.funFact}>
                     <RenderHtml
                       contentWidth={contentWidth - 28}
-                      source={{ html: `<p>${post.funFact}</p>` }}
-                      tagsStyles={FUN_FACT_TAG_STYLES}
+                      source={funFactSource}
+                      tagsStyles={funFactTagStyles}
                     />
                   </View>
                 )}
@@ -311,7 +330,7 @@ export function ArticleSheet({
                 </Text>
 
                 {commentsLoading && (
-                  <ActivityIndicator color="#ff2442" style={{ marginVertical: 16 }} />
+                  <ActivityIndicator color={colors.brand} style={{ marginVertical: 16 }} />
                 )}
 
                 {comments.map((c) => (
@@ -331,7 +350,7 @@ export function ArticleSheet({
             <TextInput
               style={styles.input}
               placeholder={isAuthenticated ? "Add a comment…" : "Sign in to comment…"}
-              placeholderTextColor="#8e8e93"
+              placeholderTextColor={colors.textMuted}
               value={commentText}
               onChangeText={setCommentText}
               onFocus={() => { if (!isAuthenticated) onSignInRequired(); }}
@@ -348,136 +367,146 @@ export function ArticleSheet({
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
+        </TapGestureHandler>
+
+        {/* Double-tap heart animation */}
+        <Animated.Text
+          style={[styles.heartOverlay, { opacity: heartOpacity, transform: [{ scale: heartScale }] }]}
+          pointerEvents="none"
+        >
+          ❤️
+        </Animated.Text>
       </Animated.View>
     </PanGestureHandler>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#ffffff",
-    zIndex: 100,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e5e7eb",
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#f3f4f6",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  closeLabel: { color: "#374151", fontSize: 14 },
-  likeBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  likeEmoji: { fontSize: 22 },
-  likeCount: { color: "#374151", fontSize: 14, fontWeight: "600" },
-  scroll: { flex: 1 },
-  scrollContent: { padding: 16 },
-  badgeRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-  aiBadge: {
-    backgroundColor: "#6c47ff",
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  aiBadgeText: { color: "#ffffff", fontSize: 11, fontWeight: "700" },
-  dateText: { fontSize: 11, color: "#9ca3af" },
-  title: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#111111",
-    lineHeight: 28,
-    marginBottom: 16,
-  },
-  funFact: {
-    backgroundColor: "#fffbeb",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: "#f59e0b",
-  },
-  tags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 24 },
-  tag: {
-    backgroundColor: "#f3f4f6",
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  tagText: { color: "#6b7280", fontSize: 12 },
-  sourceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 24,
-  },
-  sourceBtn: {
-    borderWidth: 1.5,
-    borderColor: "#ff2442",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-  },
-  sourceBtnLabel: { color: "#ff2442", fontSize: 13, fontWeight: "700" },
-  shareBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "#f3f4f6",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  shareBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#6b7280",
-  },
-  commentsHeader: { fontSize: 16, fontWeight: "700", color: "#111111", marginBottom: 16 },
-  comment: {
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e5e7eb",
-  },
-  commentName: { fontSize: 13, fontWeight: "700", color: "#ff2442", marginBottom: 4 },
-  commentBody: { fontSize: 14, color: "#374151", lineHeight: 20 },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#e5e7eb",
-    backgroundColor: "#ffffff",
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: "#f3f4f6",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    color: "#111111",
-    fontSize: 14,
-    maxHeight: 100,
-  },
-  sendBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#ff2442",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sendBtnDisabled: { opacity: 0.4 },
-  sendLabel: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
-});
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: c.surface,
+      zIndex: 100,
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    closeBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: c.surfaceAlt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    closeLabel: { color: c.textSub, fontSize: 14 },
+    likeBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
+    likeEmoji: { fontSize: 22 },
+    likeCount: { color: c.textSub, fontSize: 14, fontWeight: "600" },
+    scroll: { flex: 1 },
+    scrollContent: { padding: 16 },
+    dateText: { fontSize: 11, color: c.textMuted },
+    title: {
+      fontSize: 22,
+      fontWeight: "800",
+      color: c.text,
+      lineHeight: 28,
+      marginBottom: 16,
+    },
+    funFact: {
+      backgroundColor: "#fffbeb",
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 16,
+      borderLeftWidth: 3,
+      borderLeftColor: "#f59e0b",
+    },
+    tags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 24 },
+    tag: {
+      backgroundColor: c.surfaceAlt,
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    tagText: { color: c.textTertiary, fontSize: 12 },
+    sourceRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginBottom: 24,
+    },
+    sourceBtn: {
+      borderWidth: 1.5,
+      borderColor: c.brand,
+      borderRadius: 16,
+      paddingHorizontal: 16,
+      paddingVertical: 7,
+    },
+    sourceBtnLabel: { color: c.brand, fontSize: 13, fontWeight: "700" },
+    shareBtn: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: c.surfaceAlt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    shareBtnText: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: c.textTertiary,
+    },
+    commentsHeader: { fontSize: 16, fontWeight: "700", color: c.text, marginBottom: 16 },
+    comment: {
+      marginBottom: 16,
+      paddingBottom: 16,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    commentName: { fontSize: 13, fontWeight: "700", color: c.brand, marginBottom: 4 },
+    commentBody: { fontSize: 14, color: c.textSub, lineHeight: 20 },
+    inputRow: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.border,
+      backgroundColor: c.surface,
+      gap: 8,
+    },
+    input: {
+      flex: 1,
+      backgroundColor: c.surfaceAlt,
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      color: c.text,
+      fontSize: 14,
+      maxHeight: 100,
+    },
+    sendBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: c.brand,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    sendBtnDisabled: { opacity: 0.4 },
+    sendLabel: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
+    heartOverlay: {
+      position: "absolute",
+      alignSelf: "center",
+      top: "40%",
+      fontSize: 80,
+      zIndex: 200,
+    },
+  });
+}
