@@ -2,15 +2,16 @@
   "expo": {
     "name": "NewsBlock",
     "slug": "newsblock",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "newsblock",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.newsblock.app",
+      "buildNumber": "3",
       "usesAppleSignIn": true,
       "associatedDomains": ["applinks:sparknotes-production.up.railway.app"]
     },
