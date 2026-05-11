@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Modal,
   View,
@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
+import { useTheme } from "../theme";
+import type { Colors, ThemeMode } from "../theme";
 import type { UserProfile } from "../types";
 
 const CATEGORIES = [
@@ -35,6 +37,12 @@ const CATEGORIES = [
   { id: "beauty",        label: "💄 Beauty" },
 ];
 
+const THEME_OPTIONS: { id: ThemeMode; label: string }[] = [
+  { id: "light", label: "☀️ Light" },
+  { id: "dark",  label: "🌙 Dark" },
+  { id: "auto",  label: "⚙️ Auto" },
+];
+
 interface Props {
   visible: boolean;
   profile: UserProfile | null;
@@ -44,6 +52,9 @@ interface Props {
 }
 
 export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }: Props) {
+  const { colors, themeMode, setThemeMode } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [name, setName] = useState(profile?.screenName ?? "");
   const [selectedCats, setSelectedCats] = useState<Set<string>>(
     new Set(profile?.categories ?? [])
@@ -54,7 +65,6 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstTime = !profile;
 
-  // Re-sync form state whenever the sheet opens or the profile changes
   useEffect(() => {
     if (visible) {
       setName(profile?.screenName ?? "");
@@ -182,7 +192,7 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
                 checkName(v);
               }}
               placeholder="e.g. CosmicReader42"
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={colors.textMuted}
               maxLength={50}
               autoCorrect={false}
               autoCapitalize="none"
@@ -226,6 +236,25 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
             </Text>
           )}
 
+          {/* Theme */}
+          <Text style={[styles.label, { marginTop: 20 }]}>Appearance</Text>
+          <View style={styles.themeRow}>
+            {THEME_OPTIONS.map((opt) => {
+              const active = themeMode === opt.id;
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  onPress={() => setThemeMode(opt.id)}
+                  style={[styles.themeChip, active && styles.themeChipActive]}
+                >
+                  <Text style={[styles.themeLabel, active && styles.themeLabelActive]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
           {/* Save */}
           <TouchableOpacity
             onPress={handleSave}
@@ -256,145 +285,170 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e5e7eb",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111111",
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#f3f4f6",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  closeLabel: {
-    color: "#374151",
-    fontSize: 14,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 48,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#6b7280",
-    marginBottom: 8,
-  },
-  labelSub: {
-    fontWeight: "400",
-    color: "#9ca3af",
-  },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f3f4f6",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 6,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: "#111111",
-  },
-  inputStatus: {
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  errorText: {
-    fontSize: 12,
-    color: "#ff2442",
-    marginBottom: 8,
-  },
-  successText: {
-    fontSize: 12,
-    color: "#16a34a",
-    marginBottom: 8,
-  },
-  cats: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 8,
-  },
-  catChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#f3f4f6",
-  },
-  catChipActive: {
-    backgroundColor: "#ff2442",
-  },
-  catLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#6b7280",
-  },
-  catLabelActive: {
-    color: "#ffffff",
-  },
-  saveBtn: {
-    backgroundColor: "#ff2442",
-    borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 24,
-  },
-  saveBtnDisabled: {
-    opacity: 0.4,
-  },
-  saveBtnLabel: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  signOutBtn: {
-    alignItems: "center",
-    paddingVertical: 14,
-    marginTop: 8,
-  },
-  signOutLabel: {
-    fontSize: 14,
-    color: "#9ca3af",
-  },
-  deleteBtn: {
-    alignItems: "center",
-    paddingVertical: 14,
-  },
-  deleteLabel: {
-    fontSize: 14,
-    color: "#ff2442",
-  },
-  noProfileBanner: {
-    backgroundColor: "#fff7ed",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: "#f59e0b",
-  },
-  noProfileText: {
-    fontSize: 13,
-    color: "#92400e",
-    lineHeight: 18,
-  },
-});
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: c.surface,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: "700",
+      color: c.text,
+    },
+    closeBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: c.surfaceAlt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    closeLabel: {
+      color: c.textSub,
+      fontSize: 14,
+    },
+    content: {
+      padding: 20,
+      paddingBottom: 48,
+    },
+    label: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: c.textTertiary,
+      marginBottom: 8,
+    },
+    labelSub: {
+      fontWeight: "400",
+      color: c.textMuted,
+    },
+    inputRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: c.surfaceAlt,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      marginBottom: 6,
+    },
+    input: {
+      flex: 1,
+      fontSize: 15,
+      color: c.text,
+    },
+    inputStatus: {
+      fontSize: 16,
+      marginLeft: 8,
+    },
+    errorText: {
+      fontSize: 12,
+      color: c.brand,
+      marginBottom: 8,
+    },
+    successText: {
+      fontSize: 12,
+      color: "#16a34a",
+      marginBottom: 8,
+    },
+    cats: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginBottom: 8,
+    },
+    catChip: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: c.surfaceAlt,
+    },
+    catChipActive: {
+      backgroundColor: c.brand,
+    },
+    catLabel: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: c.textTertiary,
+    },
+    catLabelActive: {
+      color: "#ffffff",
+    },
+    themeRow: {
+      flexDirection: "row",
+      gap: 8,
+      marginBottom: 8,
+    },
+    themeChip: {
+      flex: 1,
+      paddingVertical: 10,
+      borderRadius: 14,
+      backgroundColor: c.surfaceAlt,
+      alignItems: "center",
+    },
+    themeChipActive: {
+      backgroundColor: c.brand,
+    },
+    themeLabel: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: c.textTertiary,
+    },
+    themeLabelActive: {
+      color: "#ffffff",
+    },
+    saveBtn: {
+      backgroundColor: c.brand,
+      borderRadius: 16,
+      paddingVertical: 14,
+      alignItems: "center",
+      marginTop: 24,
+    },
+    saveBtnDisabled: {
+      opacity: 0.4,
+    },
+    saveBtnLabel: {
+      color: "#ffffff",
+      fontSize: 15,
+      fontWeight: "700",
+    },
+    signOutBtn: {
+      alignItems: "center",
+      paddingVertical: 14,
+      marginTop: 8,
+    },
+    signOutLabel: {
+      fontSize: 14,
+      color: c.textMuted,
+    },
+    deleteBtn: {
+      alignItems: "center",
+      paddingVertical: 14,
+    },
+    deleteLabel: {
+      fontSize: 14,
+      color: c.brand,
+    },
+    noProfileBanner: {
+      backgroundColor: "#fff7ed",
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 16,
+      borderLeftWidth: 3,
+      borderLeftColor: "#f59e0b",
+    },
+    noProfileText: {
+      fontSize: 13,
+      color: "#92400e",
+      lineHeight: 18,
+    },
+  });
+}
