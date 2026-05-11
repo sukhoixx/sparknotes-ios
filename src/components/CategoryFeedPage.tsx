@@ -129,11 +129,16 @@ export function CategoryFeedPage({
 
   const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
 
-  // Group posts into rows of 2 so we can inject a full-width AdCard every AD_EVERY rows
-  const AD_EVERY = 4;
-  const rows: [Post, Post | null][] = [];
-  for (let i = 0; i < posts.length; i += 2) {
-    rows.push([posts[i], posts[i + 1] ?? null]);
+  // Interleave an ad slot every AD_EVERY posts, then pair into 2-column rows
+  const AD_EVERY = 8;
+  const items: (Post | "ad")[] = [];
+  posts.forEach((post, i) => {
+    if (i > 0 && i % AD_EVERY === 0) items.push("ad");
+    items.push(post);
+  });
+  const rows: [(Post | "ad"), (Post | "ad") | null][] = [];
+  for (let i = 0; i < items.length; i += 2) {
+    rows.push([items[i], items[i + 1] ?? null]);
   }
 
   return (
@@ -166,37 +171,40 @@ export function CategoryFeedPage({
         ) : (
           <>
             {rows.map((row, rowIndex) => (
-              <React.Fragment key={rowIndex}>
-                <View style={styles.row}>
-                  <View style={styles.col}>
+              <View key={rowIndex} style={styles.row}>
+                <View style={styles.col}>
+                  {row[0] === "ad" ? (
+                    <AdCard />
+                  ) : (
                     <Card
                       post={row[0]}
                       liked={liked.has(row[0].id)}
                       likeCount={getLikeCount(row[0])}
-                      onLike={() => onLike(row[0])}
-                      onPress={() => onOpenPost(row[0])}
+                      onLike={() => onLike(row[0] as Post)}
+                      onPress={() => onOpenPost(row[0] as Post)}
                       hideBadge={category !== "all"}
                       overrideGradient={overrideGradient}
                       animationIndex={rowIndex * 2}
                     />
-                  </View>
-                  <View style={styles.col}>
-                    {row[1] && (
-                      <Card
-                        post={row[1]}
-                        liked={liked.has(row[1].id)}
-                        likeCount={getLikeCount(row[1])}
-                        onLike={() => onLike(row[1]!)}
-                        onPress={() => onOpenPost(row[1]!)}
-                        hideBadge={category !== "all"}
-                        overrideGradient={overrideGradient}
-                        animationIndex={rowIndex * 2 + 1}
-                      />
-                    )}
-                  </View>
+                  )}
                 </View>
-                {(rowIndex + 1) % AD_EVERY === 0 && <AdCard key={`ad-${rowIndex}`} />}
-              </React.Fragment>
+                <View style={styles.col}>
+                  {row[1] === "ad" ? (
+                    <AdCard />
+                  ) : row[1] ? (
+                    <Card
+                      post={row[1]}
+                      liked={liked.has(row[1].id)}
+                      likeCount={getLikeCount(row[1])}
+                      onLike={() => onLike(row[1] as Post)}
+                      onPress={() => onOpenPost(row[1] as Post)}
+                      hideBadge={category !== "all"}
+                      overrideGradient={overrideGradient}
+                      animationIndex={rowIndex * 2 + 1}
+                    />
+                  ) : null}
+                </View>
+              </View>
             ))}
             {loading && (
               <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} />
