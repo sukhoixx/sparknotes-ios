@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity, Animated } from "react-native";
-import { NativeAd, NativeAdView, NativeAsset, NativeAssetType, TestIds } from "react-native-google-mobile-ads";
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
+import { NativeAd, NativeAdView, NativeAsset, NativeAssetType, NativeMediaView, TestIds } from "react-native-google-mobile-ads";
 import { useTheme } from "../theme";
 import type { Colors } from "../theme";
 
@@ -35,15 +35,11 @@ export function AdCard() {
   // Render nothing while loading — no placeholder jump
   if (!nativeAd) return null;
 
-  const imageUrl = nativeAd.images?.[0]?.url ?? nativeAd.icon?.url ?? null;
-
   return (
     <Animated.View style={{ opacity }}>
       <NativeAdView nativeAd={nativeAd} style={styles.container}>
-        {imageUrl && (
-          <NativeAsset assetType={NativeAssetType.IMAGE}>
-            <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
-          </NativeAsset>
+        {nativeAd.mediaContent && (
+          <NativeMediaView style={styles.media} resizeMode="cover" />
         )}
         <View style={styles.content}>
           <NativeAsset assetType={NativeAssetType.HEADLINE}>
@@ -80,9 +76,8 @@ function makeStyles(c: Colors) {
       marginBottom: 4,
       backgroundColor: c.surface,
     },
-    image: {
+    media: {
       width: "100%",
-      height: 120,
     },
     content: {
       paddingHorizontal: 10,
