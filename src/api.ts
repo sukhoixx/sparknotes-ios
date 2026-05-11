@@ -101,11 +101,12 @@ export async function fetchProfile(): Promise<UserProfile | null> {
 
 export async function saveProfile(
   screenName: string,
-  categories: string[]
+  categories: string[],
+  lang: string
 ): Promise<UserProfile | null> {
   const res = await apiFetch("/api/profile", {
     method: "POST",
-    body: JSON.stringify({ screenName, categories }),
+    body: JSON.stringify({ screenName, categories, lang }),
   });
   if (!res.ok) return null;
   const data = await res.json();

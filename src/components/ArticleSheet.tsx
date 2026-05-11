@@ -20,6 +20,8 @@ import { PanGestureHandler, TapGestureHandler, State } from "react-native-gestur
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import RenderHtml from "react-native-render-html";
 import { useTheme } from "../theme";
+import { useLang, toSimplified } from "../lang";
+import { t } from "../i18n";
 import type { Colors } from "../theme";
 import type { Post, Comment } from "../types";
 import { fetchComments, postComment, fetchOgImage } from "../api";
@@ -76,15 +78,34 @@ export function ArticleSheet({
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { lang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+
+  const displayTitle = post
+    ? (lang !== "en" && post.zhTitle
+        ? (lang === "zh-CN" ? toSimplified(post.zhTitle) : post.zhTitle)
+        : post.title)
+    : "";
+
+  const displayBody = post
+    ? (lang !== "en" && post.zhBody
+        ? (lang === "zh-CN" ? toSimplified(post.zhBody) : post.zhBody)
+        : post.body)
+    : "";
+
+  const displayFunFact = post
+    ? (lang !== "en" && post.zhFunFact
+        ? (lang === "zh-CN" ? toSimplified(post.zhFunFact) : post.zhFunFact)
+        : post.funFact)
+    : "";
 
   const htmlTagStyles = useMemo(() => ({
     p: { color: colors.textSub, fontSize: 15, lineHeight: 24, marginBottom: 12 },
     strong: { color: colors.text, fontWeight: "700" as const },
   }), [colors]);
 
-  const bodySource = useMemo(() => ({ html: post?.body ?? "" }), [post?.body]);
-  const funFactSource = useMemo(() => ({ html: `<p>${post?.funFact ?? ""}</p>` }), [post?.funFact]);
+  const bodySource = useMemo(() => ({ html: displayBody }), [displayBody]);
+  const funFactSource = useMemo(() => ({ html: `<p>${displayFunFact}</p>` }), [displayFunFact]);
   const funFactTagStyles = useMemo(() => ({
     p: { color: "#92400e", fontSize: 13, lineHeight: 20, margin: 0 },
     strong: { color: "#92400e", fontWeight: "700" as const },
@@ -239,13 +260,14 @@ export function ArticleSheet({
               <>
                 {/* Date */}
                 <Text style={[styles.dateText, { marginBottom: 12 }]}>
-                  {new Date(post.createdAt).toLocaleDateString("en-US", {
-                    month: "short", day: "numeric", year: "numeric",
-                  })}
+                  {new Date(post.createdAt).toLocaleDateString(
+                    lang === "zh-TW" ? "zh-TW" : lang === "zh-CN" ? "zh-CN" : "en-US",
+                    { month: "short", day: "numeric", year: "numeric" }
+                  )}
                 </Text>
 
                 {/* Title */}
-                <Text style={styles.title}>{post.title}</Text>
+                <Text style={styles.title}>{displayTitle}</Text>
 
                 {/* Hero image */}
                 {!!(ogImage ?? post.imageUrl) && (
@@ -292,7 +314,7 @@ export function ArticleSheet({
                       onPress={() => Linking.openURL(post.sourceUrl!)}
                       style={styles.sourceBtn}
                     >
-                      <Text style={styles.sourceBtnLabel}>View Source Article →</Text>
+                      <Text style={styles.sourceBtnLabel}>{t("viewSource", lang)}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.shareBtn}
@@ -326,7 +348,9 @@ export function ArticleSheet({
 
                 {/* Comments */}
                 <Text style={styles.commentsHeader}>
-                  {comments.length} Comment{comments.length === 1 ? "" : "s"}
+                  {lang === "en"
+                    ? `${comments.length} Comment${comments.length === 1 ? "" : "s"}`
+                    : `${comments.length} ${t("comments", lang)}`}
                 </Text>
 
                 {commentsLoading && (
@@ -349,7 +373,7 @@ export function ArticleSheet({
           <View style={[styles.inputRow, { paddingBottom: Math.max(12, insets.bottom) }]}>
             <TextInput
               style={styles.input}
-              placeholder={isAuthenticated ? "Add a comment…" : "Sign in to comment…"}
+              placeholder={isAuthenticated ? t("addComment", lang) : t("signInToComment", lang)}
               placeholderTextColor={colors.textMuted}
               value={commentText}
               onChangeText={setCommentText}

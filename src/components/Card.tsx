@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { Animated, View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
+import { useLang, toSimplified } from "../lang";
 import type { Colors } from "../theme";
 import type { Post } from "../types";
 
@@ -22,7 +23,12 @@ interface Props {
 
 export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, animationIndex = 0 }: Props) {
   const { colors } = useTheme();
+  const { lang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+
+  const displayTitle = lang !== "en" && post.zhTitle
+    ? (lang === "zh-CN" ? toSimplified(post.zhTitle) : post.zhTitle)
+    : post.title;
   const pressStartX = useRef(0);
 
   const opacity = useRef(new Animated.Value(0)).current;
@@ -58,7 +64,7 @@ export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, anima
       )}
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={5}>
-          {post.title}
+          {displayTitle}
         </Text>
         <View style={styles.footer}>
           <Text style={styles.comments} numberOfLines={1}>

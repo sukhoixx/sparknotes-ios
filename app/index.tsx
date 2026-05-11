@@ -18,11 +18,15 @@ import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
 import { fetchMyLikes, getJwt, fetchProfile, toggleLike, fetchPost } from "../src/api";
 import { useTheme } from "../src/theme";
+import { useLang } from "../src/lang";
+import { t } from "../src/i18n";
+import type { LangMode } from "../src/lang";
 import type { Post, UserProfile } from "../src/types";
 
 export default function FeedScreen() {
   const { openPostId } = useLocalSearchParams<{ openPostId?: string }>();
   const { colors } = useTheme();
+  const { lang, setLang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const pagerRef = useRef<PagerView>(null);
@@ -64,7 +68,12 @@ export default function FeedScreen() {
     getJwt().then((jwt) => {
       if (!jwt) return;
       setIsAuthenticated(true);
-      fetchProfile().then((p) => { if (p) setProfile(p); });
+      fetchProfile().then((p) => {
+        if (p) {
+          setProfile(p);
+          if (p.lang === "zh-TW" || p.lang === "zh-CN" || p.lang === "en") setLang(p.lang as LangMode);
+        }
+      });
       fetchMyLikes().then((ids) => setLiked(new Set(ids)));
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -111,7 +120,12 @@ export default function FeedScreen() {
 
   function handleSignedIn() {
     setIsAuthenticated(true);
-    fetchProfile().then((p) => setProfile(p));
+    fetchProfile().then((p) => {
+      if (p) {
+        setProfile(p);
+        if (p.lang === "zh-TW" || p.lang === "zh-CN" || p.lang === "en") setLang(p.lang as LangMode);
+      }
+    });
     fetchMyLikes().then((ids) => setLiked(new Set(ids)));
   }
 
@@ -144,7 +158,7 @@ export default function FeedScreen() {
             style={styles.searchInput}
             value={searchText}
             onChangeText={handleSearchChange}
-            placeholder="Search articles…"
+            placeholder={t("searchPlaceholder", lang)}
             placeholderTextColor={colors.textMuted}
             returnKeyType="search"
             autoCorrect={false}

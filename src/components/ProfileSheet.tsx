@@ -13,7 +13,10 @@ import {
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
 import { useTheme } from "../theme";
+import { useLang } from "../lang";
+import { t } from "../i18n";
 import type { Colors, ThemeMode } from "../theme";
+import type { LangMode } from "../lang";
 import type { UserProfile } from "../types";
 
 const CATEGORIES = [
@@ -43,6 +46,12 @@ const THEME_OPTIONS: { id: ThemeMode; label: string }[] = [
   { id: "auto",  label: "⚙️ Auto" },
 ];
 
+const LANG_OPTIONS: { id: LangMode; label: string }[] = [
+  { id: "en",    label: "EN" },
+  { id: "zh-TW", label: "繁中" },
+  { id: "zh-CN", label: "简中" },
+];
+
 interface Props {
   visible: boolean;
   profile: UserProfile | null;
@@ -53,6 +62,7 @@ interface Props {
 
 export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }: Props) {
   const { colors, themeMode, setThemeMode } = useTheme();
+  const { lang, setLang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [name, setName] = useState(profile?.screenName ?? "");
@@ -109,7 +119,7 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
   async function handleSave() {
     if (!canSave) return;
     setSaving(true);
-    const updated = await saveProfile(name.trim(), Array.from(selectedCats));
+    const updated = await saveProfile(name.trim(), Array.from(selectedCats), lang);
     setSaving(false);
     if (updated) {
       onSaved(updated);
@@ -163,7 +173,7 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>{isFirstTime ? "Set Up Profile" : "Your Profile"}</Text>
+          <Text style={styles.title}>{isFirstTime ? t("setUpProfile", lang) : t("yourProfile", lang)}</Text>
           {!isFirstTime && (
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Text style={styles.closeLabel}>✕</Text>
@@ -236,8 +246,27 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
             </Text>
           )}
 
+          {/* Language */}
+          <Text style={[styles.label, { marginTop: 20 }]}>{t("language", lang)}</Text>
+          <View style={styles.themeRow}>
+            {LANG_OPTIONS.map((opt) => {
+              const active = lang === opt.id;
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  onPress={() => setLang(opt.id)}
+                  style={[styles.themeChip, active && styles.themeChipActive]}
+                >
+                  <Text style={[styles.themeLabel, active && styles.themeLabelActive]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
           {/* Theme */}
-          <Text style={[styles.label, { marginTop: 20 }]}>Appearance</Text>
+          <Text style={[styles.label, { marginTop: 20 }]}>{t("appearance", lang)}</Text>
           <View style={styles.themeRow}>
             {THEME_OPTIONS.map((opt) => {
               const active = themeMode === opt.id;
@@ -265,7 +294,7 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
               <ActivityIndicator color="#ffffff" />
             ) : (
               <Text style={styles.saveBtnLabel}>
-                {isFirstTime ? "Create Profile" : "Save Changes"}
+                {isFirstTime ? t("createProfile", lang) : t("saveChanges", lang)}
               </Text>
             )}
           </TouchableOpacity>

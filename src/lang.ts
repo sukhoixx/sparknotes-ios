@@ -1,0 +1,46 @@
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { Converter } from "opencc-js";
+
+export type LangMode = "en" | "zh-TW" | "zh-CN";
+
+const STORAGE_KEY = "newsblock_lang";
+
+const convertToSimplified = Converter({ from: "tw", to: "cn" });
+
+export function toSimplified(text: string): string {
+  return convertToSimplified(text);
+}
+
+interface LangContextValue {
+  lang: LangMode;
+  setLang: (lang: LangMode) => void;
+}
+
+const LangContext = createContext<LangContextValue>({
+  lang: "en",
+  setLang: () => {},
+});
+
+export function LangProvider({ children }: { children: React.ReactNode }) {
+  const [lang, setLangState] = useState<LangMode>("en");
+
+  useEffect(() => {
+    SecureStore.getItemAsync(STORAGE_KEY).then((v) => {
+      if (v === "en" || v === "zh-TW" || v === "zh-CN") setLangState(v);
+    });
+  }, []);
+
+  function setLang(mode: LangMode) {
+    setLangState(mode);
+    SecureStore.setItemAsync(STORAGE_KEY, mode);
+  }
+
+  const value = useMemo(() => ({ lang, setLang }), [lang]);
+
+  return React.createElement(LangContext.Provider, { value }, children);
+}
+
+export function useLang(): LangContextValue {
+  return useContext(LangContext);
+}

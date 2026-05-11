@@ -17,11 +17,16 @@ export interface Post {
   createdAt: string;
   categoryEmojis?: string;
   _count: { comments: number };
+  zhTitle?: string | null;
+  zhSnippet?: string | null;
+  zhBody?: string | null;
+  zhFunFact?: string | null;
 }
 
 export interface UserProfile {
   screenName: string;
   categories: string[];
+  lang?: string | null;
 }
 
 export interface Comment {

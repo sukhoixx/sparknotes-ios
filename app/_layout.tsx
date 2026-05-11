@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { LogBox } from "react-native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { ThemeProvider, useTheme } from "../src/theme";
+import { LangProvider } from "../src/lang";
 
 LogBox.ignoreLogs(["Support for defaultProps will be removed"]);
 
@@ -24,10 +25,12 @@ function AppShell() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <AppShell />
-      </GestureHandlerRootView>
-    </ThemeProvider>
+    <LangProvider>
+      <ThemeProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <AppShell />
+        </GestureHandlerRootView>
+      </ThemeProvider>
+    </LangProvider>
   );
 }
