@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import type { NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 import { Card } from "./Card";
+import { AdCard } from "./AdCard";
 import { fetchPosts } from "../api";
 import { CATEGORY_GRADIENTS } from "../categories";
 import { useTheme } from "../theme";
@@ -126,9 +127,14 @@ export function CategoryFeedPage({
     return likeCounts[post.id] ?? post.likes;
   }
 
-  const leftPosts = posts.filter((_, i) => i % 2 === 0);
-  const rightPosts = posts.filter((_, i) => i % 2 === 1);
   const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
+
+  // Group posts into rows of 2 so we can inject a full-width AdCard every AD_EVERY rows
+  const AD_EVERY = 4;
+  const rows: [Post, Post | null][] = [];
+  for (let i = 0; i < posts.length; i += 2) {
+    rows.push([posts[i], posts[i + 1] ?? null]);
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -159,38 +165,39 @@ export function CategoryFeedPage({
           </View>
         ) : (
           <>
-            <View style={styles.columns}>
-              <View style={styles.col}>
-                {leftPosts.map((post, i) => (
-                  <Card
-                    key={post.id}
-                    post={post}
-                    liked={liked.has(post.id)}
-                    likeCount={getLikeCount(post)}
-                    onLike={() => onLike(post)}
-                    onPress={() => onOpenPost(post)}
-                    hideBadge={category !== "all"}
-                    overrideGradient={overrideGradient}
-                    animationIndex={i * 2}
-                  />
-                ))}
-              </View>
-              <View style={styles.col}>
-                {rightPosts.map((post, i) => (
-                  <Card
-                    key={post.id}
-                    post={post}
-                    liked={liked.has(post.id)}
-                    likeCount={getLikeCount(post)}
-                    onLike={() => onLike(post)}
-                    onPress={() => onOpenPost(post)}
-                    hideBadge={category !== "all"}
-                    overrideGradient={overrideGradient}
-                    animationIndex={i * 2 + 1}
-                  />
-                ))}
-              </View>
-            </View>
+            {rows.map((row, rowIndex) => (
+              <React.Fragment key={rowIndex}>
+                <View style={styles.row}>
+                  <View style={styles.col}>
+                    <Card
+                      post={row[0]}
+                      liked={liked.has(row[0].id)}
+                      likeCount={getLikeCount(row[0])}
+                      onLike={() => onLike(row[0])}
+                      onPress={() => onOpenPost(row[0])}
+                      hideBadge={category !== "all"}
+                      overrideGradient={overrideGradient}
+                      animationIndex={rowIndex * 2}
+                    />
+                  </View>
+                  <View style={styles.col}>
+                    {row[1] && (
+                      <Card
+                        post={row[1]}
+                        liked={liked.has(row[1].id)}
+                        likeCount={getLikeCount(row[1])}
+                        onLike={() => onLike(row[1]!)}
+                        onPress={() => onOpenPost(row[1]!)}
+                        hideBadge={category !== "all"}
+                        overrideGradient={overrideGradient}
+                        animationIndex={rowIndex * 2 + 1}
+                      />
+                    )}
+                  </View>
+                </View>
+                {(rowIndex + 1) % AD_EVERY === 0 && <AdCard key={`ad-${rowIndex}`} />}
+              </React.Fragment>
+            ))}
             {loading && (
               <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} />
             )}
@@ -207,7 +214,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingBottom: 40,
   },
-  columns: {
+  row: {
     flexDirection: "row",
     gap: 4,
     alignItems: "flex-start",
