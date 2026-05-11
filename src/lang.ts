@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import * as SecureStore from "expo-secure-store";
-import { Converter } from "opencc-js";
+// Import UMD build directly — opencc-js has "type":"module" which Metro can't resolve
+const { Converter } = require("opencc-js/dist/umd/t2cn.js");
 
 export type LangMode = "en" | "zh-TW" | "zh-CN";
 
