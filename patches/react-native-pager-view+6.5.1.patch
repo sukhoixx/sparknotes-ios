@@ -1,3 +1,15 @@
+diff --git a/node_modules/react-native-pager-view/ios/Fabric/RNCPagerViewComponentView.mm b/node_modules/react-native-pager-view/ios/Fabric/RNCPagerViewComponentView.mm
+index e9a08ef..e932943 100644
+--- a/node_modules/react-native-pager-view/ios/Fabric/RNCPagerViewComponentView.mm
++++ b/node_modules/react-native-pager-view/ios/Fabric/RNCPagerViewComponentView.mm
+@@ -47,6 +47,7 @@ - (instancetype)initWithFrame:(CGRect)frame
+         _scrollView.pagingEnabled = YES;
+         _scrollView.showsHorizontalScrollIndicator = NO;
+         _scrollView.showsVerticalScrollIndicator = NO;
++        _scrollView.scrollsToTop = NO;
+ 
+         [self addSubview:_scrollView];
+         
 diff --git a/node_modules/react-native-pager-view/ios/RNCPagerView.m b/node_modules/react-native-pager-view/ios/RNCPagerView.m
 index 584aada..8630125 100644
 --- a/node_modules/react-native-pager-view/ios/RNCPagerView.m
