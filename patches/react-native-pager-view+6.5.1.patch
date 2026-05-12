@@ -1,0 +1,12 @@
+diff --git a/node_modules/react-native-pager-view/ios/RNCPagerView.m b/node_modules/react-native-pager-view/ios/RNCPagerView.m
+index 584aada..8630125 100644
+--- a/node_modules/react-native-pager-view/ios/RNCPagerView.m
++++ b/node_modules/react-native-pager-view/ios/RNCPagerView.m
+@@ -73,6 +73,7 @@ - (void)embed {
+     _scrollView.showsHorizontalScrollIndicator = NO;
+     _scrollView.showsVerticalScrollIndicator = NO;
+     _scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
++    _scrollView.scrollsToTop = NO;
+     [self addSubview:_scrollView];
+     
+     _containerView = [[UIView alloc] initWithFrame:self.bounds];
