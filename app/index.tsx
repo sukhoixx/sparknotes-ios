@@ -18,7 +18,7 @@ import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
 import { fetchMyLikes, getJwt, fetchProfile, toggleLike, fetchPost } from "../src/api";
 import { useTheme } from "../src/theme";
-import { useLang } from "../src/lang";
+import { useLang, toTraditional } from "../src/lang";
 import { t } from "../src/i18n";
 import type { LangMode } from "../src/lang";
 import type { Post, UserProfile } from "../src/types";
@@ -218,7 +218,7 @@ export default function FeedScreen() {
               category={cat}
               isVisible={Math.abs(idx - activePageIndex) <= 1}
               profileCats={cat === "all" ? (profileCatsStr || undefined) : undefined}
-              searchQuery={activeSearch}
+              searchQuery={lang === "zh-CN" && activeSearch ? toTraditional(activeSearch) : activeSearch}
               reloadKey={reloadKey}
               scrollToTopTrigger={scrollToTopTrigger}
               liked={liked}
