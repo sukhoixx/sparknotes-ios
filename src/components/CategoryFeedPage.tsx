@@ -21,6 +21,7 @@ interface Props {
   profileCats?: string;
   searchQuery: string;
   reloadKey: number;
+  scrollToTopTrigger: number;
   liked: Set<number>;
   likeCounts: Record<number, number>;
   onLike: (post: Post) => void;
@@ -33,6 +34,7 @@ export function CategoryFeedPage({
   profileCats,
   searchQuery,
   reloadKey,
+  scrollToTopTrigger,
   liked,
   likeCounts,
   onLike,
@@ -50,6 +52,7 @@ export function CategoryFeedPage({
   const loadedForKeyRef = useRef(-1);
   const loadDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loadCompleted, setLoadCompleted] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
 
   async function doLoad(
@@ -102,6 +105,13 @@ export function CategoryFeedPage({
     }, 80);
   }, [isVisible, reloadKey]);
 
+  useEffect(() => {
+    if (scrollToTopTrigger > 0) {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollToTopTrigger]);
+
   async function handleRefresh() {
     setRefreshing(true);
     loadingRef.current = false;
@@ -146,6 +156,7 @@ export function CategoryFeedPage({
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
+        ref={scrollRef}
         style={{ flex: 1 }}
         contentContainerStyle={styles.scrollContent}
         onScroll={handleScroll}

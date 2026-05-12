@@ -46,6 +46,7 @@ export default function FeedScreen() {
   const [searchText, setSearchText] = useState("");
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeSearch, setActiveSearch] = useState("");
+  const [scrollToTopTrigger, setScrollToTopTrigger] = useState(0);
 
   // reloadKey: bumped when search or profile categories change — pages reload lazily
   const [reloadKey, setReloadKey] = useState(0);
@@ -149,6 +150,7 @@ export default function FeedScreen() {
           setSearchText("");
           setActiveSearch("");
           pagerRef.current?.setPage(0);
+          setScrollToTopTrigger((k) => k + 1);
         }}>
           <Text style={styles.logo}>📰 NewsBlock</Text>
         </TouchableOpacity>
@@ -218,6 +220,7 @@ export default function FeedScreen() {
               profileCats={cat === "all" ? (profileCatsStr || undefined) : undefined}
               searchQuery={activeSearch}
               reloadKey={reloadKey}
+              scrollToTopTrigger={scrollToTopTrigger}
               liked={liked}
               likeCounts={likeCounts}
               onLike={handleLike}
