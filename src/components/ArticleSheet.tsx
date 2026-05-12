@@ -255,6 +255,7 @@ export function ArticleSheet({
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
+            scrollsToTop={!!post}
           >
             {post && (
               <>
