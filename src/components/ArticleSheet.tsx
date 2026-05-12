@@ -19,6 +19,7 @@ import {
 import { PanGestureHandler, TapGestureHandler, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import WebView from "react-native-webview";
+import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
 import { useTheme } from "../theme";
 import { useLang, toSimplified } from "../lang";
 import { t } from "../i18n";
@@ -382,6 +383,13 @@ export function ArticleSheet({
                     </TouchableOpacity>
                   </View>
                 )}
+
+                {/* Article banner ad */}
+                <BannerAd
+                  unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/XXXXXXXXXX"}
+                  size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+                  requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+                />
 
                 {/* Comments */}
                 <Text style={styles.commentsHeader}>
