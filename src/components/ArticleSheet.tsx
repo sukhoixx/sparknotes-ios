@@ -284,6 +284,7 @@ export function ArticleSheet({
                   contentWidth={contentWidth}
                   source={bodySource}
                   tagsStyles={htmlTagStyles}
+                  defaultTextProps={{ selectable: true }}
                 />
 
                 {/* Fun fact */}
@@ -293,6 +294,7 @@ export function ArticleSheet({
                       contentWidth={contentWidth - 28}
                       source={funFactSource}
                       tagsStyles={funFactTagStyles}
+                      defaultTextProps={{ selectable: true }}
                     />
                   </View>
                 )}
