@@ -129,17 +129,19 @@ export function CategoryFeedPage({
 
   const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
 
-  // Interleave an ad slot every AD_EVERY posts, then pair into 2-column rows
+  // Interleave an ad slot every AD_EVERY posts, then split into two independent columns
   const AD_EVERY = 8;
   const items: (Post | "ad")[] = [];
   posts.forEach((post, i) => {
     if (i > 0 && i % AD_EVERY === 0) items.push("ad");
     items.push(post);
   });
-  const rows: [(Post | "ad"), (Post | "ad") | null][] = [];
-  for (let i = 0; i < items.length; i += 2) {
-    rows.push([items[i], items[i + 1] ?? null]);
-  }
+  const leftItems: (Post | "ad")[] = [];
+  const rightItems: (Post | "ad")[] = [];
+  items.forEach((item, i) => {
+    if (i % 2 === 0) leftItems.push(item);
+    else rightItems.push(item);
+  });
 
   return (
     <View style={{ flex: 1 }}>
@@ -170,42 +172,46 @@ export function CategoryFeedPage({
           </View>
         ) : (
           <>
-            {rows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.row}>
-                <View style={styles.col}>
-                  {row[0] === "ad" ? (
-                    <AdCard />
+            <View style={styles.columns}>
+              <View style={styles.col}>
+                {leftItems.map((item, i) =>
+                  item === "ad" ? (
+                    <AdCard key={`ad-l-${i}`} />
                   ) : (
                     <Card
-                      post={row[0]}
-                      liked={liked.has(row[0].id)}
-                      likeCount={getLikeCount(row[0])}
-                      onLike={() => onLike(row[0] as Post)}
-                      onPress={() => onOpenPost(row[0] as Post)}
+                      key={item.id}
+                      post={item}
+                      liked={liked.has(item.id)}
+                      likeCount={getLikeCount(item)}
+                      onLike={() => onLike(item)}
+                      onPress={() => onOpenPost(item)}
                       hideBadge={category !== "all"}
                       overrideGradient={overrideGradient}
-                      animationIndex={rowIndex * 2}
+                      animationIndex={i * 2}
                     />
-                  )}
-                </View>
-                <View style={styles.col}>
-                  {row[1] === "ad" ? (
-                    <AdCard />
-                  ) : row[1] ? (
-                    <Card
-                      post={row[1]}
-                      liked={liked.has(row[1].id)}
-                      likeCount={getLikeCount(row[1])}
-                      onLike={() => onLike(row[1] as Post)}
-                      onPress={() => onOpenPost(row[1] as Post)}
-                      hideBadge={category !== "all"}
-                      overrideGradient={overrideGradient}
-                      animationIndex={rowIndex * 2 + 1}
-                    />
-                  ) : null}
-                </View>
+                  )
+                )}
               </View>
-            ))}
+              <View style={styles.col}>
+                {rightItems.map((item, i) =>
+                  item === "ad" ? (
+                    <AdCard key={`ad-r-${i}`} />
+                  ) : (
+                    <Card
+                      key={item.id}
+                      post={item}
+                      liked={liked.has(item.id)}
+                      likeCount={getLikeCount(item)}
+                      onLike={() => onLike(item)}
+                      onPress={() => onOpenPost(item)}
+                      hideBadge={category !== "all"}
+                      overrideGradient={overrideGradient}
+                      animationIndex={i * 2 + 1}
+                    />
+                  )
+                )}
+              </View>
+            </View>
             {loading && (
               <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} />
             )}
@@ -222,7 +228,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingBottom: 40,
   },
-  row: {
+  columns: {
     flexDirection: "row",
     gap: 4,
     alignItems: "flex-start",
