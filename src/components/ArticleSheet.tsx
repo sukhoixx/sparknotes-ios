@@ -58,7 +58,7 @@ function ArticleBodyWebView({
   lineHeight?: number;
   width: number;
 }) {
-  const [height, setHeight] = useState(100);
+  const [height, setHeight] = useState(1);
   const styledHtml = `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
@@ -74,7 +74,7 @@ strong { color: ${strongColor}; font-weight: 700; }
       scrollEnabled={false}
       style={{ width, height, backgroundColor: bgColor }}
       onMessage={(e) => setHeight(Number(e.nativeEvent.data))}
-      injectedJavaScript="window.ReactNativeWebView.postMessage(document.documentElement.scrollHeight + 1); true;"
+      injectedJavaScript="window.ReactNativeWebView.postMessage(document.body.getBoundingClientRect().height + 1); true;"
       originWhitelist={["*"]}
       showsVerticalScrollIndicator={false}
     />
