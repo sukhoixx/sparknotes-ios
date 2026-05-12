@@ -192,7 +192,12 @@ export default function FeedScreen() {
         active={CATEGORY_IDS[activePageIndex]}
         onChange={(id) => {
           const idx = CATEGORY_IDS.indexOf(id);
-          if (idx >= 0) pagerRef.current?.setPage(idx);
+          if (idx < 0) return;
+          if (idx === activePageIndex) {
+            setScrollToTopTrigger((k) => k + 1);
+          } else {
+            pagerRef.current?.setPage(idx);
+          }
         }}
       />
 
