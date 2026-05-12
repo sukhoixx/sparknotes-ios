@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { PanGestureHandler, TapGestureHandler, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import RenderHtml from "react-native-render-html";
+import WebView from "react-native-webview";
 import { useTheme } from "../theme";
 import { useLang, toSimplified } from "../lang";
 import { t } from "../i18n";
@@ -38,6 +38,45 @@ interface Props {
   onLike: () => void;
   isAuthenticated: boolean;
   onSignInRequired: () => void;
+}
+
+function ArticleBodyWebView({
+  html,
+  textColor,
+  strongColor,
+  bgColor,
+  fontSize = 15,
+  lineHeight = 24,
+  width,
+}: {
+  html: string;
+  textColor: string;
+  strongColor: string;
+  bgColor: string;
+  fontSize?: number;
+  lineHeight?: number;
+  width: number;
+}) {
+  const [height, setHeight] = useState(100);
+  const styledHtml = `<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: ${bgColor}; -webkit-user-select: text; user-select: text; }
+p { color: ${textColor}; font-size: ${fontSize}px; line-height: ${lineHeight}px; margin-bottom: 12px; }
+strong { color: ${strongColor}; font-weight: 700; }
+</style></head><body>${html}</body></html>`;
+  return (
+    <WebView
+      source={{ html: styledHtml }}
+      scrollEnabled={false}
+      style={{ width, height, backgroundColor: bgColor }}
+      onMessage={(e) => setHeight(Number(e.nativeEvent.data))}
+      injectedJavaScript="window.ReactNativeWebView.postMessage(document.body.scrollHeight); true;"
+      originWhitelist={["*"]}
+      showsVerticalScrollIndicator={false}
+    />
+  );
 }
 
 function HeroImage({ lowRes, highRes, width }: { lowRes?: string; highRes?: string; width: number }) {
@@ -98,18 +137,6 @@ export function ArticleSheet({
         ? (lang === "zh-CN" ? (post.zhFunFactCn ?? toSimplified(post.zhFunFact)) : post.zhFunFact)
         : post.funFact)
     : "";
-
-  const htmlTagStyles = useMemo(() => ({
-    p: { color: colors.textSub, fontSize: 15, lineHeight: 24, marginBottom: 12 },
-    strong: { color: colors.text, fontWeight: "700" as const },
-  }), [colors]);
-
-  const bodySource = useMemo(() => ({ html: displayBody }), [displayBody]);
-  const funFactSource = useMemo(() => ({ html: `<p>${displayFunFact}</p>` }), [displayFunFact]);
-  const funFactTagStyles = useMemo(() => ({
-    p: { color: "#92400e", fontSize: 13, lineHeight: 20, margin: 0 },
-    strong: { color: "#92400e", fontWeight: "700" as const },
-  }), []);
 
   const translateX = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.88)).current;
@@ -280,21 +307,27 @@ export function ArticleSheet({
                 )}
 
                 {/* Body */}
-                <RenderHtml
-                  contentWidth={contentWidth}
-                  source={bodySource}
-                  tagsStyles={htmlTagStyles}
-                  defaultTextProps={{ selectable: true }}
+                <ArticleBodyWebView
+                  key={`body-${post.id}`}
+                  html={displayBody}
+                  textColor={colors.textSub}
+                  strongColor={colors.text}
+                  bgColor={colors.surface}
+                  width={contentWidth}
                 />
 
                 {/* Fun fact */}
                 {!!post.funFact && (
                   <View style={styles.funFact}>
-                    <RenderHtml
-                      contentWidth={contentWidth - 28}
-                      source={funFactSource}
-                      tagsStyles={funFactTagStyles}
-                      defaultTextProps={{ selectable: true }}
+                    <ArticleBodyWebView
+                      key={`fact-${post.id}`}
+                      html={`<p>${displayFunFact}</p>`}
+                      textColor="#92400e"
+                      strongColor="#92400e"
+                      bgColor="#fffbeb"
+                      fontSize={13}
+                      lineHeight={20}
+                      width={contentWidth - 28}
                     />
                   </View>
                 )}
