@@ -7,7 +7,7 @@ import {
   RefreshControl,
   StyleSheet,
 } from "react-native";
-import type { NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import type { NativeSyntheticEvent, NativeScrollEvent, LayoutChangeEvent } from "react-native";
 import { Card } from "./Card";
 import { AdCard } from "./AdCard";
 import { fetchPosts } from "../api";
@@ -55,6 +55,7 @@ export function CategoryFeedPage({
   const loadDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loadCompleted, setLoadCompleted] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const viewportHeightRef = useRef(0);
 
 
   async function doLoad(
@@ -135,6 +136,14 @@ export function CategoryFeedPage({
     }
   }
 
+  function handleContentSizeChange(_w: number, contentHeight: number) {
+    if (contentHeight <= viewportHeightRef.current + 200 && hasMoreRef.current && !loadingRef.current) {
+      const cats = category === "all" && profileCats ? profileCats : undefined;
+      const q = searchQuery || undefined;
+      doLoad(cursorRef.current, false, cats, q);
+    }
+  }
+
   function getLikeCount(post: Post) {
     return likeCounts[post.id] ?? post.likes;
   }
@@ -162,6 +171,8 @@ export function CategoryFeedPage({
         scrollsToTop={isActive}
         style={{ flex: 1 }}
         contentContainerStyle={styles.scrollContent}
+        onLayout={(e: LayoutChangeEvent) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
+        onContentSizeChange={handleContentSizeChange}
         onScroll={handleScroll}
         scrollEventThrottle={200}
         showsVerticalScrollIndicator={false}
