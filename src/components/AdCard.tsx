@@ -7,7 +7,7 @@ import type { Colors } from "../theme";
 // Replace with your real AdMob native ad unit ID from admob.google.com
 const AD_UNIT_ID = __DEV__
   ? TestIds.NATIVE
-  : "ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX";
+  : "ca-app-pub-2618352557321545/3769161130";
 
 export function AdCard() {
   const { colors } = useTheme();
@@ -32,11 +32,6 @@ export function AdCard() {
     };
   }, []);
 
-  // Ads disabled — return null to hide but keep implementation intact
-  return null;
-
-  // Render nothing while loading — no placeholder jump
-  // eslint-disable-next-line no-unreachable
   if (!nativeAd) return null;
 
   return (
