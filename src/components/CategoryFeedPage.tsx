@@ -18,6 +18,7 @@ import type { Post, PageData } from "../types";
 interface Props {
   category: string;
   isVisible: boolean;
+  isActive: boolean;
   profileCats?: string;
   searchQuery: string;
   reloadKey: number;
@@ -31,6 +32,7 @@ interface Props {
 export function CategoryFeedPage({
   category,
   isVisible,
+  isActive,
   profileCats,
   searchQuery,
   reloadKey,
@@ -157,6 +159,7 @@ export function CategoryFeedPage({
     <View style={{ flex: 1 }}>
       <ScrollView
         ref={scrollRef}
+        scrollsToTop={isActive}
         style={{ flex: 1 }}
         contentContainerStyle={styles.scrollContent}
         onScroll={handleScroll}
