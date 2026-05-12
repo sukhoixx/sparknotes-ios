@@ -3,10 +3,13 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { LogBox } from "react-native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import MobileAds from "react-native-google-mobile-ads";
 import { ThemeProvider, useTheme } from "../src/theme";
 import { LangProvider } from "../src/lang";
 
 LogBox.ignoreLogs(["Support for defaultProps will be removed"]);
+
+MobileAds().initialize();
 
 GoogleSignin.configure({
   iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,

@@ -156,7 +156,7 @@ export function CategoryFeedPage({
 
   // Interleave an ad slot every AD_EVERY posts, then split into two independent columns
   const { leftItems, rightItems } = useMemo(() => {
-    const AD_EVERY = 12;
+    const AD_EVERY = 16;
     const items: (Post | "ad")[] = [];
     posts.forEach((post, i) => {
       if (i > 0 && i % AD_EVERY === 0) items.push("ad");
