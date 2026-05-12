@@ -42,12 +42,8 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
   const { lang, setLang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const categories = useMemo(() =>
-    CATEGORY_IDS.map((id) => ({ id, label: t(`cat_${id}`, lang) })),
-  [lang]);
-  const themeOptions = useMemo(() =>
-    THEME_OPTION_IDS.map((id) => ({ id, label: t(`theme${id.charAt(0).toUpperCase() + id.slice(1)}`, lang) })),
-  [lang]);
+  const categories = CATEGORY_IDS.map((id) => ({ id, label: t(`cat_${id}`, lang) }));
+  const themeOptions = THEME_OPTION_IDS.map((id) => ({ id, label: t(`theme${id.charAt(0).toUpperCase() + id.slice(1)}`, lang) }));
 
   const [name, setName] = useState(profile?.screenName ?? "");
   const [selectedCats, setSelectedCats] = useState<Set<string>>(

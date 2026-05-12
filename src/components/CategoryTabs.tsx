@@ -82,6 +82,7 @@ export const CategoryTabs = React.forwardRef<CategoryTabsHandle, Props>(
       <ScrollView
         ref={scrollRef}
         horizontal
+        scrollsToTop={false}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.container}
         style={styles.scroll}
