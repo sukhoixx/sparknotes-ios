@@ -318,6 +318,13 @@ export function ArticleSheet({
                   width={contentWidth}
                 />
 
+                {/* Article banner ad */}
+                <BannerAd
+                  unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
+                  size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+                  requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+                />
+
                 {/* Fun fact */}
                 {!!post.funFact && (
                   <View style={styles.funFact}>
@@ -383,13 +390,6 @@ export function ArticleSheet({
                     </TouchableOpacity>
                   </View>
                 )}
-
-                {/* Article banner ad */}
-                <BannerAd
-                  unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
-                  size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-                  requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-                />
 
                 {/* Comments */}
                 <Text style={styles.commentsHeader}>
