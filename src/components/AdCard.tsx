@@ -32,7 +32,11 @@ export function AdCard() {
     };
   }, []);
 
+  // Ads disabled — return null to hide but keep implementation intact
+  return null;
+
   // Render nothing while loading — no placeholder jump
+  // eslint-disable-next-line no-unreachable
   if (!nativeAd) return null;
 
   return (
