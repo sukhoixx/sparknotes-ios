@@ -1,31 +1,11 @@
 import React, { useImperativeHandle, useMemo, useRef } from "react";
 import { Animated, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { useTheme } from "../theme";
+import { useLang } from "../lang";
+import { t } from "../i18n";
 import type { Colors } from "../theme";
 
 export const CATEGORY_IDS = ["all","news","us","world","politics","military","science","technology","entertainment","celebrity","sports","business","gaming","travel","animals","inventions","finance","health","beauty"];
-
-const TABS = [
-  { id: "all", label: "✨ For You" },
-  { id: "news", label: "📰 News" },
-  { id: "us", label: "🇺🇸 US" },
-  { id: "world", label: "🌍 World" },
-  { id: "politics", label: "🏛️ Politics" },
-  { id: "military", label: "🪖 Military" },
-  { id: "science", label: "🔬 Science" },
-  { id: "technology", label: "💻 Technology" },
-  { id: "entertainment", label: "🎬 Entertainment" },
-  { id: "celebrity", label: "⭐ Celebrity" },
-  { id: "sports", label: "🏅 Sports" },
-  { id: "business", label: "💼 Business" },
-  { id: "gaming", label: "🎮 Gaming" },
-  { id: "travel", label: "✈️ Travel" },
-  { id: "animals", label: "🐾 Animals" },
-  { id: "inventions", label: "💡 Inventions" },
-  { id: "finance", label: "💰 Finance" },
-  { id: "health", label: "💊 Health" },
-  { id: "beauty", label: "💄 Beauty" },
-];
 
 export interface CategoryTabsHandle {
   scrollToProgress: (position: number, offset: number) => void;
@@ -41,7 +21,9 @@ export const CategoryTabs = React.forwardRef<CategoryTabsHandle, Props>(
   function CategoryTabs({ active, onChange }, ref) {
     const scrollRef = useRef<ScrollView>(null);
     const { colors } = useTheme();
+    const { lang } = useLang();
     const styles = useMemo(() => makeStyles(colors), [colors]);
+    const tabs = useMemo(() => CATEGORY_IDS.map((id) => ({ id, label: t(`cat_${id}`, lang) })), [lang]);
 
     const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});
     const scrollViewWidth = useRef(0);
@@ -110,7 +92,7 @@ export const CategoryTabs = React.forwardRef<CategoryTabsHandle, Props>(
           style={[styles.highlight, { transform: [{ translateX: highlightX }], width: highlightW }]}
         />
 
-        {TABS.map((tab, idx) => (
+        {tabs.map((tab, idx) => (
           <TouchableOpacity
             key={tab.id}
             onPress={() => onChange(tab.id)}

@@ -13,6 +13,8 @@ import { AdCard } from "./AdCard";
 import { fetchPosts } from "../api";
 import { CATEGORY_GRADIENTS } from "../categories";
 import { useTheme } from "../theme";
+import { useLang } from "../lang";
+import { t } from "../i18n";
 import type { Post, PageData } from "../types";
 
 interface Props {
@@ -43,6 +45,7 @@ export function CategoryFeedPage({
   onOpenPost,
 }: Props) {
   const { colors } = useTheme();
+  const { lang } = useLang();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
@@ -192,7 +195,7 @@ export function CategoryFeedPage({
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>📭</Text>
             <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-              No posts yet — check back soon!
+              {t("noPostsYet", lang)}
             </Text>
           </View>
         ) : (

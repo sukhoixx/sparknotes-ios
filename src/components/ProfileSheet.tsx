@@ -19,32 +19,9 @@ import type { Colors, ThemeMode } from "../theme";
 import type { LangMode } from "../lang";
 import type { UserProfile } from "../types";
 
-const CATEGORIES = [
-  { id: "news",          label: "📰 News" },
-  { id: "us",            label: "🇺🇸 US" },
-  { id: "world",         label: "🌍 World" },
-  { id: "politics",      label: "🏛️ Politics" },
-  { id: "military",      label: "🪖 Military" },
-  { id: "science",       label: "🔬 Science" },
-  { id: "technology",    label: "💻 Technology" },
-  { id: "entertainment", label: "🎬 Entertainment" },
-  { id: "celebrity",     label: "⭐ Celebrity" },
-  { id: "sports",        label: "🏅 Sports" },
-  { id: "business",      label: "💼 Business" },
-  { id: "gaming",        label: "🎮 Gaming" },
-  { id: "travel",        label: "✈️ Travel" },
-  { id: "animals",       label: "🐾 Animals" },
-  { id: "inventions",    label: "💡 Inventions" },
-  { id: "finance",       label: "💰 Finance" },
-  { id: "health",        label: "💊 Health" },
-  { id: "beauty",        label: "💄 Beauty" },
-];
+const CATEGORY_IDS = ["news","us","world","politics","military","science","technology","entertainment","celebrity","sports","business","gaming","travel","animals","inventions","finance","health","beauty"];
 
-const THEME_OPTIONS: { id: ThemeMode; label: string }[] = [
-  { id: "light", label: "☀️ Light" },
-  { id: "dark",  label: "🌙 Dark" },
-  { id: "auto",  label: "⚙️ Auto" },
-];
+const THEME_OPTION_IDS: ThemeMode[] = ["light", "dark", "auto"];
 
 const LANG_OPTIONS: { id: LangMode; label: string }[] = [
   { id: "en",    label: "EN" },
@@ -64,6 +41,13 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
   const { colors, themeMode, setThemeMode } = useTheme();
   const { lang, setLang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+
+  const categories = useMemo(() =>
+    CATEGORY_IDS.map((id) => ({ id, label: t(`cat_${id}`, lang) })),
+  [lang]);
+  const themeOptions = useMemo(() =>
+    THEME_OPTION_IDS.map((id) => ({ id, label: t(`theme${id.charAt(0).toUpperCase() + id.slice(1)}`, lang) })),
+  [lang]);
 
   const [name, setName] = useState(profile?.screenName ?? "");
   const [selectedCats, setSelectedCats] = useState<Set<string>>(
@@ -125,15 +109,15 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
       onSaved(updated);
       onClose();
     } else {
-      Alert.alert("Error", "Could not save profile. Please try again.");
+      Alert.alert(t("error", lang), t("errorSaveProfile", lang));
     }
   }
 
   async function handleSignOut() {
-    Alert.alert("Sign out", "Are you sure you want to sign out?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("signOutTitle", lang), t("signOutConfirm", lang), [
+      { text: t("cancel", lang), style: "cancel" },
       {
-        text: "Sign out",
+        text: t("signOut", lang),
         style: "destructive",
         onPress: async () => {
           await signOut();
@@ -145,27 +129,23 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
   }
 
   function handleDeleteAccount() {
-    Alert.alert(
-      "Delete account",
-      "This will permanently delete your account and all associated data. This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete account",
-          style: "destructive",
-          onPress: async () => {
-            const ok = await deleteAccount();
-            if (ok) {
-              await signOut();
-              onSignedOut();
-              onClose();
-            } else {
-              Alert.alert("Error", "Could not delete account. Please try again.");
-            }
-          },
+    Alert.alert(t("deleteAccountTitle", lang), t("deleteAccountConfirm", lang), [
+      { text: t("cancel", lang), style: "cancel" },
+      {
+        text: t("deleteAccount", lang),
+        style: "destructive",
+        onPress: async () => {
+          const ok = await deleteAccount();
+          if (ok) {
+            await signOut();
+            onSignedOut();
+            onClose();
+          } else {
+            Alert.alert(t("error", lang), t("errorDeleteAccount", lang));
+          }
         },
-      ]
-    );
+      },
+    ]);
   }
 
   return (
@@ -184,14 +164,12 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {isFirstTime && (
             <View style={styles.noProfileBanner}>
-              <Text style={styles.noProfileText}>
-                No profile found for this account. Set one up below, or sign out if you used a different account on the web.
-              </Text>
+              <Text style={styles.noProfileText}>{t("noProfileText", lang)}</Text>
             </View>
           )}
 
           {/* Screen name */}
-          <Text style={styles.label}>Screen name</Text>
+          <Text style={styles.label}>{t("screenName", lang)}</Text>
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
@@ -201,7 +179,7 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
                 setNameAvailable(null);
                 checkName(v);
               }}
-              placeholder="e.g. CosmicReader42"
+              placeholder={t("namePlaceholder", lang)}
               placeholderTextColor={colors.textMuted}
               maxLength={50}
               autoCorrect={false}
@@ -212,19 +190,19 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
             </Text>
           </View>
           {nameAvailable === false && (
-            <Text style={styles.errorText}>That name is taken — try another.</Text>
+            <Text style={styles.errorText}>{t("nameTaken", lang)}</Text>
           )}
           {nameAvailable === true && name.trim().length >= 2 && (
-            <Text style={styles.successText}>Looks good!</Text>
+            <Text style={styles.successText}>{t("nameAvailable", lang)}</Text>
           )}
 
           {/* Categories */}
           <Text style={[styles.label, { marginTop: 20 }]}>
-            Pick your interests{" "}
-            <Text style={styles.labelSub}>(choose at least 3)</Text>
+            {t("interests", lang)}{" "}
+            <Text style={styles.labelSub}>{t("interestsMin", lang)}</Text>
           </Text>
           <View style={styles.cats}>
-            {CATEGORIES.map((cat) => {
+            {categories.map((cat) => {
               const on = selectedCats.has(cat.id);
               return (
                 <TouchableOpacity
@@ -242,7 +220,11 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
 
           {selectedCats.size > 0 && selectedCats.size < 3 && (
             <Text style={styles.errorText}>
-              Select {3 - selectedCats.size} more {3 - selectedCats.size === 1 ? "category" : "categories"}.
+              {lang === "en"
+                ? `Select ${3 - selectedCats.size} more ${3 - selectedCats.size === 1 ? "category" : "categories"}.`
+                : lang === "zh-TW"
+                  ? `還需選 ${3 - selectedCats.size} 個類別。`
+                  : `还需选 ${3 - selectedCats.size} 个类别。`}
             </Text>
           )}
 
@@ -268,7 +250,7 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
           {/* Theme */}
           <Text style={[styles.label, { marginTop: 20 }]}>{t("appearance", lang)}</Text>
           <View style={styles.themeRow}>
-            {THEME_OPTIONS.map((opt) => {
+            {themeOptions.map((opt) => {
               const active = themeMode === opt.id;
               return (
                 <TouchableOpacity
@@ -301,12 +283,12 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
 
           {/* Sign out */}
           <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
-            <Text style={styles.signOutLabel}>Sign out</Text>
+            <Text style={styles.signOutLabel}>{t("signOut", lang)}</Text>
           </TouchableOpacity>
 
           {/* Delete account */}
           <TouchableOpacity onPress={handleDeleteAccount} style={styles.deleteBtn}>
-            <Text style={styles.deleteLabel}>Delete account</Text>
+            <Text style={styles.deleteLabel}>{t("deleteAccount", lang)}</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>

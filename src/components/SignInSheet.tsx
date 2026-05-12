@@ -11,6 +11,8 @@ import {
 import * as AppleAuthentication from "expo-apple-authentication";
 import { signInWithApple, signInWithGoogle } from "../auth";
 import { useTheme } from "../theme";
+import { useLang } from "../lang";
+import { t } from "../i18n";
 import type { Colors } from "../theme";
 
 interface Props {
@@ -21,6 +23,7 @@ interface Props {
 
 export function SignInSheet({ visible, onClose, onSignedIn }: Props) {
   const { colors } = useTheme();
+  const { lang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   async function handleApple() {
@@ -31,7 +34,7 @@ export function SignInSheet({ visible, onClose, onSignedIn }: Props) {
         onClose();
       }
     } catch {
-      Alert.alert("Sign in failed", "Could not sign in with Apple. Please try again.");
+      Alert.alert(t("signInFailed", lang), t("signInFailedApple", lang));
     }
   }
 
@@ -42,10 +45,10 @@ export function SignInSheet({ visible, onClose, onSignedIn }: Props) {
         onSignedIn();
         onClose();
       } else {
-        Alert.alert("Sign in failed", "Could not sign in with Google. Make sure EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID is set and the app was rebuilt.");
+        Alert.alert(t("signInFailed", lang), t("signInFailedGoogle", lang));
       }
     } catch (e: any) {
-      Alert.alert("Sign in failed", e?.message ?? "Could not sign in with Google. Please try again.");
+      Alert.alert(t("signInFailed", lang), e?.message ?? t("signInFailedGoogle", lang));
     }
   }
 
@@ -54,10 +57,8 @@ export function SignInSheet({ visible, onClose, onSignedIn }: Props) {
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
       <View style={styles.sheet}>
         <View style={styles.handle} />
-        <Text style={styles.title}>Sign in to NewsBlock</Text>
-        <Text style={styles.subtitle}>
-          Save your likes, comments, and preferences across devices
-        </Text>
+        <Text style={styles.title}>{t("signInTitle", lang)}</Text>
+        <Text style={styles.subtitle}>{t("signInSubtitle", lang)}</Text>
 
         {Platform.OS === "ios" && (
           <AppleAuthentication.AppleAuthenticationButton
@@ -71,11 +72,11 @@ export function SignInSheet({ visible, onClose, onSignedIn }: Props) {
 
         <TouchableOpacity style={styles.googleBtn} onPress={handleGoogle}>
           <Text style={styles.googleG}>G</Text>
-          <Text style={styles.googleLabel}>Continue with Google</Text>
+          <Text style={styles.googleLabel}>{t("continueWithGoogle", lang)}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
-          <Text style={styles.cancelLabel}>Not now</Text>
+          <Text style={styles.cancelLabel}>{t("notNow", lang)}</Text>
         </TouchableOpacity>
       </View>
     </Modal>

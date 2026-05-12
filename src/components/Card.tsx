@@ -3,6 +3,7 @@ import { Animated, View, Text, TouchableOpacity, StyleSheet, Image } from "react
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { useLang, toSimplified } from "../lang";
+import { t } from "../i18n";
 import type { Colors } from "../theme";
 import type { Post } from "../types";
 
@@ -69,7 +70,9 @@ export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, anima
         <View style={styles.footer}>
           <Text style={styles.comments} numberOfLines={1}>
             {post._count.comments > 0
-              ? `${post._count.comments} comment${post._count.comments === 1 ? "" : "s"}`
+              ? lang === "en"
+                ? `${post._count.comments} ${post._count.comments === 1 ? t("comment", lang) : t("commentPlural", lang)}`
+                : `${post._count.comments} ${t("commentPlural", lang)}`
               : ""}
           </Text>
           <TouchableOpacity
