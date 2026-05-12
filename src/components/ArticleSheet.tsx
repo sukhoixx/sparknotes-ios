@@ -83,19 +83,19 @@ export function ArticleSheet({
 
   const displayTitle = post
     ? (lang !== "en" && post.zhTitle
-        ? (lang === "zh-CN" ? toSimplified(post.zhTitle) : post.zhTitle)
+        ? (lang === "zh-CN" ? (post.zhTitleCn ?? toSimplified(post.zhTitle)) : post.zhTitle)
         : post.title)
     : "";
 
   const displayBody = post
     ? (lang !== "en" && post.zhBody
-        ? (lang === "zh-CN" ? toSimplified(post.zhBody) : post.zhBody)
+        ? (lang === "zh-CN" ? (post.zhBodyCn ?? toSimplified(post.zhBody)) : post.zhBody)
         : post.body)
     : "";
 
   const displayFunFact = post
     ? (lang !== "en" && post.zhFunFact
-        ? (lang === "zh-CN" ? toSimplified(post.zhFunFact) : post.zhFunFact)
+        ? (lang === "zh-CN" ? (post.zhFunFactCn ?? toSimplified(post.zhFunFact)) : post.zhFunFact)
         : post.funFact)
     : "";
 

@@ -21,6 +21,10 @@ export interface Post {
   zhSnippet?: string | null;
   zhBody?: string | null;
   zhFunFact?: string | null;
+  zhTitleCn?: string | null;
+  zhSnippetCn?: string | null;
+  zhBodyCn?: string | null;
+  zhFunFactCn?: string | null;
 }
 
 export interface UserProfile {

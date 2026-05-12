@@ -28,7 +28,7 @@ export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, anima
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const displayTitle = lang !== "en" && post.zhTitle
-    ? (lang === "zh-CN" ? toSimplified(post.zhTitle) : post.zhTitle)
+    ? (lang === "zh-CN" ? (post.zhTitleCn ?? toSimplified(post.zhTitle)) : post.zhTitle)
     : post.title;
   const pressStartX = useRef(0);
 
