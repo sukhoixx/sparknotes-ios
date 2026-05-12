@@ -216,7 +216,7 @@ export default function FeedScreen() {
           <View key={cat} style={{ flex: 1 }}>
             <CategoryFeedPage
               category={cat}
-              isVisible={Math.abs(idx - activePageIndex) <= 1}
+              isVisible={idx === activePageIndex}
               isActive={idx === activePageIndex}
               profileCats={cat === "all" ? (profileCatsStr || undefined) : undefined}
               searchQuery={lang === "zh-CN" && activeSearch ? toTraditional(activeSearch) : activeSearch}
