@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   ScrollView,
@@ -140,6 +140,7 @@ export function CategoryFeedPage({
   }
 
   function handleContentSizeChange(_w: number, contentHeight: number) {
+    if (!isActive) return;
     if (contentHeight <= viewportHeightRef.current + 200 && hasMoreRef.current && !loadingRef.current) {
       const cats = category === "all" && profileCats ? profileCats : undefined;
       const q = searchQuery || undefined;
@@ -154,18 +155,21 @@ export function CategoryFeedPage({
   const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
 
   // Interleave an ad slot every AD_EVERY posts, then split into two independent columns
-  const AD_EVERY = 8;
-  const items: (Post | "ad")[] = [];
-  posts.forEach((post, i) => {
-    if (i > 0 && i % AD_EVERY === 0) items.push("ad");
-    items.push(post);
-  });
-  const leftItems: (Post | "ad")[] = [];
-  const rightItems: (Post | "ad")[] = [];
-  items.forEach((item, i) => {
-    if (i % 2 === 0) leftItems.push(item);
-    else rightItems.push(item);
-  });
+  const { leftItems, rightItems } = useMemo(() => {
+    const AD_EVERY = 8;
+    const items: (Post | "ad")[] = [];
+    posts.forEach((post, i) => {
+      if (i > 0 && i % AD_EVERY === 0) items.push("ad");
+      items.push(post);
+    });
+    const left: (Post | "ad")[] = [];
+    const right: (Post | "ad")[] = [];
+    items.forEach((item, i) => {
+      if (i % 2 === 0) left.push(item);
+      else right.push(item);
+    });
+    return { leftItems: left, rightItems: right };
+  }, [posts]);
 
   return (
     <View style={{ flex: 1 }}>
