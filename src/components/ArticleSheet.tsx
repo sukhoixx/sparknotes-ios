@@ -62,6 +62,7 @@ function ArticleBodyWebView({
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow: hidden; }
 body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: ${bgColor}; -webkit-user-select: text; user-select: text; }
 p { color: ${textColor}; font-size: ${fontSize}px; line-height: ${lineHeight}px; margin-bottom: 12px; }
 strong { color: ${strongColor}; font-weight: 700; }
@@ -72,7 +73,7 @@ strong { color: ${strongColor}; font-weight: 700; }
       scrollEnabled={false}
       style={{ width, height, backgroundColor: bgColor }}
       onMessage={(e) => setHeight(Number(e.nativeEvent.data))}
-      injectedJavaScript="window.ReactNativeWebView.postMessage(document.body.scrollHeight); true;"
+      injectedJavaScript="window.ReactNativeWebView.postMessage(document.documentElement.scrollHeight + 1); true;"
       originWhitelist={["*"]}
       showsVerticalScrollIndicator={false}
     />
