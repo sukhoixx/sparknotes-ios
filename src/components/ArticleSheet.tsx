@@ -5,11 +5,9 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Platform,
   useWindowDimensions,
   ActivityIndicator,
   TextInput,
-  KeyboardAvoidingView,
   Keyboard,
   Animated,
   Linking,
@@ -199,6 +197,14 @@ export function ArticleSheet({
     }
   }
 
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardWillShow", (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener("keyboardWillHide", () => setKeyboardHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
   const [ogImage, setOgImage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -275,11 +281,7 @@ export function ArticleSheet({
           numberOfTaps={2}
           onHandlerStateChange={onDoubleTap}
         >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={60}
-        >
+        <View style={{ flex: 1, paddingBottom: keyboardHeight }}>
           <ScrollView
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
@@ -318,13 +320,6 @@ export function ArticleSheet({
                   width={contentWidth}
                 />
 
-                {/* Article banner ad */}
-                <BannerAd
-                  unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
-                  size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-                  requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-                />
-
                 {/* Fun fact */}
                 {!!post.funFact && (
                   <View style={styles.funFact}>
@@ -340,6 +335,13 @@ export function ArticleSheet({
                     />
                   </View>
                 )}
+
+                {/* Article banner ad */}
+                <BannerAd
+                  unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
+                  size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+                  requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+                />
 
                 {/* Tags */}
                 {post.tags?.length > 0 && (
@@ -435,7 +437,7 @@ export function ArticleSheet({
               <Text style={styles.sendLabel}>↑</Text>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+        </View>
         </TapGestureHandler>
 
         {/* Double-tap heart animation */}
