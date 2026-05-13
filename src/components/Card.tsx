@@ -57,7 +57,7 @@ export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, anima
     >
       {!hideBadge && (
         <View style={styles.badgeWrap}>
-          <Text style={styles.badge}>{post.badge}</Text>
+          <Text style={styles.badge}>{t(`cat_${post.category}`, lang)}</Text>
         </View>
       )}
       {!!post.imageUrl && (
