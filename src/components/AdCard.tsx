@@ -32,7 +32,7 @@ export function AdCard() {
     };
   }, []);
 
-  if (!nativeAd) return null;
+  if (!nativeAd) return <View style={{ height: 260 }} />;
 
   return (
     <Animated.View style={{ opacity }}>
@@ -70,6 +70,7 @@ export function AdCard() {
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: {
+      height: 260,
       borderRadius: 14,
       overflow: "hidden",
       marginBottom: 4,
@@ -77,6 +78,7 @@ function makeStyles(c: Colors) {
     },
     media: {
       width: "100%",
+      height: 140,
     },
     content: {
       paddingHorizontal: 10,

@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Keyboard,
 } from "react-native";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
@@ -151,7 +152,7 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
         <View style={styles.header}>
           <Text style={styles.title}>{isFirstTime ? t("setUpProfile", lang) : t("yourProfile", lang)}</Text>
           {!isFirstTime && (
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={() => { Keyboard.dismiss(); onClose(); }} style={styles.closeBtn}>
               <Text style={styles.closeLabel}>✕</Text>
             </TouchableOpacity>
           )}

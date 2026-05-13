@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import {
   View,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
   SafeAreaView,
   Linking,
+  Keyboard,
 } from "react-native";
 import PagerView from "react-native-pager-view";
 import type { CategoryTabsHandle } from "../src/components/CategoryTabs";
@@ -101,7 +102,7 @@ export default function FeedScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function handleLike(post: Post) {
+  const handleLike = useCallback((post: Post) => {
     if (!isAuthenticated) {
       setSignInVisible(true);
       return;
@@ -117,7 +118,7 @@ export default function FeedScreen() {
       [post.id]: (prev[post.id] ?? post.likes) + (wasLiked ? -1 : 1),
     }));
     toggleLike(post.id, wasLiked).catch(() => {});
-  }
+  }, [isAuthenticated, liked]);
 
   function handleSignedIn() {
     setIsAuthenticated(true);
@@ -147,6 +148,7 @@ export default function FeedScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => {
+          Keyboard.dismiss();
           setSearchText("");
           setActiveSearch("");
           pagerRef.current?.setPage(0);
@@ -175,7 +177,7 @@ export default function FeedScreen() {
           )}
         </View>
         <TouchableOpacity
-          onPress={() => isAuthenticated ? setProfileVisible(true) : setSignInVisible(true)}
+          onPress={() => { Keyboard.dismiss(); isAuthenticated ? setProfileVisible(true) : setSignInVisible(true); }}
           style={[styles.profileBtn, profile ? styles.profileBtnActive : null]}
         >
           {profile ? (
@@ -196,6 +198,8 @@ export default function FeedScreen() {
           if (idx === activePageIndex) {
             setScrollToTopTrigger((k) => k + 1);
           } else {
+            setSearchText("");
+            setActiveSearch("");
             pagerRef.current?.setPage(idx);
           }
         }}
@@ -213,6 +217,10 @@ export default function FeedScreen() {
         }}
         onPageSelected={(e) => {
           const pos = e.nativeEvent.position;
+          if (pos !== activePageIndex) {
+            setSearchText("");
+            setActiveSearch("");
+          }
           setActivePageIndex(pos);
           tabsRef.current?.snapToPage(pos);
         }}
@@ -230,7 +238,7 @@ export default function FeedScreen() {
               liked={liked}
               likeCounts={likeCounts}
               onLike={handleLike}
-              onOpenPost={setOpenPost}
+              onOpenPost={(post) => { Keyboard.dismiss(); setOpenPost(post); }}
             />
           </View>
         ))}

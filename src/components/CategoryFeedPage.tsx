@@ -1,13 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
-  ScrollView,
   Text,
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
 } from "react-native";
-import type { NativeSyntheticEvent, NativeScrollEvent, LayoutChangeEvent } from "react-native";
+import { MasonryFlashList } from "@shopify/flash-list";
 import { Card } from "./Card";
 import { AdCard } from "./AdCard";
 import { fetchPosts } from "../api";
@@ -16,6 +15,8 @@ import { useTheme } from "../theme";
 import { useLang } from "../lang";
 import { t } from "../i18n";
 import type { Post, PageData } from "../types";
+
+type FlatItem = Post | "ad";
 
 interface Props {
   category: string;
@@ -50,16 +51,14 @@ export function CategoryFeedPage({
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadCompleted, setLoadCompleted] = useState(false);
 
   const loadingRef = useRef(false);
   const cursorRef = useRef<string | null>(null);
   const hasMoreRef = useRef(true);
   const loadedForKeyRef = useRef(-1);
   const loadDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [loadCompleted, setLoadCompleted] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
-  const viewportHeightRef = useRef(0);
-
+  const listRef = useRef<MasonryFlashList<FlatItem>>(null);
 
   async function doLoad(
     nextCursor: string | null,
@@ -113,7 +112,7 @@ export function CategoryFeedPage({
 
   useEffect(() => {
     if (scrollToTopTrigger > 0) {
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      listRef.current?.scrollToOffset({ offset: 0, animated: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollToTopTrigger]);
@@ -129,23 +128,11 @@ export function CategoryFeedPage({
     setRefreshing(false);
   }
 
-  function handleScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
-    const nearBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 500;
-    if (nearBottom && hasMoreRef.current && !loadingRef.current) {
-      const cats = category === "all" && profileCats ? profileCats : undefined;
-      const q = searchQuery || undefined;
-      doLoad(cursorRef.current, false, cats, q);
-    }
-  }
-
-  function handleContentSizeChange(_w: number, contentHeight: number) {
-    if (!isActive) return;
-    if (contentHeight <= viewportHeightRef.current + 200 && hasMoreRef.current && !loadingRef.current) {
-      const cats = category === "all" && profileCats ? profileCats : undefined;
-      const q = searchQuery || undefined;
-      doLoad(cursorRef.current, false, cats, q);
-    }
+  function handleEndReached() {
+    if (!hasMoreRef.current || loadingRef.current) return;
+    const cats = category === "all" && profileCats ? profileCats : undefined;
+    const q = searchQuery || undefined;
+    doLoad(cursorRef.current, false, cats, q);
   }
 
   function getLikeCount(post: Post) {
@@ -154,103 +141,84 @@ export function CategoryFeedPage({
 
   const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
 
-  // Interleave an ad slot every AD_EVERY posts, then split into two independent columns
-  const { leftItems, rightItems } = useMemo(() => {
-    const AD_EVERY = 16;
-    const items: (Post | "ad")[] = [];
+  const flatItems = useMemo<FlatItem[]>(() => {
+    const AD_EVERY = 24;
+    const result: FlatItem[] = [];
     posts.forEach((post, i) => {
-      if (i > 0 && i % AD_EVERY === 0) items.push("ad");
-      items.push(post);
+      if (i > 0 && i % AD_EVERY === 0) result.push("ad");
+      result.push(post);
     });
-    const left: (Post | "ad")[] = [];
-    const right: (Post | "ad")[] = [];
-    items.forEach((item, i) => {
-      if (i % 2 === 0) left.push(item);
-      else right.push(item);
-    });
-    return { leftItems: left, rightItems: right };
+    return result;
   }, [posts]);
 
+  const keyExtractor = useCallback((item: FlatItem, index: number) => {
+    if (item === "ad") return `ad-${index}`;
+    return `post-${(item as Post).id}`;
+  }, []);
+
+  const renderItem = useCallback(({ item, index }: { item: FlatItem; index: number }) => {
+    if (item === "ad") return <View style={styles.cell}><AdCard /></View>;
+    return (
+      <View style={styles.cell}>
+        <Card
+          post={item as Post}
+          liked={liked.has((item as Post).id)}
+          likeCount={getLikeCount(item as Post)}
+          onLike={onLike}
+          onPress={onOpenPost}
+          hideBadge={category !== "all"}
+          overrideGradient={overrideGradient}
+          animationIndex={index}
+        />
+      </View>
+    );
+  }, [liked, likeCounts, onLike, onOpenPost, category, overrideGradient]);
+
+  if (posts.length === 0 && !loadCompleted) {
+    return (
+      <View style={styles.initialLoader}>
+        <ActivityIndicator size="large" color={colors.brand} />
+      </View>
+    );
+  }
+
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView
-        ref={scrollRef}
-        scrollsToTop={isActive}
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.scrollContent}
-        onLayout={(e: LayoutChangeEvent) => { viewportHeightRef.current = e.nativeEvent.layout.height; }}
-        onContentSizeChange={handleContentSizeChange}
-        onScroll={handleScroll}
-        scrollEventThrottle={200}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.brand}
-          />
-        }
-      >
-        {posts.length === 0 && !loadCompleted ? (
-          <View style={styles.initialLoader}>
-            <ActivityIndicator size="large" color={colors.brand} />
-          </View>
-        ) : posts.length === 0 && loadCompleted ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📭</Text>
-            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-              {t("noPostsYet", lang)}
-            </Text>
-          </View>
-        ) : (
-          <>
-            <View style={styles.columns}>
-              <View style={styles.col}>
-                {leftItems.map((item, i) =>
-                  item === "ad" ? (
-                    <AdCard key={`ad-l-${i}`} />
-                  ) : (
-                    <Card
-                      key={item.id}
-                      post={item}
-                      liked={liked.has(item.id)}
-                      likeCount={getLikeCount(item)}
-                      onLike={() => onLike(item)}
-                      onPress={() => onOpenPost(item)}
-                      hideBadge={category !== "all"}
-                      overrideGradient={overrideGradient}
-                      animationIndex={i * 2}
-                    />
-                  )
-                )}
-              </View>
-              <View style={styles.col}>
-                {rightItems.map((item, i) =>
-                  item === "ad" ? (
-                    <AdCard key={`ad-r-${i}`} />
-                  ) : (
-                    <Card
-                      key={item.id}
-                      post={item}
-                      liked={liked.has(item.id)}
-                      likeCount={getLikeCount(item)}
-                      onLike={() => onLike(item)}
-                      onPress={() => onOpenPost(item)}
-                      hideBadge={category !== "all"}
-                      overrideGradient={overrideGradient}
-                      animationIndex={i * 2 + 1}
-                    />
-                  )
-                )}
-              </View>
-            </View>
-            {loading && (
-              <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} />
-            )}
-          </>
-        )}
-      </ScrollView>
-    </View>
+    <MasonryFlashList
+      ref={listRef}
+      key={reloadKey}
+      data={flatItems}
+      numColumns={2}
+      optimizeItemArrangement={false}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      estimatedItemSize={250}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.5}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={colors.brand}
+        />
+      }
+      ListEmptyComponent={
+        <View style={styles.empty}>
+          <Text style={styles.emptyIcon}>📭</Text>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+            {t("noPostsYet", lang)}
+          </Text>
+        </View>
+      }
+      ListFooterComponent={
+        loading
+          ? <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} />
+          : null
+      }
+    />
   );
 }
 
@@ -260,13 +228,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingBottom: 40,
   },
-  columns: {
-    flexDirection: "row",
-    gap: 4,
-    alignItems: "flex-start",
+  cell: {
+    padding: 2,
   },
-  col: { flex: 1 },
   initialLoader: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 120,

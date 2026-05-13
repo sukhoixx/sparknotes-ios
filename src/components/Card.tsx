@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { Animated, View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
+import { Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { useLang, toSimplified } from "../lang";
@@ -15,14 +15,14 @@ interface Props {
   post: Post;
   liked: boolean;
   likeCount: number;
-  onLike: () => void;
-  onPress: () => void;
+  onLike: (post: Post) => void;
+  onPress: (post: Post) => void;
   hideBadge?: boolean;
   overrideGradient?: string;
   animationIndex?: number;
 }
 
-export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, animationIndex = 0 }: Props) {
+export const Card = React.memo(function Card({ post, liked, likeCount, onLike, onPress, hideBadge, animationIndex = 0 }: Props) {
   const { colors } = useTheme();
   const { lang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -30,10 +30,17 @@ export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, anima
   const displayTitle = lang !== "en" && post.zhTitle
     ? (lang === "zh-CN" ? (post.zhTitleCn ?? toSimplified(post.zhTitle)) : post.zhTitle)
     : post.title;
-  const pressStartX = useRef(0);
+
 
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(16)).current;
+  const pressStartX = useRef(0);
+  const imgOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    imgOpacity.setValue(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.imageUrl]);
 
   useEffect(() => {
     const delay = Math.min(animationIndex, 7) * 25;
@@ -50,7 +57,7 @@ export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, anima
       onPressIn={(e) => { pressStartX.current = e.nativeEvent.pageX; }}
       onPress={(e) => {
         if (Math.abs(e.nativeEvent.pageX - pressStartX.current) > 10) return;
-        onPress();
+        onPress(post);
       }}
       activeOpacity={0.88}
       style={styles.container}
@@ -61,7 +68,12 @@ export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, anima
         </View>
       )}
       {!!post.imageUrl && (
-        <Image source={{ uri: post.imageUrl }} style={styles.image} resizeMode="cover" />
+        <Animated.Image
+          source={{ uri: post.imageUrl }}
+          style={[styles.image, { opacity: imgOpacity }]}
+          resizeMode="cover"
+          onLoad={() => Animated.timing(imgOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start()}
+        />
       )}
       <View style={styles.content}>
         <Text style={styles.title} numberOfLines={5}>
@@ -76,7 +88,7 @@ export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, anima
               : ""}
           </Text>
           <TouchableOpacity
-            onPress={onLike}
+            onPress={() => onLike(post)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <View style={styles.likeRow}>
@@ -93,14 +105,14 @@ export function Card({ post, liked, likeCount, onLike, onPress, hideBadge, anima
     </TouchableOpacity>
     </Animated.View>
   );
-}
+});
 
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: {
       borderRadius: 14,
       overflow: "hidden",
-      marginBottom: 4,
+      marginBottom: 0,
       backgroundColor: c.surface,
     },
     badgeWrap: {
