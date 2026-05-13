@@ -12,11 +12,25 @@ const convertToSimplified = ConverterT2CN({ from: "tw", to: "cn" });
 const convertToTraditional = ConverterCN2T({ from: "cn", to: "tw" });
 
 export function toSimplified(text: string): string {
-  return convertToSimplified(text);
+  try {
+    const result = convertToSimplified(text);
+    if ([...result].length === [...text].length) return result;
+    // Some chars were dropped — convert char-by-char with fallback to original
+    return [...text].map((ch) => {
+      const c = convertToSimplified(ch);
+      return [...c].length === 1 ? c : ch;
+    }).join("");
+  } catch {
+    return text;
+  }
 }
 
 export function toTraditional(text: string): string {
-  return convertToTraditional(text);
+  try {
+    return convertToTraditional(text) || text;
+  } catch {
+    return text;
+  }
 }
 
 interface LangContextValue {

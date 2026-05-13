@@ -47,6 +47,7 @@ function ArticleBodyWebView({
   fontSize = 15,
   lineHeight = 24,
   width,
+  onDoubleTap,
 }: {
   html: string;
   textColor: string;
@@ -55,6 +56,7 @@ function ArticleBodyWebView({
   fontSize?: number;
   lineHeight?: number;
   width: number;
+  onDoubleTap?: () => void;
 }) {
   const [height, setHeight] = useState(1);
   const styledHtml = `<!DOCTYPE html><html><head>
@@ -66,13 +68,35 @@ body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-co
 p { color: ${textColor}; font-size: ${fontSize}px; line-height: ${lineHeight}px; margin-bottom: 12px; }
 strong { color: ${strongColor}; font-weight: 700; }
 </style></head><body>${html}</body></html>`;
+
+  const injectedJS = `
+    window.ReactNativeWebView.postMessage(JSON.stringify({type:'height',value:document.body.getBoundingClientRect().height+1}));
+    var _lastTap=0;
+    document.addEventListener('touchend',function(e){
+      var now=Date.now();
+      if(now-_lastTap<300){window.ReactNativeWebView.postMessage(JSON.stringify({type:'doubletap'}));e.preventDefault();}
+      _lastTap=now;
+    },true);
+    true;
+  `;
+
+  function handleMessage(e: any) {
+    try {
+      const msg = JSON.parse(e.nativeEvent.data);
+      if (msg.type === "height") setHeight(msg.value);
+      else if (msg.type === "doubletap") onDoubleTap?.();
+    } catch {
+      setHeight(Number(e.nativeEvent.data));
+    }
+  }
+
   return (
     <WebView
       source={{ html: styledHtml }}
       scrollEnabled={false}
       style={{ width, height, backgroundColor: bgColor }}
-      onMessage={(e) => setHeight(Number(e.nativeEvent.data))}
-      injectedJavaScript="window.ReactNativeWebView.postMessage(document.body.getBoundingClientRect().height + 1); true;"
+      onMessage={handleMessage}
+      injectedJavaScript={injectedJS}
       originWhitelist={["*"]}
       showsVerticalScrollIndicator={false}
     />
@@ -146,8 +170,7 @@ export function ArticleSheet({
   const heartScale = useRef(new Animated.Value(0)).current;
   const heartOpacity = useRef(new Animated.Value(0)).current;
 
-  function onDoubleTap({ nativeEvent }: any) {
-    if (nativeEvent.state !== State.ACTIVE) return;
+  function triggerLikeAnimation() {
     if (!liked) onLike();
     heartScale.setValue(0);
     heartOpacity.setValue(1);
@@ -156,6 +179,11 @@ export function ArticleSheet({
       Animated.delay(350),
       Animated.timing(heartOpacity, { toValue: 0, duration: 250, useNativeDriver: true }),
     ]).start();
+  }
+
+  function onDoubleTap({ nativeEvent }: any) {
+    if (nativeEvent.state !== State.ACTIVE) return;
+    triggerLikeAnimation();
   }
 
   useLayoutEffect(() => {
@@ -318,6 +346,7 @@ export function ArticleSheet({
                   strongColor={colors.text}
                   bgColor={colors.surface}
                   width={contentWidth}
+                  onDoubleTap={triggerLikeAnimation}
                 />
 
                 {/* Fun fact */}
@@ -345,7 +374,7 @@ export function ArticleSheet({
 
                 {/* Tags */}
                 {post.tags?.length > 0 && (
-                  <View style={styles.tags}>
+                  <View style={[styles.tags, { marginTop: 16 }]}>
                     {post.tags.map((tag) => (
                       <View key={tag} style={styles.tag}>
                         <Text style={styles.tagText}>{tag}</Text>
@@ -380,6 +409,24 @@ export function ArticleSheet({
                       }}
                     >
                       <Text style={[styles.shareBtnText, { color: "#000000" }]}>𝕏</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.shareBtn}
+                      onPress={() => {
+                        const appLink = `https://sparknotes-production.up.railway.app/posts/${post.id}`;
+                        Linking.openURL(`sms:&body=${encodeURIComponent(appLink)}`);
+                      }}
+                    >
+                      <Text style={[styles.shareBtnText, { color: "#34c759" }]}>💬</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.shareBtn}
+                      onPress={() => {
+                        const appLink = `https://sparknotes-production.up.railway.app/posts/${post.id}`;
+                        Linking.openURL(`fb-messenger://share?link=${encodeURIComponent(appLink)}`);
+                      }}
+                    >
+                      <Text style={[styles.shareBtnText, { color: "#0084ff" }]}>m</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.shareBtn}
