@@ -68,6 +68,9 @@ const STRINGS: Record<LangMode, Record<string, string>> = {
     cat_finance: "💰 Finance",
     cat_health: "💊 Health",
     cat_beauty: "💄 Beauty",
+    upgradeTitle: "Update Required",
+    upgradeBody: "A new version of NewsBlock is available. Please update to continue.",
+    upgradeBtn: "Update Now",
   },
   "zh-TW": {
     searchPlaceholder: "搜尋文章…",
@@ -130,6 +133,9 @@ const STRINGS: Record<LangMode, Record<string, string>> = {
     cat_finance: "💰 財經",
     cat_health: "💊 健康",
     cat_beauty: "💄 美妝",
+    upgradeTitle: "需要更新",
+    upgradeBody: "NewsBlock 有新版本可用，請更新以繼續使用。",
+    upgradeBtn: "立即更新",
   },
   "zh-CN": {
     searchPlaceholder: "搜索文章…",
@@ -192,6 +198,9 @@ const STRINGS: Record<LangMode, Record<string, string>> = {
     cat_finance: "💰 财经",
     cat_health: "💊 健康",
     cat_beauty: "💄 美妆",
+    upgradeTitle: "需要更新",
+    upgradeBody: "NewsBlock 有新版本，请更新以继续使用。",
+    upgradeBtn: "立即更新",
   },
 };
 
