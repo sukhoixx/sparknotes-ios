@@ -320,9 +320,9 @@ export function ArticleSheet({
               <>
                 {/* Date */}
                 <Text style={[styles.dateText, { marginBottom: 12 }]}>
-                  {new Date(post.createdAt).toLocaleDateString(
+                  {new Date(post.createdAt).toLocaleString(
                     lang === "zh-TW" ? "zh-TW" : lang === "zh-CN" ? "zh-CN" : "en-US",
-                    { month: "short", day: "numeric", year: "numeric" }
+                    { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }
                   )}
                 </Text>
 

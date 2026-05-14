@@ -33,7 +33,7 @@ export default function FeedScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const eventTabLabel = activeEvent
-    ? `🔴 ${lang === "zh-CN" && activeEvent.labelZh ? toSimplified(activeEvent.labelZh) : lang === "zh-TW" && activeEvent.labelZh ? activeEvent.labelZh : activeEvent.label}`
+    ? `🔴 ${lang === "zh-CN" && activeEvent.labelZh ? toSimplified(activeEvent.labelZh) : lang === "zh-TW" && activeEvent.labelZh ? toTraditional(activeEvent.labelZh) : activeEvent.label}`
     : undefined;
   const eventTab = activeEvent ? { id: activeEvent.slug, label: eventTabLabel! } : undefined;
   // Event tab sits at index 1, after "For You", so the app always lands on For You

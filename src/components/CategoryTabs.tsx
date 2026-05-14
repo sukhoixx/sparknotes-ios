@@ -25,7 +25,7 @@ export const CategoryTabs = React.forwardRef<CategoryTabsHandle, Props>(
     const { lang } = useLang();
     const styles = useMemo(() => makeStyles(colors), [colors]);
     const baseTabs = useMemo(() => CATEGORY_IDS.map((id) => ({ id, label: t(`cat_${id}`, lang) })), [lang]);
-    const allTabs = useMemo(() => leadingTab ? [leadingTab, ...baseTabs] : baseTabs, [leadingTab, baseTabs]);
+    const allTabs = useMemo(() => leadingTab ? [baseTabs[0], leadingTab, ...baseTabs.slice(1)] : baseTabs, [leadingTab, baseTabs]);
 
     const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});
     const scrollViewWidth = useRef(0);
