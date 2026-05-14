@@ -19,7 +19,7 @@ import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
 import { fetchMyLikes, getJwt, fetchProfile, toggleLike, fetchPost } from "../src/api";
 import { useTheme } from "../src/theme";
-import { useLang, toTraditional } from "../src/lang";
+import { useLang, toTraditional, toSimplified } from "../src/lang";
 import { useEvent } from "../src/event";
 import { t } from "../src/i18n";
 import type { LangMode } from "../src/lang";
@@ -32,8 +32,12 @@ export default function FeedScreen() {
   const { activeEvent } = useEvent();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const eventTab = activeEvent ? { id: activeEvent.slug, label: `🔴 ${activeEvent.label}` } : undefined;
-  const allPageIds = useMemo(() => eventTab ? [eventTab.id, ...CATEGORY_IDS] : CATEGORY_IDS, [eventTab?.id]);
+  const eventTabLabel = activeEvent
+    ? `🔴 ${lang === "zh-CN" && activeEvent.labelZh ? toSimplified(activeEvent.labelZh) : lang === "zh-TW" && activeEvent.labelZh ? activeEvent.labelZh : activeEvent.label}`
+    : undefined;
+  const eventTab = activeEvent ? { id: activeEvent.slug, label: eventTabLabel! } : undefined;
+  // Event tab sits at index 1, after "For You", so the app always lands on For You
+  const allPageIds = useMemo(() => eventTab ? [CATEGORY_IDS[0], eventTab.id, ...CATEGORY_IDS.slice(1)] : CATEGORY_IDS, [eventTab?.id]);
 
   const pagerRef = useRef<PagerView>(null);
   const tabsRef = useRef<CategoryTabsHandle>(null);

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 export type ActiveEvent = {
   slug: string;
   label: string;
+  labelZh?: string | null;
   description?: string | null;
 };
 
@@ -19,10 +20,10 @@ const EventContext = createContext<EventContextValue>({
 
 export function EventProvider({ children }: { children: ReactNode }) {
   const [activeEvent, setActiveEvent] = useState<ActiveEvent | null>(null);
-  return (
-    <EventContext.Provider value={{ activeEvent, setActiveEvent }}>
-      {children}
-    </EventContext.Provider>
+  return React.createElement(
+    EventContext.Provider,
+    { value: { activeEvent, setActiveEvent } },
+    children
   );
 }
 
