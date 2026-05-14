@@ -15,15 +15,17 @@ export interface CategoryTabsHandle {
 interface Props {
   active: string;
   onChange: (id: string) => void;
+  leadingTab?: { id: string; label: string };
 }
 
 export const CategoryTabs = React.forwardRef<CategoryTabsHandle, Props>(
-  function CategoryTabs({ active, onChange }, ref) {
+  function CategoryTabs({ active, onChange, leadingTab }, ref) {
     const scrollRef = useRef<ScrollView>(null);
     const { colors } = useTheme();
     const { lang } = useLang();
     const styles = useMemo(() => makeStyles(colors), [colors]);
-    const tabs = useMemo(() => CATEGORY_IDS.map((id) => ({ id, label: t(`cat_${id}`, lang) })), [lang]);
+    const baseTabs = useMemo(() => CATEGORY_IDS.map((id) => ({ id, label: t(`cat_${id}`, lang) })), [lang]);
+    const allTabs = useMemo(() => leadingTab ? [leadingTab, ...baseTabs] : baseTabs, [leadingTab, baseTabs]);
 
     const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});
     const scrollViewWidth = useRef(0);
@@ -34,14 +36,15 @@ export const CategoryTabs = React.forwardRef<CategoryTabsHandle, Props>(
 
     const tabColors = useMemo(
       () =>
-        CATEGORY_IDS.map((_, i) =>
+        allTabs.map((_, i) =>
           pageProgress.interpolate({
             inputRange: [i - 1, i, i + 1],
             outputRange: [colors.textMuted, colors.brand, colors.textMuted],
             extrapolate: "clamp",
           })
         ),
-      [colors.textMuted, colors.brand]
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [allTabs.length, colors.textMuted, colors.brand]
     );
 
     function centeredScrollX(id: string): number {
@@ -52,21 +55,22 @@ export const CategoryTabs = React.forwardRef<CategoryTabsHandle, Props>(
 
     useImperativeHandle(ref, () => ({
       scrollToProgress(position: number, offset: number) {
-        const idA = CATEGORY_IDS[position];
-        const idB = CATEGORY_IDS[Math.min(position + 1, CATEGORY_IDS.length - 1)];
+        const idA = allTabs[position]?.id;
+        const idB = allTabs[Math.min(position + 1, allTabs.length - 1)]?.id;
+        if (!idA) return;
         const layoutA = tabLayouts.current[idA];
-        const layoutB = tabLayouts.current[idB] ?? layoutA;
+        const layoutB = (idB ? tabLayouts.current[idB] : null) ?? layoutA;
         if (!layoutA) return;
         highlightX.setValue(layoutA.x + (layoutB.x - layoutA.x) * offset);
         highlightW.setValue(layoutA.width + (layoutB.width - layoutA.width) * offset);
         pageProgress.setValue(position + offset);
-        const targetX = centeredScrollX(idA) + (centeredScrollX(idB) - centeredScrollX(idA)) * offset;
+        const targetX = centeredScrollX(idA) + (centeredScrollX(idB ?? idA) - centeredScrollX(idA)) * offset;
         scrollRef.current?.scrollTo({ x: targetX, animated: false });
       },
 
-      // Called once when page settles — scroll the row to centre the tab
       snapToPage(position: number) {
-        const id = CATEGORY_IDS[position];
+        const id = allTabs[position]?.id;
+        if (!id) return;
         const layout = tabLayouts.current[id];
         if (!layout) return;
         scrollRef.current?.scrollTo({ x: centeredScrollX(id), animated: true });
@@ -76,7 +80,7 @@ export const CategoryTabs = React.forwardRef<CategoryTabsHandle, Props>(
           Animated.spring(pageProgress, { toValue: position, useNativeDriver: false, speed: 40, bounciness: 0 }),
         ]).start();
       },
-    }));
+    }), [allTabs]);
 
     return (
       <ScrollView
@@ -93,7 +97,7 @@ export const CategoryTabs = React.forwardRef<CategoryTabsHandle, Props>(
           style={[styles.highlight, { transform: [{ translateX: highlightX }], width: highlightW }]}
         />
 
-        {tabs.map((tab, idx) => (
+        {allTabs.map((tab, idx) => (
           <TouchableOpacity
             key={tab.id}
             onPress={() => onChange(tab.id)}

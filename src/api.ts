@@ -40,12 +40,14 @@ export async function fetchPosts(
   category: string,
   cursor: string | null,
   cats?: string,
-  q?: string
+  q?: string,
+  eventSlug?: string
 ): Promise<PageData> {
   const params = new URLSearchParams({ category });
   if (cursor) params.set("cursor", cursor);
   if (category === "all" && cats) params.set("cats", cats);
   if (q) params.set("q", q);
+  if (eventSlug) params.set("event", eventSlug);
   const res = await apiFetch(`/api/posts?${params}`);
   return res.json();
 }

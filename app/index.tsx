@@ -20,6 +20,7 @@ import { ProfileSheet } from "../src/components/ProfileSheet";
 import { fetchMyLikes, getJwt, fetchProfile, toggleLike, fetchPost } from "../src/api";
 import { useTheme } from "../src/theme";
 import { useLang, toTraditional } from "../src/lang";
+import { useEvent } from "../src/event";
 import { t } from "../src/i18n";
 import type { LangMode } from "../src/lang";
 import type { Post, UserProfile } from "../src/types";
@@ -28,7 +29,11 @@ export default function FeedScreen() {
   const { openPostId } = useLocalSearchParams<{ openPostId?: string }>();
   const { colors } = useTheme();
   const { lang, setLang } = useLang();
+  const { activeEvent } = useEvent();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+
+  const eventTab = activeEvent ? { id: activeEvent.slug, label: `🔴 ${activeEvent.label}` } : undefined;
+  const allPageIds = useMemo(() => eventTab ? [eventTab.id, ...CATEGORY_IDS] : CATEGORY_IDS, [eventTab?.id]);
 
   const pagerRef = useRef<PagerView>(null);
   const tabsRef = useRef<CategoryTabsHandle>(null);
@@ -191,9 +196,10 @@ export default function FeedScreen() {
       {/* Category tabs */}
       <CategoryTabs
         ref={tabsRef}
-        active={CATEGORY_IDS[activePageIndex]}
+        active={allPageIds[activePageIndex]}
+        leadingTab={eventTab}
         onChange={(id) => {
-          const idx = CATEGORY_IDS.indexOf(id);
+          const idx = allPageIds.indexOf(id);
           if (idx < 0) return;
           if (idx === activePageIndex) {
             setScrollToTopTrigger((k) => k + 1);
@@ -225,23 +231,27 @@ export default function FeedScreen() {
           tabsRef.current?.snapToPage(pos);
         }}
       >
-        {CATEGORY_IDS.map((cat, idx) => (
-          <View key={cat} style={{ flex: 1 }}>
-            <CategoryFeedPage
-              category={cat}
-              isVisible={idx === activePageIndex}
-              isActive={idx === activePageIndex}
-              profileCats={cat === "all" ? (profileCatsStr || undefined) : undefined}
-              searchQuery={lang === "zh-CN" && activeSearch ? toTraditional(activeSearch) : activeSearch}
-              reloadKey={reloadKey}
-              scrollToTopTrigger={scrollToTopTrigger}
-              liked={liked}
-              likeCounts={likeCounts}
-              onLike={handleLike}
-              onOpenPost={(post) => { Keyboard.dismiss(); setOpenPost(post); }}
-            />
-          </View>
-        ))}
+        {allPageIds.map((pageId, idx) => {
+          const isEventPage = eventTab && pageId === eventTab.id;
+          return (
+            <View key={pageId} style={{ flex: 1 }}>
+              <CategoryFeedPage
+                category={isEventPage ? "all" : pageId}
+                eventSlug={isEventPage ? activeEvent!.slug : undefined}
+                isVisible={idx === activePageIndex}
+                isActive={idx === activePageIndex}
+                profileCats={pageId === "all" ? (profileCatsStr || undefined) : undefined}
+                searchQuery={lang === "zh-CN" && activeSearch ? toTraditional(activeSearch) : activeSearch}
+                reloadKey={reloadKey}
+                scrollToTopTrigger={scrollToTopTrigger}
+                liked={liked}
+                likeCounts={likeCounts}
+                onLike={handleLike}
+                onOpenPost={(post) => { Keyboard.dismiss(); setOpenPost(post); }}
+              />
+            </View>
+          );
+        })}
       </PagerView>
 
       <ArticleSheet

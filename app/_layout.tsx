@@ -7,6 +7,7 @@ import MobileAds from "react-native-google-mobile-ads";
 import Constants from "expo-constants";
 import { ThemeProvider, useTheme } from "../src/theme";
 import { LangProvider } from "../src/lang";
+import { EventProvider, useEvent } from "../src/event";
 import { ForceUpgradeModal } from "../src/components/ForceUpgradeModal";
 import { useEffect, useState } from "react";
 
@@ -31,6 +32,7 @@ function compareVersions(a: string, b: string): number {
 
 function AppShell() {
   const { isDark } = useTheme();
+  const { setActiveEvent } = useEvent();
   const [forceUpgrade, setForceUpgrade] = useState(false);
 
   useEffect(() => {
@@ -40,8 +42,10 @@ function AppShell() {
         const current = Constants.expoConfig?.version ?? "0.0.0";
         const min = data.minVersion ?? "1.0.0";
         if (compareVersions(current, min) < 0) setForceUpgrade(true);
+        if (data.activeEvent) setActiveEvent(data.activeEvent);
       })
       .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -57,9 +61,11 @@ export default function RootLayout() {
   return (
     <LangProvider>
       <ThemeProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <AppShell />
-        </GestureHandlerRootView>
+        <EventProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <AppShell />
+          </GestureHandlerRootView>
+        </EventProvider>
       </ThemeProvider>
     </LangProvider>
   );

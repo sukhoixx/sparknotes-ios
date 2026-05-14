@@ -30,6 +30,7 @@ interface Props {
   likeCounts: Record<number, number>;
   onLike: (post: Post) => void;
   onOpenPost: (post: Post) => void;
+  eventSlug?: string;
 }
 
 export function CategoryFeedPage({
@@ -44,6 +45,7 @@ export function CategoryFeedPage({
   likeCounts,
   onLike,
   onOpenPost,
+  eventSlug,
 }: Props) {
   const { colors } = useTheme();
   const { lang } = useLang();
@@ -64,14 +66,15 @@ export function CategoryFeedPage({
     nextCursor: string | null,
     reset: boolean,
     cats: string | undefined,
-    q: string | undefined
+    q: string | undefined,
+    slug?: string
   ) {
     if (!reset && loadingRef.current) return;
     if (reset) loadingRef.current = false;
     loadingRef.current = true;
     setLoading(true);
     try {
-      const data: PageData = await fetchPosts(category, nextCursor, cats, q);
+      const data: PageData = await fetchPosts(category, nextCursor, cats, q, slug);
       setPosts((prev) => {
         if (reset) return data.posts;
         const seen = new Set(prev.map((p) => p.id));
@@ -106,7 +109,7 @@ export function CategoryFeedPage({
     if (loadDelayRef.current) clearTimeout(loadDelayRef.current);
     loadDelayRef.current = setTimeout(() => {
       loadDelayRef.current = null;
-      doLoad(null, true, cats, q);
+      doLoad(null, true, cats, q, eventSlug);
     }, 80);
   }, [isVisible, reloadKey]);
 
@@ -124,7 +127,7 @@ export function CategoryFeedPage({
     hasMoreRef.current = true;
     const cats = category === "all" && profileCats ? profileCats : undefined;
     const q = searchQuery || undefined;
-    await doLoad(null, true, cats, q);
+    await doLoad(null, true, cats, q, eventSlug);
     setRefreshing(false);
   }
 
@@ -132,7 +135,7 @@ export function CategoryFeedPage({
     if (!hasMoreRef.current || loadingRef.current) return;
     const cats = category === "all" && profileCats ? profileCats : undefined;
     const q = searchQuery || undefined;
-    doLoad(cursorRef.current, false, cats, q);
+    doLoad(cursorRef.current, false, cats, q, eventSlug);
   }
 
   function getLikeCount(post: Post) {
