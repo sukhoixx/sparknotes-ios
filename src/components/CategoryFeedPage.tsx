@@ -169,7 +169,7 @@ export function CategoryFeedPage({
           likeCount={getLikeCount(item as Post)}
           onLike={onLike}
           onPress={onOpenPost}
-          hideBadge={category !== "all"}
+          hideBadge={category !== "all" || !!eventSlug}
           overrideGradient={overrideGradient}
           animationIndex={index}
         />
