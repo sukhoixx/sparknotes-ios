@@ -195,6 +195,10 @@ export function CategoryFeedPage({
       keyExtractor={keyExtractor}
       renderItem={renderItem}
       estimatedItemSize={250}
+      overrideItemLayout={(layout, item) => {
+        // Cards with images are ~120px taller than those without
+        layout.size = item === "ad" ? 250 : (item as Post).imageUrl ? 310 : 190;
+      }}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
