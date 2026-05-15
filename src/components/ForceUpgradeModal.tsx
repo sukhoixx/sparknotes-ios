@@ -4,7 +4,7 @@ import { useTheme } from "../theme";
 import { useLang } from "../lang";
 import { t } from "../i18n";
 
-const APP_STORE_URL = "https://apps.apple.com/app/id6745205168";
+const APP_STORE_URL = "https://apps.apple.com/app/id6766168195";
 
 interface Props {
   visible: boolean;
