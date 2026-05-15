@@ -9,20 +9,20 @@ export type ActiveEvent = {
 };
 
 type EventContextValue = {
-  activeEvent: ActiveEvent | null;
-  setActiveEvent: (event: ActiveEvent | null) => void;
+  activeEvents: ActiveEvent[];
+  setActiveEvents: (events: ActiveEvent[]) => void;
 };
 
 const EventContext = createContext<EventContextValue>({
-  activeEvent: null,
-  setActiveEvent: () => {},
+  activeEvents: [],
+  setActiveEvents: () => {},
 });
 
 export function EventProvider({ children }: { children: ReactNode }) {
-  const [activeEvent, setActiveEvent] = useState<ActiveEvent | null>(null);
+  const [activeEvents, setActiveEvents] = useState<ActiveEvent[]>([]);
   return React.createElement(
     EventContext.Provider,
-    { value: { activeEvent, setActiveEvent } },
+    { value: { activeEvents, setActiveEvents } },
     children
   );
 }

@@ -15,17 +15,17 @@ export interface CategoryTabsHandle {
 interface Props {
   active: string;
   onChange: (id: string) => void;
-  leadingTab?: { id: string; label: string };
+  leadingTabs?: { id: string; label: string }[];
 }
 
 export const CategoryTabs = React.forwardRef<CategoryTabsHandle, Props>(
-  function CategoryTabs({ active, onChange, leadingTab }, ref) {
+  function CategoryTabs({ active, onChange, leadingTabs }, ref) {
     const scrollRef = useRef<ScrollView>(null);
     const { colors } = useTheme();
     const { lang } = useLang();
     const styles = useMemo(() => makeStyles(colors), [colors]);
     const baseTabs = useMemo(() => CATEGORY_IDS.map((id) => ({ id, label: t(`cat_${id}`, lang) })), [lang]);
-    const allTabs = useMemo(() => leadingTab ? [baseTabs[0], leadingTab, ...baseTabs.slice(1)] : baseTabs, [leadingTab, baseTabs]);
+    const allTabs = useMemo(() => leadingTabs?.length ? [baseTabs[0], ...leadingTabs, ...baseTabs.slice(1)] : baseTabs, [leadingTabs, baseTabs]);
 
     const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});
     const scrollViewWidth = useRef(0);

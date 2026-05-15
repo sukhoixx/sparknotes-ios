@@ -32,7 +32,7 @@ function compareVersions(a: string, b: string): number {
 
 function AppShell() {
   const { isDark } = useTheme();
-  const { setActiveEvent } = useEvent();
+  const { setActiveEvents } = useEvent();
   const [forceUpgrade, setForceUpgrade] = useState(false);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ function AppShell() {
         const current = Constants.expoConfig?.version ?? "0.0.0";
         const min = data.minVersion ?? "1.0.0";
         if (compareVersions(current, min) < 0) setForceUpgrade(true);
-        if (data.activeEvent) setActiveEvent(data.activeEvent);
+        if (data.activeEvents?.length) setActiveEvents(data.activeEvents);
       })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps

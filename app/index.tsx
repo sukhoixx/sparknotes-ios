@@ -29,15 +29,23 @@ export default function FeedScreen() {
   const { openPostId } = useLocalSearchParams<{ openPostId?: string }>();
   const { colors } = useTheme();
   const { lang, setLang } = useLang();
-  const { activeEvent } = useEvent();
+  const { activeEvents } = useEvent();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const eventTabLabel = activeEvent
-    ? `🔴 ${lang === "zh-CN" && activeEvent.labelZh ? toSimplified(activeEvent.labelZh) : lang === "zh-TW" && activeEvent.labelZh ? toTraditional(activeEvent.labelZh) : activeEvent.label}`
-    : undefined;
-  const eventTab = activeEvent ? { id: activeEvent.slug, label: eventTabLabel! } : undefined;
-  // Event tab sits at index 1, after "For You", so the app always lands on For You
-  const allPageIds = useMemo(() => eventTab ? [CATEGORY_IDS[0], eventTab.id, ...CATEGORY_IDS.slice(1)] : CATEGORY_IDS, [eventTab?.id]);
+  const eventTabs = useMemo(() =>
+    activeEvents.map((event) => ({
+      id: event.slug,
+      label: `🔴 ${lang === "zh-CN" && event.labelZh ? toSimplified(event.labelZh) : lang === "zh-TW" && event.labelZh ? toTraditional(event.labelZh) : event.label}`,
+    })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeEvents, lang]
+  );
+  // Event tabs sit after "For You" so the app always lands on For You
+  const allPageIds = useMemo(
+    () => eventTabs.length > 0 ? [CATEGORY_IDS[0], ...eventTabs.map((t) => t.id), ...CATEGORY_IDS.slice(1)] : CATEGORY_IDS,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [eventTabs.map((t) => t.id).join(",")]
+  );
 
   const pagerRef = useRef<PagerView>(null);
   const tabsRef = useRef<CategoryTabsHandle>(null);
@@ -201,7 +209,7 @@ export default function FeedScreen() {
       <CategoryTabs
         ref={tabsRef}
         active={allPageIds[activePageIndex]}
-        leadingTab={eventTab}
+        leadingTabs={eventTabs}
         onChange={(id) => {
           const idx = allPageIds.indexOf(id);
           if (idx < 0) return;
@@ -236,12 +244,12 @@ export default function FeedScreen() {
         }}
       >
         {allPageIds.map((pageId, idx) => {
-          const isEventPage = eventTab && pageId === eventTab.id;
+          const eventForPage = activeEvents.find((e) => e.slug === pageId);
           return (
             <View key={pageId} style={{ flex: 1 }}>
               <CategoryFeedPage
-                category={isEventPage ? "all" : pageId}
-                eventSlug={isEventPage ? activeEvent!.slug : undefined}
+                category={eventForPage ? "all" : pageId}
+                eventSlug={eventForPage ? pageId : undefined}
                 isVisible={idx === activePageIndex}
                 isActive={idx === activePageIndex}
                 profileCats={pageId === "all" ? (profileCatsStr || undefined) : undefined}
