@@ -191,6 +191,7 @@ export function CategoryFeedPage({
       key={reloadKey}
       data={flatItems}
       numColumns={2}
+      extraData={{ liked, likeCounts }}
       optimizeItemArrangement={false}
       keyExtractor={keyExtractor}
       renderItem={renderItem}

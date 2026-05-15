@@ -6,10 +6,10 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Linking,
   Keyboard,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import PagerView from "react-native-pager-view";
 import type { CategoryTabsHandle } from "../src/components/CategoryTabs";
 import { CategoryTabs, CATEGORY_IDS } from "../src/components/CategoryTabs";

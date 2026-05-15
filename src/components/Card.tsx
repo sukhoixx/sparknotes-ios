@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Animated, View, Text, TouchableOpacity, Pressable, StyleSheet } from "react-native";
 import { useTheme } from "../theme";
 import { useLang, toSimplified } from "../lang";
 import { t } from "../i18n";
@@ -87,19 +86,17 @@ export const Card = React.memo(function Card({ post, liked, likeCount, onLike, o
                 : `${post._count.comments} ${t("commentPlural", lang)}`
               : ""}
           </Text>
-          <TouchableOpacity
-            onPress={() => onLike(post)}
+          <Pressable
+            onPress={(e) => { e.stopPropagation(); onLike(post); }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <View style={styles.likeRow}>
-              <Ionicons
-                name={liked ? "heart" : "heart-outline"}
-                size={12}
-                color={liked ? "#e03" : colors.textFaint}
-              />
-              <Text style={styles.like}> {formatNum(likeCount)}</Text>
+              <Text style={[styles.likeHeart, liked && styles.likeHeartActive]}>
+                {liked ? "❤️" : "🤍"}
+              </Text>
+              <Text style={styles.like}>{formatNum(likeCount)}</Text>
             </View>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
     </TouchableOpacity>
@@ -156,7 +153,12 @@ function makeStyles(c: Colors) {
     likeRow: {
       flexDirection: "row",
       alignItems: "center",
+      gap: 2,
     },
+    likeHeart: {
+      fontSize: 11,
+    },
+    likeHeartActive: {},
     like: {
       fontSize: 10,
       color: c.textFaint,
