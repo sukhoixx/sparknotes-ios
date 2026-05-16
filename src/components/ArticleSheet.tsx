@@ -15,6 +15,7 @@ import {
   Linking,
   Share,
   Image,
+  Platform,
 } from "react-native";
 import { PanGestureHandler, TapGestureHandler, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -472,6 +473,23 @@ function HeroImage({ lowRes, highRes, width }: { lowRes?: string; highRes?: stri
   );
 }
 
+const iosVoiceCache: Record<string, string | undefined> = {};
+async function getPreferredVoice(locale: string): Promise<string | undefined> {
+  if (Platform.OS !== "ios") return undefined;
+  if (locale in iosVoiceCache) return iosVoiceCache[locale];
+  try {
+    const voices = await Speech.getAvailableVoicesAsync();
+    const qualityRank: Record<string, number> = { Default: 0, Enhanced: 1, Premium: 2 };
+    const match = voices
+      .filter((v) => v.language.startsWith(locale.slice(0, 5)))
+      .sort((a, b) => (qualityRank[b.quality] ?? 0) - (qualityRank[a.quality] ?? 0))[0];
+    iosVoiceCache[locale] = match?.identifier;
+    return match?.identifier;
+  } catch {
+    return undefined;
+  }
+}
+
 function stripHtmlForSpeech(html: string): string {
   return html
     .replace(/<[^>]*>/g, " ")
@@ -523,8 +541,10 @@ export function ArticleSheet({
   const heartScale = useRef(new Animated.Value(0)).current;
   const heartOpacity = useRef(new Animated.Value(0)).current;
   const autoReadToastOpacity = useRef(new Animated.Value(0)).current;
+  const [autoReadToastMsg, setAutoReadToastMsg] = useState("");
 
-  function triggerAutoReadToast() {
+  function triggerAutoReadToast(msg: string) {
+    setAutoReadToastMsg(msg);
     autoReadToastOpacity.setValue(1);
     Animated.sequence([
       Animated.delay(800),
@@ -594,15 +614,15 @@ export function ArticleSheet({
       const fact = displayFunFact ? stripHtmlForSpeech(displayFunFact) : "";
       const text = [title, body, fact].filter(Boolean).join(". ");
       const locale = lang === "zh-TW" ? "zh-TW" : lang === "zh-CN" ? "zh-CN" : "en-US";
-      Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
-      console.log("[TTS] speaking, locale:", locale, "chars:", text.length, "preview:", text.slice(0, 80));
-      Speech.speak(text, {
-        language: locale,
-        rate: 0.95,
-        onStart: () => console.log("[TTS] started"),
-        onDone: () => console.log("[TTS] done"),
-        onError: (e) => console.log("[TTS] error:", e),
-      });
+      (async () => {
+        const voiceId = await getPreferredVoice(locale);
+        Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
+        Speech.speak(text, {
+          language: locale,
+          rate: 0.95,
+          ...(voiceId ? { voice: voiceId } : {}),
+        });
+      })();
     } else {
       Speech.stop();
     }
@@ -677,7 +697,7 @@ export function ArticleSheet({
           <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
             <Text style={styles.closeLabel}>✕</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => { if (!autoRead) triggerAutoReadToast(); onToggleAutoRead(); }} style={[styles.autoReadBtn, autoRead && styles.autoReadBtnActive]}>
+          <TouchableOpacity onPress={() => { triggerAutoReadToast(autoRead ? "🔇 Auto-Read Off" : "🔊 Auto-Read On"); onToggleAutoRead(); }} style={[styles.autoReadBtn, autoRead && styles.autoReadBtnActive]}>
             <Text style={styles.autoReadEmoji}>{autoRead ? "🔊" : "🔇"}</Text>
           </TouchableOpacity>
           {post && (
@@ -889,7 +909,7 @@ export function ArticleSheet({
 
         {/* Auto-read toast */}
         <Animated.View style={[styles.autoReadToast, { opacity: autoReadToastOpacity }]} pointerEvents="none">
-          <Text style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}>🔊 Auto-Read On</Text>
+          <Text style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}>{autoReadToastMsg}</Text>
         </Animated.View>
       </Animated.View>
     </PanGestureHandler>
