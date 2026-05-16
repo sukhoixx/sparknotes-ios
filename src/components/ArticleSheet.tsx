@@ -389,7 +389,7 @@ export function ArticleSheet({
                 {!!post.sourceUrl && (
                   <View style={styles.sourceRow}>
                     <TouchableOpacity
-                      onPress={() => Linking.openURL(post.sourceUrl!)}
+                      onPress={() => Linking.openURL(post.sourceUrl!.trim())}
                       style={styles.sourceBtn}
                     >
                       <Text style={styles.sourceBtnLabel}>{t("viewSource", lang)}</Text>
