@@ -147,7 +147,7 @@ export function ArticleSheet({
   const displayTitle = post
     ? (lang !== "en" && post.zhTitle
         ? (lang === "zh-CN" ? (post.zhTitleCn ?? toSimplified(post.zhTitle)) : post.zhTitle)
-        : post.title)
+        : post.title).trim()
     : "";
 
   const displayBody = post

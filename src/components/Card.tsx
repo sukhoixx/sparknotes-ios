@@ -26,9 +26,9 @@ export const Card = React.memo(function Card({ post, liked, likeCount, onLike, o
   const { lang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const displayTitle = lang !== "en" && post.zhTitle
+  const displayTitle = (lang !== "en" && post.zhTitle
     ? (lang === "zh-CN" ? (post.zhTitleCn ?? toSimplified(post.zhTitle)) : post.zhTitle)
-    : post.title;
+    : post.title).trim();
 
 
   const opacity = useRef(new Animated.Value(0)).current;
