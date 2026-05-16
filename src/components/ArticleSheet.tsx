@@ -522,6 +522,15 @@ export function ArticleSheet({
   const doubleTapRef = useRef(null);
   const heartScale = useRef(new Animated.Value(0)).current;
   const heartOpacity = useRef(new Animated.Value(0)).current;
+  const autoReadToastOpacity = useRef(new Animated.Value(0)).current;
+
+  function triggerAutoReadToast() {
+    autoReadToastOpacity.setValue(1);
+    Animated.sequence([
+      Animated.delay(800),
+      Animated.timing(autoReadToastOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]).start();
+  }
 
   function triggerLikeAnimation() {
     if (!liked) onLike();
@@ -668,7 +677,7 @@ export function ArticleSheet({
           <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
             <Text style={styles.closeLabel}>✕</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={onToggleAutoRead} style={[styles.autoReadBtn, autoRead && styles.autoReadBtnActive]}>
+          <TouchableOpacity onPress={() => { if (!autoRead) triggerAutoReadToast(); onToggleAutoRead(); }} style={[styles.autoReadBtn, autoRead && styles.autoReadBtnActive]}>
             <Text style={styles.autoReadEmoji}>{autoRead ? "🔊" : "🔇"}</Text>
           </TouchableOpacity>
           {post && (
@@ -877,6 +886,11 @@ export function ArticleSheet({
         >
           ❤️
         </Animated.Text>
+
+        {/* Auto-read toast */}
+        <Animated.View style={[styles.autoReadToast, { opacity: autoReadToastOpacity }]} pointerEvents="none">
+          <Text style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}>🔊 Auto-Read On</Text>
+        </Animated.View>
       </Animated.View>
     </PanGestureHandler>
   );
@@ -1018,6 +1032,16 @@ function makeStyles(c: Colors) {
       alignSelf: "center",
       top: "40%",
       fontSize: 80,
+      zIndex: 200,
+    },
+    autoReadToast: {
+      position: "absolute",
+      alignSelf: "center",
+      top: "45%",
+      backgroundColor: "rgba(0,0,0,0.6)",
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
       zIndex: 200,
     },
   });
