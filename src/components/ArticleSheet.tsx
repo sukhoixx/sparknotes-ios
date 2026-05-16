@@ -578,7 +578,6 @@ export function ArticleSheet({
   }
 
   useEffect(() => {
-    Speech.stop();
     if (autoRead && post) {
       const title = displayTitle;
       const body = stripHtmlForSpeech(displayBody);
@@ -586,6 +585,8 @@ export function ArticleSheet({
       const text = [title, body, fact].filter(Boolean).join(". ");
       const locale = lang === "zh-TW" ? "zh-TW" : lang === "zh-CN" ? "zh-CN" : "en-US";
       Speech.speak(text, { language: locale, rate: 0.95 });
+    } else {
+      Speech.stop();
     }
     return () => { Speech.stop(); };
   }, [post?.id, autoRead]);
