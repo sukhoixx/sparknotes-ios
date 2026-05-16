@@ -16,6 +16,7 @@ import {
   Share,
   Image,
   Platform,
+  Modal,
 } from "react-native";
 import { PanGestureHandler, TapGestureHandler, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -545,6 +546,7 @@ export function ArticleSheet({
   const heartOpacity = useRef(new Animated.Value(0)).current;
   const autoReadToastOpacity = useRef(new Animated.Value(0)).current;
   const [autoReadToastMsg, setAutoReadToastMsg] = useState("");
+  const [voiceHelpVisible, setVoiceHelpVisible] = useState(false);
 
   function triggerAutoReadToast(msg: string) {
     setAutoReadToastMsg(msg);
@@ -700,9 +702,14 @@ export function ArticleSheet({
           <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
             <Text style={styles.closeLabel}>✕</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => { triggerAutoReadToast(autoRead ? "🔇 Auto-Read Off" : "🔊 Auto-Read On"); onToggleAutoRead(); }} style={[styles.autoReadBtn, autoRead && styles.autoReadBtnActive]}>
-            <Text style={styles.autoReadEmoji}>{autoRead ? "🔊" : "🔇"}</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <TouchableOpacity onPress={() => { triggerAutoReadToast(autoRead ? "🔇 Auto-Read Off" : "🔊 Auto-Read On"); onToggleAutoRead(); }} style={[styles.autoReadBtn, autoRead && styles.autoReadBtnActive]}>
+              <Text style={styles.autoReadEmoji}>{autoRead ? "🔊" : "🔇"}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setVoiceHelpVisible(true)} style={styles.voiceHelpBtn}>
+              <Text style={styles.voiceHelpLabel}>?</Text>
+            </TouchableOpacity>
+          </View>
           {post && (
             <TouchableOpacity
               onPress={isAuthenticated ? onLike : onSignInRequired}
@@ -910,6 +917,28 @@ export function ArticleSheet({
           ❤️
         </Animated.Text>
 
+        {/* Voice help modal */}
+        <Modal visible={voiceHelpVisible} transparent animationType="fade" onRequestClose={() => setVoiceHelpVisible(false)}>
+          <View style={styles.voiceHelpOverlay}>
+            <View style={styles.voiceHelpCard}>
+              <Text style={styles.voiceHelpTitle}>Get a Better Voice</Text>
+              <Text style={styles.voiceHelpBody}>
+                You can download higher-quality voices on your iPhone for free:
+              </Text>
+              <Text style={styles.voiceHelpStep}>1. Open the <Text style={{ fontWeight: "700" }}>Settings</Text> app</Text>
+              <Text style={styles.voiceHelpStep}>2. Go to <Text style={{ fontWeight: "700" }}>Accessibility → Spoken Content → Voices</Text></Text>
+              <Text style={styles.voiceHelpStep}>3. Select <Text style={{ fontWeight: "700" }}>{lang === "en" ? "English (US)" : lang === "zh-TW" ? "Chinese (Taiwan)" : "Chinese (China Mainland)"}</Text></Text>
+              <Text style={styles.voiceHelpStep}>4. Choose a voice and tap <Text style={{ fontWeight: "700" }}>Download</Text> next to Enhanced or Premium</Text>
+              <Text style={[styles.voiceHelpStep, { marginTop: 12, color: colors.textMuted, fontSize: 13 }]}>
+                Once downloaded, the app will automatically use it.
+              </Text>
+              <TouchableOpacity style={styles.voiceHelpClose} onPress={() => setVoiceHelpVisible(false)}>
+                <Text style={styles.voiceHelpCloseLabel}>Got it</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
         {/* Auto-read toast */}
         <Animated.View style={[styles.autoReadToast, { opacity: autoReadToastOpacity }]} pointerEvents="none">
           <Text style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}>{autoReadToastMsg}</Text>
@@ -954,6 +983,40 @@ function makeStyles(c: Colors) {
     },
     autoReadBtnActive: { backgroundColor: c.brand + "33" },
     autoReadEmoji: { fontSize: 18 },
+    voiceHelpBtn: {
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: c.surfaceAlt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    voiceHelpLabel: { fontSize: 11, fontWeight: "700", color: c.textMuted },
+    voiceHelpOverlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.5)",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 32,
+    },
+    voiceHelpCard: {
+      backgroundColor: c.surface,
+      borderRadius: 16,
+      padding: 24,
+      width: "100%",
+    },
+    voiceHelpTitle: { fontSize: 16, fontWeight: "800", color: c.text, marginBottom: 12 },
+    voiceHelpBody: { fontSize: 14, color: c.textSub, lineHeight: 22, marginBottom: 20 },
+    voiceHelpStep: { fontSize: 14, color: c.textSub, lineHeight: 22 },
+    voiceHelpClose: {
+      alignSelf: "center",
+      paddingHorizontal: 24,
+      paddingVertical: 10,
+      backgroundColor: c.brand,
+      borderRadius: 20,
+      marginTop: 4,
+    },
+    voiceHelpCloseLabel: { color: "#fff", fontWeight: "700", fontSize: 14 },
     likeBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
     likeEmoji: { fontSize: 22 },
     likeCount: { color: c.textSub, fontSize: 14, fontWeight: "600" },
