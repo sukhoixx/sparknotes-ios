@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import * as Speech from "expo-speech";
 import {
   View,
   Text,
@@ -376,6 +377,8 @@ interface Props {
   onLike: () => void;
   isAuthenticated: boolean;
   onSignInRequired: () => void;
+  autoRead: boolean;
+  onToggleAutoRead: () => void;
 }
 
 function ArticleBodyWebView({
@@ -468,6 +471,14 @@ function HeroImage({ lowRes, highRes, width }: { lowRes?: string; highRes?: stri
   );
 }
 
+function stripHtmlForSpeech(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/\s{2,}/g, " ").trim();
+}
+
 export function ArticleSheet({
   post,
   liked,
@@ -476,6 +487,8 @@ export function ArticleSheet({
   onLike,
   isAuthenticated,
   onSignInRequired,
+  autoRead,
+  onToggleAutoRead,
 }: Props) {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -564,6 +577,19 @@ export function ArticleSheet({
     }
   }
 
+  useEffect(() => {
+    Speech.stop();
+    if (autoRead && post) {
+      const title = displayTitle;
+      const body = stripHtmlForSpeech(displayBody);
+      const fact = displayFunFact ? stripHtmlForSpeech(displayFunFact) : "";
+      const text = [title, body, fact].filter(Boolean).join(". ");
+      const locale = lang === "zh-TW" ? "zh-TW" : lang === "zh-CN" ? "zh-CN" : "en-US";
+      Speech.speak(text, { language: locale, rate: 0.95 });
+    }
+    return () => { Speech.stop(); };
+  }, [post?.id, autoRead]);
+
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
@@ -631,6 +657,9 @@ export function ArticleSheet({
         <View style={styles.header}>
           <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
             <Text style={styles.closeLabel}>✕</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onToggleAutoRead} style={[styles.autoReadBtn, autoRead && styles.autoReadBtnActive]}>
+            <Text style={styles.autoReadEmoji}>{autoRead ? "🔊" : "🔇"}</Text>
           </TouchableOpacity>
           {post && (
             <TouchableOpacity
@@ -868,6 +897,16 @@ function makeStyles(c: Colors) {
       justifyContent: "center",
     },
     closeLabel: { color: c.textSub, fontSize: 14 },
+    autoReadBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: c.surfaceAlt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    autoReadBtnActive: { backgroundColor: c.brand + "33" },
+    autoReadEmoji: { fontSize: 18 },
     likeBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
     likeEmoji: { fontSize: 22 },
     likeCount: { color: c.textSub, fontSize: 14, fontWeight: "600" },

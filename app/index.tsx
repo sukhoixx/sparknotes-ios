@@ -55,6 +55,7 @@ export default function FeedScreen() {
   const [likeCounts, setLikeCounts] = useState<Record<number, number>>({});
 
   const [openPost, setOpenPost] = useState<Post | null>(null);
+  const [autoRead, setAutoRead] = useState(false);
   const [signInVisible, setSignInVisible] = useState(false);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -274,6 +275,8 @@ export default function FeedScreen() {
         onLike={() => openPost && handleLike(openPost)}
         isAuthenticated={isAuthenticated}
         onSignInRequired={() => setSignInVisible(true)}
+        autoRead={autoRead}
+        onToggleAutoRead={() => setAutoRead((v) => !v)}
       />
 
       <SignInSheet
