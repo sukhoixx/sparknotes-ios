@@ -874,7 +874,7 @@ function makeStyles(c: Colors) {
     scroll: { flex: 1 },
     scrollContent: { padding: 16 },
     dateText: { fontSize: 11, color: c.textMuted },
-    sourceLabel: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
+    sourceLabel: { fontSize: 11, color: c.textMuted },
     title: {
       fontSize: 22,
       fontWeight: "800",
