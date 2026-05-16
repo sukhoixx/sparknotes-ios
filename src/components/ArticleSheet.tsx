@@ -584,7 +584,14 @@ export function ArticleSheet({
       const fact = displayFunFact ? stripHtmlForSpeech(displayFunFact) : "";
       const text = [title, body, fact].filter(Boolean).join(". ");
       const locale = lang === "zh-TW" ? "zh-TW" : lang === "zh-CN" ? "zh-CN" : "en-US";
-      Speech.speak(text, { language: locale, rate: 0.95 });
+      console.log("[TTS] speaking, locale:", locale, "chars:", text.length, "preview:", text.slice(0, 80));
+      Speech.speak(text, {
+        language: locale,
+        rate: 0.95,
+        onStart: () => console.log("[TTS] started"),
+        onDone: () => console.log("[TTS] done"),
+        onError: (e) => console.log("[TTS] error:", e),
+      });
     } else {
       Speech.stop();
     }
