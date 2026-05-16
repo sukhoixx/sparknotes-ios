@@ -18,6 +18,7 @@ import { ArticleSheet } from "../src/components/ArticleSheet";
 import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
 import { fetchMyLikes, getJwt, fetchProfile, toggleLike, fetchPost } from "../src/api";
+import * as SecureStore from "expo-secure-store";
 import { useTheme } from "../src/theme";
 import { useLang, toTraditional, toSimplified } from "../src/lang";
 import { useEvent } from "../src/event";
@@ -69,8 +70,9 @@ export default function FeedScreen() {
 
   // reloadKey: bumped when search or profile categories change — pages reload lazily
   const [reloadKey, setReloadKey] = useState(0);
-  const profileCatsStr = profile?.categories?.length ? profile.categories.join(",") : "";
-  const prevProfileCatsRef = useRef("");
+  const [cachedProfileCats, setCachedProfileCats] = useState("");
+  const profileCatsStr = profile?.categories?.length ? profile.categories.join(",") : cachedProfileCats;
+  const prevProfileCatsRef = useRef(cachedProfileCats);
   const prevActiveSearchRef = useRef("");
 
   useEffect(() => {
@@ -83,8 +85,11 @@ export default function FeedScreen() {
     }
   }, [profileCatsStr, activeSearch]);
 
-  // Auth init
+  // Auth init — load cached profile cats first so the feed starts with correct categories
   useEffect(() => {
+    SecureStore.getItemAsync("newsblock_profile_cats").then((v) => {
+      if (v) setCachedProfileCats(v);
+    });
     getJwt().then((jwt) => {
       if (!jwt) return;
       setIsAuthenticated(true);
@@ -92,6 +97,8 @@ export default function FeedScreen() {
         if (p) {
           setProfile(p);
           if (p.lang === "zh-TW" || p.lang === "zh-CN" || p.lang === "en") setLang(p.lang as LangMode);
+          const cats = p.categories?.length ? p.categories.join(",") : "";
+          SecureStore.setItemAsync("newsblock_profile_cats", cats).catch(() => {});
         }
       });
       fetchMyLikes().then((ids) => setLiked(new Set(ids)));
@@ -297,6 +304,8 @@ export default function FeedScreen() {
           setIsAuthenticated(false);
           setProfile(null);
           setLiked(new Set());
+          setCachedProfileCats("");
+          SecureStore.setItemAsync("newsblock_profile_cats", "").catch(() => {});
         }}
       />
     </SafeAreaView>
