@@ -706,9 +706,11 @@ export function ArticleSheet({
             <TouchableOpacity onPress={() => { triggerAutoReadToast(autoRead ? "🔇 Auto-Read Off" : "🔊 Auto-Read On"); onToggleAutoRead(); }} style={[styles.autoReadBtn, autoRead && styles.autoReadBtnActive]}>
               <Text style={styles.autoReadEmoji}>{autoRead ? "🔊" : "🔇"}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setVoiceHelpVisible(true)} style={styles.voiceHelpBtn}>
-              <Text style={styles.voiceHelpLabel}>?</Text>
-            </TouchableOpacity>
+            {Platform.OS === "ios" && (
+              <TouchableOpacity onPress={() => setVoiceHelpVisible(true)} style={styles.voiceHelpBtn}>
+                <Text style={styles.voiceHelpLabel}>?</Text>
+              </TouchableOpacity>
+            )}
           </View>
           {post && (
             <TouchableOpacity
@@ -922,16 +924,17 @@ export function ArticleSheet({
           <View style={styles.voiceHelpOverlay}>
             <View style={styles.voiceHelpCard}>
               <Text style={styles.voiceHelpTitle}>Get a Better Voice</Text>
-              <Text style={styles.voiceHelpBody}>
-                You can download higher-quality voices on your iPhone for free:
-              </Text>
-              <Text style={styles.voiceHelpStep}>1. Open the <Text style={{ fontWeight: "700" }}>Settings</Text> app</Text>
-              <Text style={styles.voiceHelpStep}>2. Go to <Text style={{ fontWeight: "700" }}>Accessibility → Spoken Content → Voices</Text></Text>
-              <Text style={styles.voiceHelpStep}>3. Select <Text style={{ fontWeight: "700" }}>{lang === "en" ? "English (US)" : lang === "zh-TW" ? "Chinese (Taiwan)" : "Chinese (China Mainland)"}</Text></Text>
-              <Text style={styles.voiceHelpStep}>4. Choose a voice and tap <Text style={{ fontWeight: "700" }}>Download</Text> next to Enhanced or Premium</Text>
-              <Text style={[styles.voiceHelpStep, { marginTop: 12, color: colors.textMuted, fontSize: 13 }]}>
-                Once downloaded, the app will automatically use it.
-              </Text>
+              <Text style={styles.voiceHelpBody}>Download a higher-quality voice on your iPhone for free:</Text>
+              <Text style={styles.voiceHelpStep}>1. Open <Text style={{ fontWeight: "700" }}>Settings</Text></Text>
+              <Text style={styles.voiceHelpStep}>2. Go to <Text style={{ fontWeight: "700" }}>Accessibility → {parseInt(Platform.Version as string) >= 18 ? "Read & Speak" : "Spoken Content"} → Voices</Text></Text>
+              {lang === "en" ? (<>
+                <Text style={styles.voiceHelpStep}>3. Select <Text style={{ fontWeight: "700" }}>English</Text>, then <Text style={{ fontWeight: "700" }}>English (United States)</Text></Text>
+                <Text style={styles.voiceHelpStep}>4. Tap a voice, then tap <Text style={{ fontWeight: "700" }}>Download</Text> next to Enhanced or Premium</Text>
+              </>) : (<>
+                <Text style={styles.voiceHelpStep}>3. Select <Text style={{ fontWeight: "700" }}>Chinese</Text>, then <Text style={{ fontWeight: "700" }}>Mandarin</Text></Text>
+                <Text style={styles.voiceHelpStep}>4. Find <Text style={{ fontWeight: "700" }}>Lilian (Premium)</Text> and download that voice for best results</Text>
+              </>)}
+              <Text style={[styles.voiceHelpStep, { marginTop: 12, color: colors.textMuted, fontSize: 13 }]}>Once downloaded, the app will automatically use it.</Text>
               <TouchableOpacity style={styles.voiceHelpClose} onPress={() => setVoiceHelpVisible(false)}>
                 <Text style={styles.voiceHelpCloseLabel}>Got it</Text>
               </TouchableOpacity>
