@@ -683,6 +683,7 @@ export function ArticleSheet({
   const contentWidth = width - 32;
 
   return (
+    <View pointerEvents={post ? "auto" : "none"} style={StyleSheet.absoluteFillObject}>
     <PanGestureHandler
       onGestureEvent={onGestureEvent}
       onHandlerStateChange={onHandlerStateChange}
@@ -695,7 +696,6 @@ export function ArticleSheet({
           styles.container,
           { paddingTop: insets.top, opacity, transform: [{ translateX }, { scale }] },
         ]}
-        pointerEvents={post ? "auto" : "none"}
       >
         {/* Header bar */}
         <View style={styles.header}>
@@ -948,6 +948,7 @@ export function ArticleSheet({
         </Animated.View>
       </Animated.View>
     </PanGestureHandler>
+    </View>
   );
 }
 
