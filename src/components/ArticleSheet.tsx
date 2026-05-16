@@ -498,6 +498,7 @@ function stripHtmlForSpeech(html: string): string {
     .replace(/<[^>]*>/g, " ")
     .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&apos;/g, "'")
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/\p{Extended_Pictographic}/gu, "")
     .replace(/\s{2,}/g, " ").trim();
 }
 
