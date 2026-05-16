@@ -260,7 +260,7 @@ export default function FeedScreen() {
                 liked={liked}
                 likeCounts={likeCounts}
                 onLike={handleLike}
-                onOpenPost={(post) => { Keyboard.dismiss(); setOpenPost(post); }}
+                onOpenPost={(post) => { Keyboard.dismiss(); setOpenPost({ ...post }); }}
               />
             </View>
           );

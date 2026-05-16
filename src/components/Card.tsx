@@ -33,7 +33,6 @@ export const Card = React.memo(function Card({ post, liked, likeCount, onLike, o
 
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(16)).current;
-  const pressStartX = useRef(0);
   const imgOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -53,11 +52,7 @@ export const Card = React.memo(function Card({ post, liked, likeCount, onLike, o
   return (
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
     <TouchableOpacity
-      onPressIn={(e) => { pressStartX.current = e.nativeEvent.pageX; }}
-      onPress={(e) => {
-        if (Math.abs(e.nativeEvent.pageX - pressStartX.current) > 10) return;
-        onPress(post);
-      }}
+      onPress={() => onPress(post)}
       activeOpacity={0.88}
       style={styles.container}
     >
