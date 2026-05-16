@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as Speech from "expo-speech";
+import { Audio } from "expo-av";
 import {
   View,
   Text,
@@ -584,6 +585,7 @@ export function ArticleSheet({
       const fact = displayFunFact ? stripHtmlForSpeech(displayFunFact) : "";
       const text = [title, body, fact].filter(Boolean).join(". ");
       const locale = lang === "zh-TW" ? "zh-TW" : lang === "zh-CN" ? "zh-CN" : "en-US";
+      Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
       console.log("[TTS] speaking, locale:", locale, "chars:", text.length, "preview:", text.slice(0, 80));
       Speech.speak(text, {
         language: locale,
