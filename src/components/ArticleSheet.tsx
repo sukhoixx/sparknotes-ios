@@ -479,12 +479,10 @@ async function getPreferredVoice(locale: string): Promise<string | undefined> {
   if (locale in iosVoiceCache) return iosVoiceCache[locale];
   try {
     const voices = await Speech.getAvailableVoicesAsync();
-    console.log("[TTS] all voices:", JSON.stringify(voices.filter((v) => v.language.startsWith(locale.slice(0, 2)))));
     const qualityRank: Record<string, number> = { Default: 0, Enhanced: 1, Premium: 2 };
     const match = voices
-      .filter((v) => v.language.startsWith(locale.slice(0, 5)))
+      .filter((v) => v.language.startsWith(locale.slice(0, 5)) && !v.identifier.includes("super-compact") && !v.identifier.includes("speech.synthesis"))
       .sort((a, b) => (qualityRank[b.quality] ?? 0) - (qualityRank[a.quality] ?? 0))[0];
-    console.log("[TTS] selected voice:", JSON.stringify(match));
     iosVoiceCache[locale] = match?.identifier;
     return match?.identifier;
   } catch {
