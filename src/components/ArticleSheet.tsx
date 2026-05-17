@@ -545,16 +545,21 @@ export function ArticleSheet({
   const heartScale = useRef(new Animated.Value(0)).current;
   const heartOpacity = useRef(new Animated.Value(0)).current;
   const autoReadToastOpacity = useRef(new Animated.Value(0)).current;
+
   const [autoReadToastMsg, setAutoReadToastMsg] = useState("");
   const [voiceHelpVisible, setVoiceHelpVisible] = useState(false);
 
   function triggerAutoReadToast(msg: string) {
+    autoReadToastOpacity.stopAnimation();
+    autoReadToastOpacity.setValue(0);
     setAutoReadToastMsg(msg);
-    autoReadToastOpacity.setValue(1);
-    Animated.sequence([
-      Animated.delay(800),
-      Animated.timing(autoReadToastOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
-    ]).start();
+    requestAnimationFrame(() => {
+      autoReadToastOpacity.setValue(1);
+      Animated.sequence([
+        Animated.delay(2000),
+        Animated.timing(autoReadToastOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+      ]).start();
+    });
   }
 
   function triggerLikeAnimation() {
@@ -703,7 +708,11 @@ export function ArticleSheet({
             <Text style={styles.closeLabel}>✕</Text>
           </TouchableOpacity>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <TouchableOpacity onPress={() => { triggerAutoReadToast(autoRead ? "🔇 Auto-Read Off" : "🔊 Auto-Read On"); onToggleAutoRead(); }} style={[styles.autoReadBtn, autoRead && styles.autoReadBtnActive]}>
+            <TouchableOpacity onPress={() => {
+              const turningOn = !autoRead;
+              triggerAutoReadToast(turningOn ? t("autoReadOn", lang) : t("autoReadOff", lang));
+              onToggleAutoRead();
+            }} style={[styles.autoReadBtn, autoRead && styles.autoReadBtnActive]}>
               <Text style={styles.autoReadEmoji}>{autoRead ? "🔊" : "🔇"}</Text>
             </TouchableOpacity>
             {Platform.OS === "ios" && (
@@ -751,15 +760,6 @@ export function ArticleSheet({
                 {/* Title */}
                 <Text style={styles.title}>{displayTitle}</Text>
 
-                {/* Article banner ad */}
-                <View style={{ marginHorizontal: -16, marginBottom: 16 }}>
-                  <BannerAd
-                    unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
-                    size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-                    requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-                  />
-                </View>
-
                 {/* Hero image */}
                 {!!(ogImage ?? post.imageUrl) && (
                   <HeroImage
@@ -795,6 +795,15 @@ export function ArticleSheet({
                     />
                   </View>
                 )}
+
+                {/* Article banner ad */}
+                <View style={{ marginHorizontal: -16 }}>
+                  <BannerAd
+                    unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
+                    size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+                    requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+                  />
+                </View>
 
                 {/* Tags */}
                 {post.tags?.length > 0 && (
@@ -916,31 +925,31 @@ export function ArticleSheet({
         </TapGestureHandler>
 
         {/* Double-tap heart animation */}
-        <Animated.Text
+        <Animated.View
           style={[styles.heartOverlay, { opacity: heartOpacity, transform: [{ scale: heartScale }] }]}
           pointerEvents="none"
         >
-          ❤️
-        </Animated.Text>
+          <Text>❤️</Text>
+        </Animated.View>
 
         {/* Voice help modal */}
         <Modal visible={voiceHelpVisible} transparent animationType="fade" onRequestClose={() => setVoiceHelpVisible(false)}>
           <View style={styles.voiceHelpOverlay}>
             <View style={styles.voiceHelpCard}>
-              <Text style={styles.voiceHelpTitle}>Get a Better Voice</Text>
-              <Text style={styles.voiceHelpBody}>Download a higher-quality voice on your iPhone for free:</Text>
-              <Text style={styles.voiceHelpStep}>1. Open <Text style={{ fontWeight: "700" }}>Settings</Text></Text>
-              <Text style={styles.voiceHelpStep}>2. Go to <Text style={{ fontWeight: "700" }}>Accessibility → {parseInt(Platform.Version as string) >= 18 ? "Read & Speak" : "Spoken Content"} → Voices</Text></Text>
+              <Text style={styles.voiceHelpTitle}>{t("voiceHelpTitle", lang)}</Text>
+              <Text style={styles.voiceHelpBody}>{t("voiceHelpBody", lang)}</Text>
+              <Text style={styles.voiceHelpStep}>{t("voiceHelpStep1Pre", lang)}<Text style={{ fontWeight: "700" }}>{t("voiceHelpStep1Settings", lang)}</Text></Text>
+              <Text style={styles.voiceHelpStep}>{t("voiceHelpStep2Pre", lang)}<Text style={{ fontWeight: "700" }}>{parseInt(Platform.Version as string) >= 18 ? t("voiceHelpStep2New", lang) : t("voiceHelpStep2Old", lang)}</Text></Text>
               {lang === "en" ? (<>
-                <Text style={styles.voiceHelpStep}>3. Select <Text style={{ fontWeight: "700" }}>English</Text>, then <Text style={{ fontWeight: "700" }}>English (United States)</Text></Text>
-                <Text style={styles.voiceHelpStep}>4. Tap a voice, then tap <Text style={{ fontWeight: "700" }}>Download</Text> next to Enhanced or Premium</Text>
+                <Text style={styles.voiceHelpStep}>{t("voiceHelpEnStep3Pre", lang)}<Text style={{ fontWeight: "700" }}>{t("voiceHelpEnStep3Lang", lang)}</Text>{t("voiceHelpEnStep3Then", lang)}<Text style={{ fontWeight: "700" }}>{t("voiceHelpEnStep3Region", lang)}</Text></Text>
+                <Text style={styles.voiceHelpStep}>{t("voiceHelpEnStep4Pre", lang)}<Text style={{ fontWeight: "700" }}>{t("voiceHelpEnStep4Download", lang)}</Text>{t("voiceHelpEnStep4Suf", lang)}</Text>
               </>) : (<>
-                <Text style={styles.voiceHelpStep}>3. Select <Text style={{ fontWeight: "700" }}>Chinese</Text>, then <Text style={{ fontWeight: "700" }}>Mandarin</Text></Text>
-                <Text style={styles.voiceHelpStep}>4. Find <Text style={{ fontWeight: "700" }}>Lilian (Premium)</Text> and download that voice for best results</Text>
+                <Text style={styles.voiceHelpStep}>{t("voiceHelpZhStep3Pre", lang)}<Text style={{ fontWeight: "700" }}>{t("voiceHelpZhStep3Lang", lang)}</Text>{t("voiceHelpZhStep3Then", lang)}<Text style={{ fontWeight: "700" }}>{t("voiceHelpZhStep3Region", lang)}</Text></Text>
+                <Text style={styles.voiceHelpStep}>{t("voiceHelpZhStep4Pre", lang)}<Text style={{ fontWeight: "700" }}>{t("voiceHelpZhStep4Voice", lang)}</Text>{t("voiceHelpZhStep4Suf", lang)}</Text>
               </>)}
-              <Text style={[styles.voiceHelpStep, { marginTop: 12, color: colors.textMuted, fontSize: 13 }]}>Once downloaded, the app will automatically use it.</Text>
+              <Text style={[styles.voiceHelpStep, { marginTop: 12, color: colors.textMuted, fontSize: 13 }]}>{t("voiceHelpFooter", lang)}</Text>
               <TouchableOpacity style={styles.voiceHelpClose} onPress={() => setVoiceHelpVisible(false)}>
-                <Text style={styles.voiceHelpCloseLabel}>Got it</Text>
+                <Text style={styles.voiceHelpCloseLabel}>{t("voiceHelpGotIt", lang)}</Text>
               </TouchableOpacity>
             </View>
           </View>
