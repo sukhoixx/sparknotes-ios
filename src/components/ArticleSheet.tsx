@@ -856,7 +856,7 @@ export function ArticleSheet({
                       style={styles.shareBtn}
                       onPress={() => {
                         const appLink = `https://sparknotes-production.up.railway.app/posts/${post.id}`;
-                        Share.share({ message: appLink, url: appLink });
+                        Share.share({ url: appLink });
                       }}
                     >
                       <Text style={styles.shareBtnText}>🔗</Text>
