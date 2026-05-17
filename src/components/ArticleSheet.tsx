@@ -751,6 +751,15 @@ export function ArticleSheet({
                 {/* Title */}
                 <Text style={styles.title}>{displayTitle}</Text>
 
+                {/* Article banner ad */}
+                <View style={{ marginHorizontal: -16, marginBottom: 16 }}>
+                  <BannerAd
+                    unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
+                    size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+                    requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+                  />
+                </View>
+
                 {/* Hero image */}
                 {!!(ogImage ?? post.imageUrl) && (
                   <HeroImage
@@ -786,15 +795,6 @@ export function ArticleSheet({
                     />
                   </View>
                 )}
-
-                {/* Article banner ad */}
-                <View style={{ marginHorizontal: -16 }}>
-                  <BannerAd
-                    unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
-                    size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-                    requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-                  />
-                </View>
 
                 {/* Tags */}
                 {post.tags?.length > 0 && (
