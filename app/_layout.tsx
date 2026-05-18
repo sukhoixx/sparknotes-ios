@@ -5,7 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { LogBox } from "react-native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import MobileAds from "react-native-google-mobile-ads";
-import Constants from "expo-constants";
+import * as Application from "expo-application";
 import { ThemeProvider, useTheme } from "../src/theme";
 import { LangProvider } from "../src/lang";
 import { EventProvider, useEvent } from "../src/event";
@@ -40,7 +40,7 @@ function AppShell() {
     fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/config`)
       .then((r) => r.json())
       .then((data) => {
-        const current = Constants.expoConfig?.version ?? "0.0.0";
+        const current = Application.nativeApplicationVersion ?? "0.0.0";
         const min = data.minVersion ?? "1.0.0";
         if (compareVersions(current, min) < 0) setForceUpgrade(true);
         if (data.activeEvents?.length) setActiveEvents(data.activeEvents);
