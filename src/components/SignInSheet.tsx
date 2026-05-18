@@ -19,9 +19,10 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   onSignedIn: () => void;
+  onNotNow?: () => void;
 }
 
-export function SignInSheet({ visible, onClose, onSignedIn }: Props) {
+export function SignInSheet({ visible, onClose, onSignedIn, onNotNow }: Props) {
   const { colors } = useTheme();
   const { lang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -75,7 +76,7 @@ export function SignInSheet({ visible, onClose, onSignedIn }: Props) {
           <Text style={styles.googleLabel}>{t("continueWithGoogle", lang)}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
+        <TouchableOpacity onPress={onNotNow ?? onClose} style={styles.cancelBtn}>
           <Text style={styles.cancelLabel}>{t("notNow", lang)}</Text>
         </TouchableOpacity>
       </View>

@@ -18,6 +18,7 @@ import { ArticleSheet } from "../src/components/ArticleSheet";
 import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
 import { fetchMyLikes, getJwt, fetchProfile, toggleLike, fetchPost } from "../src/api";
+import { getGuestChosen, setGuestChosen as markGuestChosen, getGuestProfile, saveGuestProfile, clearGuestData } from "../src/guestProfile";
 import { useTheme } from "../src/theme";
 import { useLang, toTraditional, toSimplified } from "../src/lang";
 import { useEvent } from "../src/event";
@@ -59,6 +60,7 @@ export default function FeedScreen() {
   const [signInVisible, setSignInVisible] = useState(false);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [guestChosen, setGuestChosen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileVisible, setProfileVisible] = useState(false);
 
@@ -96,6 +98,16 @@ export default function FeedScreen() {
         if (p) {
           setProfile(p);
           if (p.lang === "zh-TW" || p.lang === "zh-CN" || p.lang === "en") setLang(p.lang as LangMode);
+        }
+      } else {
+        const chosen = await getGuestChosen();
+        if (chosen) {
+          setGuestChosen(true);
+          const gp = await getGuestProfile();
+          if (gp) {
+            setProfile({ screenName: gp.screenName, categories: gp.categories, lang: gp.lang as LangMode });
+            if (gp.lang === "zh-TW" || gp.lang === "zh-CN" || gp.lang === "en") setLang(gp.lang as LangMode);
+          }
         }
       }
       setProfileReady(true);
@@ -199,7 +211,7 @@ export default function FeedScreen() {
           )}
         </View>
         <TouchableOpacity
-          onPress={() => { Keyboard.dismiss(); isAuthenticated ? setProfileVisible(true) : setSignInVisible(true); }}
+          onPress={() => { Keyboard.dismiss(); (isAuthenticated || guestChosen) ? setProfileVisible(true) : setSignInVisible(true); }}
           style={[styles.profileBtn, profile ? styles.profileBtnActive : null]}
         >
           {profile ? (
@@ -287,21 +299,36 @@ export default function FeedScreen() {
         visible={signInVisible}
         onClose={() => setSignInVisible(false)}
         onSignedIn={handleSignedIn}
+        onNotNow={async () => {
+          await markGuestChosen();
+          setGuestChosen(true);
+          setSignInVisible(false);
+          setProfileVisible(true);
+        }}
       />
 
       <ProfileSheet
         visible={profileVisible}
         profile={profile}
+        isAuthenticated={isAuthenticated}
         onClose={() => setProfileVisible(false)}
         onSaved={(p) => {
           setProfile(p);
+          if (!isAuthenticated) {
+            saveGuestProfile({ screenName: p.screenName, categories: p.categories, lang: p.lang ?? lang });
+          }
           pagerRef.current?.setPage(0);
         }}
         onSignedOut={() => {
           setIsAuthenticated(false);
+          setGuestChosen(false);
           setProfile(null);
           setLiked(new Set());
-
+          clearGuestData();
+        }}
+        onSignIn={() => {
+          setProfileVisible(false);
+          setSignInVisible(true);
         }}
       />
     </SafeAreaView>

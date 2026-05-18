@@ -33,12 +33,14 @@ const LANG_OPTIONS: { id: LangMode; label: string }[] = [
 interface Props {
   visible: boolean;
   profile: UserProfile | null;
+  isAuthenticated: boolean;
   onClose: () => void;
   onSaved: (profile: UserProfile) => void;
   onSignedOut: () => void;
+  onSignIn?: () => void;
 }
 
-export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }: Props) {
+export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSaved, onSignedOut, onSignIn }: Props) {
   const { colors, themeMode, setThemeMode } = useTheme();
   const { lang, setLang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -91,15 +93,19 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
     });
   }
 
-  const canSave =
-    name.trim().length >= 2 &&
-    nameAvailable === true &&
-    selectedCats.size >= 3 &&
-    !saving;
+  const canSave = isAuthenticated
+    ? name.trim().length >= 2 && nameAvailable === true && selectedCats.size >= 3 && !saving
+    : name.trim().length >= 2 && selectedCats.size >= 3 && !saving;
 
   async function handleSave() {
     if (!canSave) return;
     setSaving(true);
+    if (!isAuthenticated) {
+      onSaved({ screenName: name.trim(), categories: Array.from(selectedCats), lang });
+      setSaving(false);
+      onClose();
+      return;
+    }
     const updated = await saveProfile(name.trim(), Array.from(selectedCats), lang);
     setSaving(false);
     if (updated) {
@@ -151,15 +157,13 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>{isFirstTime ? t("setUpProfile", lang) : t("yourProfile", lang)}</Text>
-          {!isFirstTime && (
-            <TouchableOpacity onPress={() => { Keyboard.dismiss(); onClose(); }} style={styles.closeBtn}>
-              <Text style={styles.closeLabel}>✕</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={() => { Keyboard.dismiss(); onClose(); }} style={styles.closeBtn}>
+            <Text style={styles.closeLabel}>✕</Text>
+          </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          {isFirstTime && (
+          {isFirstTime && isAuthenticated && (
             <View style={styles.noProfileBanner}>
               <Text style={styles.noProfileText}>{t("noProfileText", lang)}</Text>
             </View>
@@ -174,7 +178,7 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
               onChangeText={(v) => {
                 setName(v);
                 setNameAvailable(null);
-                checkName(v);
+                if (isAuthenticated) checkName(v);
               }}
               placeholder={t("namePlaceholder", lang)}
               placeholderTextColor={colors.textMuted}
@@ -278,15 +282,20 @@ export function ProfileSheet({ visible, profile, onClose, onSaved, onSignedOut }
             )}
           </TouchableOpacity>
 
-          {/* Sign out */}
-          <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
-            <Text style={styles.signOutLabel}>{t("signOut", lang)}</Text>
-          </TouchableOpacity>
-
-          {/* Delete account */}
-          <TouchableOpacity onPress={handleDeleteAccount} style={styles.deleteBtn}>
-            <Text style={styles.deleteLabel}>{t("deleteAccount", lang)}</Text>
-          </TouchableOpacity>
+          {isAuthenticated ? (
+            <>
+              <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
+                <Text style={styles.signOutLabel}>{t("signOut", lang)}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDeleteAccount} style={styles.deleteBtn}>
+                <Text style={styles.deleteLabel}>{t("deleteAccount", lang)}</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity onPress={onSignIn} style={styles.signOutBtn}>
+              <Text style={styles.signOutLabel}>{t("signIn", lang)}</Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </View>
     </Modal>
