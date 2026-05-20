@@ -12,11 +12,13 @@ import {
   Keyboard,
   Linking,
 } from "react-native";
+import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
 import { useTheme } from "../theme";
 import { useLang } from "../lang";
 import { useCategories } from "../categoriesContext";
+import type { CategoryItem } from "../api";
 import { t } from "../i18n";
 import type { Colors, ThemeMode } from "../theme";
 import type { LangMode } from "../lang";
@@ -43,13 +45,19 @@ interface Props {
 export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSaved, onSignedOut, onSignIn }: Props) {
   const { colors, themeMode, setThemeMode } = useTheme();
   const { lang, setLang } = useLang();
-  const { categories: allCats, getLabel } = useCategories();
+  const { categories: allCats, getLabel, reorderCategories } = useCategories();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const categories = useMemo(
     () => allCats.filter((c) => c.id !== "all").map((c) => ({ id: c.id, label: getLabel(c.id, lang) })),
     [allCats, lang, getLabel]
   );
+
+  // Tab order — excludes "all" which is always pinned first
+  const [tabOrder, setTabOrder] = useState<CategoryItem[]>(() => allCats.filter((c) => c.id !== "all"));
+  useEffect(() => {
+    if (visible) setTabOrder(allCats.filter((c) => c.id !== "all"));
+  }, [visible, allCats]);
   const themeOptions = THEME_OPTION_IDS.map((id) => ({ id, label: t(`theme${id.charAt(0).toUpperCase() + id.slice(1)}`, lang) }));
 
   const [name, setName] = useState(profile?.screenName ?? "");
@@ -166,7 +174,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
           {isFirstTime && isAuthenticated && (
             <View style={styles.noProfileBanner}>
               <Text style={styles.noProfileText}>{t("noProfileText", lang)}</Text>
@@ -232,6 +240,40 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
                   : `还需选 ${3 - selectedCats.size} 个类别。`}
             </Text>
           )}
+
+          {/* Tab order */}
+          <Text style={[styles.label, { marginTop: 20 }]}>
+            {lang === "en" ? "Tab Order" : lang === "zh-TW" ? "分類排序" : "分类排序"}
+            {"  "}
+            <Text style={styles.labelSub}>
+              {lang === "en" ? "Long press to drag" : lang === "zh-TW" ? "長按拖曳" : "长按拖拽"}
+            </Text>
+          </Text>
+          <View style={styles.dragList}>
+            <DraggableFlatList
+              data={tabOrder}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+              onDragEnd={({ data }) => {
+                setTabOrder(data);
+                const allCat = allCats.find((c) => c.id === "all");
+                reorderCategories([...(allCat ? [allCat] : []), ...data]);
+              }}
+              renderItem={({ item, drag, isActive }: RenderItemParams<CategoryItem>) => (
+                <ScaleDecorator>
+                  <TouchableOpacity
+                    onLongPress={drag}
+                    delayLongPress={150}
+                    style={[styles.dragRow, isActive && styles.dragRowActive]}
+                    activeOpacity={1}
+                  >
+                    <Text style={styles.dragLabel}>{getLabel(item.id, lang)}</Text>
+                    <Text style={styles.dragHandle}>≡</Text>
+                  </TouchableOpacity>
+                </ScaleDecorator>
+              )}
+            />
+          </View>
 
           {/* Language */}
           <Text style={[styles.label, { marginTop: 20 }]}>{t("language", lang)}</Text>
@@ -460,6 +502,32 @@ function makeStyles(c: Colors) {
     deleteLabel: {
       fontSize: 14,
       color: c.brand,
+    },
+    dragList: {
+      borderRadius: 14,
+      overflow: "hidden",
+      marginBottom: 8,
+    },
+    dragRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: c.surfaceAlt,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      marginBottom: 2,
+    },
+    dragRowActive: {
+      backgroundColor: c.border,
+    },
+    dragLabel: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: c.text,
+    },
+    dragHandle: {
+      fontSize: 18,
+      color: c.textMuted,
     },
     noProfileBanner: {
       backgroundColor: "#fff7ed",
