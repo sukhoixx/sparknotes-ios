@@ -12,7 +12,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import PagerView from "react-native-pager-view";
 import type { CategoryTabsHandle } from "../src/components/CategoryTabs";
-import { CategoryTabs, CATEGORY_IDS } from "../src/components/CategoryTabs";
+import { CategoryTabs } from "../src/components/CategoryTabs";
+import { useCategories } from "../src/categoriesContext";
 import { CategoryFeedPage } from "../src/components/CategoryFeedPage";
 import { ArticleSheet } from "../src/components/ArticleSheet";
 import { SignInSheet } from "../src/components/SignInSheet";
@@ -31,6 +32,7 @@ export default function FeedScreen() {
   const { colors } = useTheme();
   const { lang, setLang } = useLang();
   const { activeEvents } = useEvent();
+  const { categoryIds } = useCategories();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const eventTabs = useMemo(() =>
@@ -43,9 +45,9 @@ export default function FeedScreen() {
   );
   // Event tabs sit after "For You" so the app always lands on For You
   const allPageIds = useMemo(
-    () => eventTabs.length > 0 ? [CATEGORY_IDS[0], ...eventTabs.map((t) => t.id), ...CATEGORY_IDS.slice(1)] : CATEGORY_IDS,
+    () => eventTabs.length > 0 ? [categoryIds[0], ...eventTabs.map((t) => t.id), ...categoryIds.slice(1)] : categoryIds,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [eventTabs.map((t) => t.id).join(",")]
+    [categoryIds, eventTabs.map((t) => t.id).join(",")]
   );
 
   const pagerRef = useRef<PagerView>(null);

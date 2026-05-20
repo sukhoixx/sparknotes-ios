@@ -10,17 +10,17 @@ import {
   Alert,
   ActivityIndicator,
   Keyboard,
+  Linking,
 } from "react-native";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
 import { useTheme } from "../theme";
 import { useLang } from "../lang";
+import { useCategories } from "../categoriesContext";
 import { t } from "../i18n";
 import type { Colors, ThemeMode } from "../theme";
 import type { LangMode } from "../lang";
 import type { UserProfile } from "../types";
-
-const CATEGORY_IDS = ["news","us","world","politics","military","science","technology","entertainment","celebrity","sports","business","gaming","travel","animals","inventions","finance","health","beauty"];
 
 const THEME_OPTION_IDS: ThemeMode[] = ["light", "dark", "auto"];
 
@@ -43,9 +43,13 @@ interface Props {
 export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSaved, onSignedOut, onSignIn }: Props) {
   const { colors, themeMode, setThemeMode } = useTheme();
   const { lang, setLang } = useLang();
+  const { categories: allCats, getLabel } = useCategories();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const categories = CATEGORY_IDS.map((id) => ({ id, label: t(`cat_${id}`, lang) }));
+  const categories = useMemo(
+    () => allCats.filter((c) => c.id !== "all").map((c) => ({ id: c.id, label: getLabel(c.id, lang) })),
+    [allCats, lang, getLabel]
+  );
   const themeOptions = THEME_OPTION_IDS.map((id) => ({ id, label: t(`theme${id.charAt(0).toUpperCase() + id.slice(1)}`, lang) }));
 
   const [name, setName] = useState(profile?.screenName ?? "");
@@ -282,6 +286,9 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
             )}
           </TouchableOpacity>
 
+          <TouchableOpacity onPress={() => Linking.openURL("mailto:jackgan@gmail.com")} style={styles.deleteBtn}>
+            <Text style={styles.signOutLabel}>Contact Us</Text>
+          </TouchableOpacity>
           {isAuthenticated ? (
             <>
               <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>

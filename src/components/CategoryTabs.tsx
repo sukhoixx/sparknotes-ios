@@ -2,10 +2,8 @@ import React, { useImperativeHandle, useMemo, useRef } from "react";
 import { Animated, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { useTheme } from "../theme";
 import { useLang } from "../lang";
-import { t } from "../i18n";
+import { useCategories } from "../categoriesContext";
 import type { Colors } from "../theme";
-
-export const CATEGORY_IDS = ["all","news","us","world","politics","military","science","technology","entertainment","celebrity","sports","business","gaming","travel","animals","inventions","finance","health","beauty"];
 
 export interface CategoryTabsHandle {
   scrollToProgress: (position: number, offset: number) => void;
@@ -23,8 +21,9 @@ export const CategoryTabs = React.forwardRef<CategoryTabsHandle, Props>(
     const scrollRef = useRef<ScrollView>(null);
     const { colors } = useTheme();
     const { lang } = useLang();
+    const { categoryIds, getLabel } = useCategories();
     const styles = useMemo(() => makeStyles(colors), [colors]);
-    const baseTabs = useMemo(() => CATEGORY_IDS.map((id) => ({ id, label: t(`cat_${id}`, lang) })), [lang]);
+    const baseTabs = useMemo(() => categoryIds.map((id) => ({ id, label: getLabel(id, lang) })), [categoryIds, lang, getLabel]);
     const allTabs = useMemo(() => leadingTabs?.length ? [baseTabs[0], ...leadingTabs, ...baseTabs.slice(1)] : baseTabs, [leadingTabs, baseTabs]);
 
     const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});

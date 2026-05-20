@@ -36,6 +36,22 @@ async function apiFetch(path: string, options?: RequestInit): Promise<Response> 
   });
 }
 
+export type CategoryItem = {
+  id: string;
+  labels: { en: string; "zh-TW": string; "zh-CN": string };
+};
+
+export async function fetchCategories(): Promise<CategoryItem[]> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/categories`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.categories ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchPosts(
   category: string,
   cursor: string | null,

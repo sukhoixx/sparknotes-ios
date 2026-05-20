@@ -9,6 +9,7 @@ import * as Application from "expo-application";
 import { ThemeProvider, useTheme } from "../src/theme";
 import { LangProvider } from "../src/lang";
 import { EventProvider, useEvent } from "../src/event";
+import { CategoriesProvider } from "../src/categoriesContext";
 import { ForceUpgradeModal } from "../src/components/ForceUpgradeModal";
 import { useEffect, useState } from "react";
 
@@ -63,11 +64,13 @@ export default function RootLayout() {
     <LangProvider>
       <ThemeProvider>
         <EventProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <SafeAreaProvider>
-              <AppShell />
-            </SafeAreaProvider>
-          </GestureHandlerRootView>
+          <CategoriesProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <SafeAreaProvider>
+                <AppShell />
+              </SafeAreaProvider>
+            </GestureHandlerRootView>
+          </CategoriesProvider>
         </EventProvider>
       </ThemeProvider>
     </LangProvider>

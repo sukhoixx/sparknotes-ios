@@ -91,8 +91,8 @@ android {
         applicationId 'com.newsblock.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.8.0"
+        versionCode 12
+        versionName "1.9.0"
     }
     signingConfigs {
         debug {
@@ -102,10 +102,10 @@ android {
             keyPassword 'android'
         }
         release {
-            storeFile file(NEWSBLOCK_UPLOAD_STORE_FILE)
-            storePassword NEWSBLOCK_UPLOAD_STORE_PASSWORD
-            keyAlias NEWSBLOCK_UPLOAD_KEY_ALIAS
-            keyPassword NEWSBLOCK_UPLOAD_KEY_PASSWORD
+            storeFile file('newsblock-release.keystore')
+            storePassword 'Apachi@7'
+            keyAlias 'newsblock-key'
+            keyPassword 'Apachi@7'
         }
     }
     buildTypes {
