@@ -48,12 +48,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
   const { categories: allCats, getLabel, reorderCategories } = useCategories();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const categories = useMemo(
-    () => allCats.filter((c) => c.id !== "all").map((c) => ({ id: c.id, label: getLabel(c.id, lang) })),
-    [allCats, lang, getLabel]
-  );
-
-  // Tab order — excludes "all" which is always pinned first
+  // Ordered list of all categories except "all" — drives both tab order and the interest picker
   const [tabOrder, setTabOrder] = useState<CategoryItem[]>(() => allCats.filter((c) => c.id !== "all"));
   useEffect(() => {
     if (visible) setTabOrder(allCats.filter((c) => c.id !== "all"));
@@ -209,44 +204,12 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
             <Text style={styles.successText}>{t("nameAvailable", lang)}</Text>
           )}
 
-          {/* Categories */}
+          {/* Categories — tap to toggle interest, long press to reorder */}
           <Text style={[styles.label, { marginTop: 20 }]}>
             {t("interests", lang)}{" "}
-            <Text style={styles.labelSub}>{t("interestsMin", lang)}</Text>
-          </Text>
-          <View style={styles.cats}>
-            {categories.map((cat) => {
-              const on = selectedCats.has(cat.id);
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  onPress={() => toggleCat(cat.id)}
-                  style={[styles.catChip, on && styles.catChipActive]}
-                >
-                  <Text style={[styles.catLabel, on && styles.catLabelActive]}>
-                    {cat.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {selectedCats.size > 0 && selectedCats.size < 3 && (
-            <Text style={styles.errorText}>
-              {lang === "en"
-                ? `Select ${3 - selectedCats.size} more ${3 - selectedCats.size === 1 ? "category" : "categories"}.`
-                : lang === "zh-TW"
-                  ? `還需選 ${3 - selectedCats.size} 個類別。`
-                  : `还需选 ${3 - selectedCats.size} 个类别。`}
-            </Text>
-          )}
-
-          {/* Tab order */}
-          <Text style={[styles.label, { marginTop: 20 }]}>
-            {lang === "en" ? "Tab Order" : lang === "zh-TW" ? "分類排序" : "分类排序"}
-            {"  "}
             <Text style={styles.labelSub}>
-              {lang === "en" ? "Long press to drag" : lang === "zh-TW" ? "長按拖曳" : "长按拖拽"}
+              {t("interestsMin", lang)}
+              {lang === "en" ? " · Long press to reorder" : lang === "zh-TW" ? " · 長按拖曳排序" : " · 长按拖拽排序"}
             </Text>
           </Text>
           <View style={styles.dragList}>
@@ -259,21 +222,36 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
                 const allCat = allCats.find((c) => c.id === "all");
                 reorderCategories([...(allCat ? [allCat] : []), ...data]);
               }}
-              renderItem={({ item, drag, isActive }: RenderItemParams<CategoryItem>) => (
-                <ScaleDecorator>
-                  <TouchableOpacity
-                    onLongPress={drag}
-                    delayLongPress={150}
-                    style={[styles.dragRow, isActive && styles.dragRowActive]}
-                    activeOpacity={1}
-                  >
-                    <Text style={styles.dragLabel}>{getLabel(item.id, lang)}</Text>
-                    <Text style={styles.dragHandle}>≡</Text>
-                  </TouchableOpacity>
-                </ScaleDecorator>
-              )}
+              renderItem={({ item, drag, isActive }: RenderItemParams<CategoryItem>) => {
+                const on = selectedCats.has(item.id);
+                return (
+                  <ScaleDecorator>
+                    <TouchableOpacity
+                      onPress={() => toggleCat(item.id)}
+                      onLongPress={drag}
+                      delayLongPress={150}
+                      style={[styles.dragRow, isActive && styles.dragRowActive]}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.dragCheck, on && styles.dragCheckActive]}>{on ? "✓" : "○"}</Text>
+                      <Text style={[styles.dragLabel, on && styles.dragLabelActive]}>{getLabel(item.id, lang)}</Text>
+                      <Text style={styles.dragHandle}>≡</Text>
+                    </TouchableOpacity>
+                  </ScaleDecorator>
+                );
+              }}
             />
           </View>
+
+          {selectedCats.size > 0 && selectedCats.size < 3 && (
+            <Text style={styles.errorText}>
+              {lang === "en"
+                ? `Select ${3 - selectedCats.size} more ${3 - selectedCats.size === 1 ? "category" : "categories"}.`
+                : lang === "zh-TW"
+                  ? `還需選 ${3 - selectedCats.size} 個類別。`
+                  : `还需选 ${3 - selectedCats.size} 个类别。`}
+            </Text>
+          )}
 
           {/* Language */}
           <Text style={[styles.label, { marginTop: 20 }]}>{t("language", lang)}</Text>
@@ -405,6 +383,8 @@ function makeStyles(c: Colors) {
       paddingHorizontal: 14,
       paddingVertical: 12,
       marginBottom: 6,
+      width: "67%",
+      alignSelf: "center",
     },
     input: {
       flex: 1,
@@ -424,29 +404,6 @@ function makeStyles(c: Colors) {
       fontSize: 12,
       color: "#16a34a",
       marginBottom: 8,
-    },
-    cats: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 8,
-      marginBottom: 8,
-    },
-    catChip: {
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      borderRadius: 20,
-      backgroundColor: c.surfaceAlt,
-    },
-    catChipActive: {
-      backgroundColor: c.brand,
-    },
-    catLabel: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: c.textTertiary,
-    },
-    catLabelActive: {
-      color: "#ffffff",
     },
     themeRow: {
       flexDirection: "row",
@@ -477,6 +434,8 @@ function makeStyles(c: Colors) {
       paddingVertical: 14,
       alignItems: "center",
       marginTop: 24,
+      width: "67%",
+      alignSelf: "center",
     },
     saveBtnDisabled: {
       opacity: 0.4,
@@ -507,6 +466,8 @@ function makeStyles(c: Colors) {
       borderRadius: 14,
       overflow: "hidden",
       marginBottom: 8,
+      width: "67%",
+      alignSelf: "center",
     },
     dragRow: {
       flexDirection: "row",
@@ -520,10 +481,24 @@ function makeStyles(c: Colors) {
     dragRowActive: {
       backgroundColor: c.border,
     },
+    dragCheck: {
+      fontSize: 16,
+      width: 24,
+      color: c.textMuted,
+    },
+    dragCheckActive: {
+      color: c.brand,
+    },
     dragLabel: {
+      flex: 1,
       fontSize: 14,
       fontWeight: "500",
       color: c.text,
+      marginLeft: 8,
+    },
+    dragLabelActive: {
+      color: c.brand,
+      fontWeight: "600",
     },
     dragHandle: {
       fontSize: 18,
