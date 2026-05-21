@@ -308,7 +308,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => Linking.openURL("mailto:jackgan@gmail.com")} style={styles.deleteBtn}>
+          <TouchableOpacity onPress={() => Linking.openURL("https://sparknotes-production.up.railway.app/support")} style={styles.deleteBtn}>
             <Text style={styles.signOutLabel}>Contact Us</Text>
           </TouchableOpacity>
           {isAuthenticated ? (
