@@ -13,6 +13,7 @@ import {
   Linking,
 } from "react-native";
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
 import { useTheme } from "../theme";
@@ -160,6 +161,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -325,6 +327,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
           )}
         </ScrollView>
       </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
