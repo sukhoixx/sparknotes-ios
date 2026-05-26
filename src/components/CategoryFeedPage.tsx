@@ -27,7 +27,6 @@ interface Props {
   reloadKey: number;
   scrollToTopTrigger: number;
   reactions: Record<number, string>;
-  likeCounts: Record<number, number>;
   onReact: (post: Post, emoji: string | null) => void;
   onOpenPost: (post: Post) => void;
   onPostsLoaded?: (posts: Post[]) => void;
@@ -43,7 +42,6 @@ export function CategoryFeedPage({
   reloadKey,
   scrollToTopTrigger,
   reactions,
-  likeCounts,
   onReact,
   onOpenPost,
   onPostsLoaded,
@@ -141,11 +139,7 @@ export function CategoryFeedPage({
     doLoad(cursorRef.current, false, cats, q, eventSlug);
   }
 
-  function getLikeCount(post: Post) {
-    return likeCounts[post.id] ?? post.likes;
-  }
-
-  const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
+const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
 
   const flatItems = useMemo<FlatItem[]>(() => {
     const AD_EVERY = 16;
@@ -169,7 +163,6 @@ export function CategoryFeedPage({
         <Card
           post={item as Post}
           reaction={reactions[(item as Post).id] ?? null}
-          likeCount={getLikeCount(item as Post)}
           onReact={onReact}
           onPress={onOpenPost}
           hideBadge={category !== "all" || !!eventSlug}
@@ -178,7 +171,7 @@ export function CategoryFeedPage({
         />
       </View>
     );
-  }, [reactions, likeCounts, onReact, onOpenPost, category, overrideGradient]);
+  }, [reactions, onReact, onOpenPost, category, overrideGradient]);
 
   if (posts.length === 0 && !loadCompleted) {
     return (
@@ -194,7 +187,7 @@ export function CategoryFeedPage({
       key={reloadKey}
       data={flatItems}
       numColumns={2}
-      extraData={{ reactions, likeCounts }}
+      extraData={{ reactions }}
       optimizeItemArrangement={false}
       keyExtractor={keyExtractor}
       renderItem={renderItem}

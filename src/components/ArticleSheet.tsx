@@ -31,9 +31,6 @@ import type { Post, Comment } from "../types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchComments, postComment, fetchOgImage } from "../api";
 
-function formatNum(n: number): string {
-  return n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
-}
 
 const DOMAIN_NAMES: Record<string, string> = {
   // US news / politics
@@ -380,7 +377,6 @@ const PICKER_WIDTH = REACTIONS.length * 48 + 16;
 interface Props {
   post: Post | null;
   reaction: string | null;
-  likeCount: number;
   onClose: () => void;
   onReact: (emoji: string | null) => void;
   isAuthenticated: boolean;
@@ -510,7 +506,6 @@ function stripHtmlForSpeech(html: string): string {
 export function ArticleSheet({
   post,
   reaction,
-  likeCount,
   onClose,
   onReact,
   isAuthenticated,
@@ -552,14 +547,10 @@ export function ArticleSheet({
   const autoReadToastOpacity = useRef(new Animated.Value(0)).current;
   const adOpacity = useRef(new Animated.Value(0)).current;
 
-  const displayEmojis = useMemo(() => {
-    const serverTop = Object.entries(post?.reactions ?? {})
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 2)
-      .map(([e]) => e);
-    if (!reaction) return serverTop;
-    const others = serverTop.filter((e) => e !== reaction);
-    return [reaction, ...others].slice(0, 2);
+  const reactionEntries = useMemo(() => {
+    const r = { ...(post?.reactions ?? {}) };
+    if (reaction && !r[reaction]) r[reaction] = 1;
+    return Object.entries(r).filter(([, n]) => n > 0);
   }, [post?.reactions, reaction]);
 
   const [autoReadToastMsg, setAutoReadToastMsg] = useState("");
@@ -804,15 +795,17 @@ export function ArticleSheet({
           {post && (
             <View ref={reactionBtnRef} collapsable={false}>
               <TouchableOpacity onPress={showPicker} style={styles.likeBtn}>
-                <View style={{ flexDirection: "row" }}>
-                  {displayEmojis.length > 0
-                    ? displayEmojis.map((e: string) => (
-                        <Text key={e} style={styles.likeEmoji}>{e}</Text>
+                <View style={styles.likeBtn}>
+                  {reactionEntries.length > 0
+                    ? reactionEntries.map(([emoji, count]) => (
+                        <React.Fragment key={emoji}>
+                          <Text style={styles.likeEmoji}>{emoji}</Text>
+                          <Text style={styles.likeCount}>{count}</Text>
+                        </React.Fragment>
                       ))
                     : <Text style={[styles.likeEmoji, { opacity: 0.35 }]}>😮</Text>
                   }
                 </View>
-                <Text style={styles.likeCount}>{formatNum(likeCount)}</Text>
               </TouchableOpacity>
             </View>
           )}

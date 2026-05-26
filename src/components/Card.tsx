@@ -16,7 +16,6 @@ const PICKER_WIDTH = REACTIONS.length * 48 + 16;
 interface Props {
   post: Post;
   reaction: string | null;
-  likeCount: number;
   onReact: (post: Post, emoji: string | null) => void;
   onPress: (post: Post) => void;
   hideBadge?: boolean;
@@ -24,20 +23,15 @@ interface Props {
   animationIndex?: number;
 }
 
-export const Card = React.memo(function Card({ post, reaction, likeCount, onReact, onPress, hideBadge, animationIndex = 0 }: Props) {
+export const Card = React.memo(function Card({ post, reaction, onReact, onPress, hideBadge, animationIndex = 0 }: Props) {
   const { colors } = useTheme();
   const { lang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const displayEmojis = useMemo(() => {
-    const serverTop = Object.entries(post.reactions ?? {})
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 2)
-      .map(([e]) => e);
-    if (!reaction) return serverTop;
-    // User's chosen emoji always shows first; fill second slot from server if different
-    const others = serverTop.filter((e) => e !== reaction);
-    return [reaction, ...others].slice(0, 2);
+  const reactionEntries = useMemo(() => {
+    const r = { ...(post.reactions ?? {}) };
+    if (reaction && !r[reaction]) r[reaction] = 1;
+    return Object.entries(r).filter(([, n]) => n > 0);
   }, [post.reactions, reaction]);
 
   const displayTitle = (lang !== "en" && post.zhTitle
@@ -126,13 +120,15 @@ export const Card = React.memo(function Card({ post, reaction, likeCount, onReac
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <View style={styles.likeRow}>
-                {displayEmojis.length > 0
-                  ? displayEmojis.map((e) => (
-                      <Text key={e} style={styles.likeEmoji}>{e}</Text>
+                {reactionEntries.length > 0
+                  ? reactionEntries.map(([emoji, count]) => (
+                      <React.Fragment key={emoji}>
+                        <Text style={styles.likeEmoji}>{emoji}</Text>
+                        <Text style={styles.like}>{count}</Text>
+                      </React.Fragment>
                     ))
                   : <Text style={[styles.likeEmoji, styles.likeEmojiDim]}>😮</Text>
                 }
-                <Text style={styles.like}>{formatNum(likeCount)}</Text>
               </View>
             </Pressable>
           </View>

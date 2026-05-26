@@ -55,7 +55,6 @@ export default function FeedScreen() {
   const [activePageIndex, setActivePageIndex] = useState(0);
 
   const [reactions, setReactions] = useState<Record<number, string>>({});
-  const [likeCounts, setLikeCounts] = useState<Record<number, number>>({});
 
   const [openPost, setOpenPost] = useState<Post | null>(null);
   const [autoRead, setAutoRead] = useState(false);
@@ -148,12 +147,6 @@ export default function FeedScreen() {
       else next[post.id] = emoji;
       return next;
     });
-    if (hadReaction !== hasReaction) {
-      setLikeCounts((prev) => ({
-        ...prev,
-        [post.id]: (prev[post.id] ?? post.likes) + (hasReaction ? 1 : -1),
-      }));
-    }
     if (emoji !== null) upsertReaction(post.id, emoji).catch(() => {});
     else deleteReaction(post.id).catch(() => {});
   }, [isAuthenticated, reactions]);
@@ -175,10 +168,6 @@ export default function FeedScreen() {
     searchDebounceRef.current = setTimeout(() => {
       setActiveSearch(text.trim());
     }, 400);
-  }
-
-  function getLikeCount(post: Post) {
-    return likeCounts[post.id] ?? post.likes;
   }
 
   return (
@@ -278,13 +267,7 @@ export default function FeedScreen() {
                 reloadKey={reloadKey}
                 scrollToTopTrigger={scrollToTopTrigger}
                 reactions={reactions}
-                likeCounts={likeCounts}
                 onReact={handleReact}
-                onPostsLoaded={(posts) => setLikeCounts((prev) => {
-                  const next = { ...prev };
-                  posts.forEach((p) => { delete next[p.id]; });
-                  return next;
-                })}
                 onOpenPost={(post) => { Keyboard.dismiss(); setOpenPost({ ...post }); }}
               />
             </View>
@@ -295,7 +278,6 @@ export default function FeedScreen() {
       <ArticleSheet
         post={openPost}
         reaction={openPost ? (reactions[openPost.id] ?? null) : null}
-        likeCount={openPost ? getLikeCount(openPost) : 0}
         onClose={() => setOpenPost(null)}
         onReact={(emoji) => openPost && handleReact(openPost, emoji)}
         isAuthenticated={isAuthenticated}
