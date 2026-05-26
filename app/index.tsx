@@ -18,7 +18,7 @@ import { CategoryFeedPage } from "../src/components/CategoryFeedPage";
 import { ArticleSheet } from "../src/components/ArticleSheet";
 import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
-import { fetchMyLikes, getJwt, fetchProfile, toggleLike, fetchPost } from "../src/api";
+import { fetchMyLikes, getJwt, fetchProfile, upsertReaction, deleteReaction, fetchPost } from "../src/api";
 import { getGuestChosen, setGuestChosen as markGuestChosen, getGuestProfile, saveGuestProfile, clearGuestData } from "../src/guestProfile";
 import { useTheme } from "../src/theme";
 import { useLang, toTraditional, toSimplified } from "../src/lang";
@@ -54,7 +54,7 @@ export default function FeedScreen() {
   const tabsRef = useRef<CategoryTabsHandle>(null);
   const [activePageIndex, setActivePageIndex] = useState(0);
 
-  const [liked, setLiked] = useState<Set<number>>(new Set());
+  const [reactions, setReactions] = useState<Record<number, string>>({});
   const [likeCounts, setLikeCounts] = useState<Record<number, number>>({});
 
   const [openPost, setOpenPost] = useState<Post | null>(null);
@@ -95,7 +95,7 @@ export default function FeedScreen() {
         setIsAuthenticated(true);
         const [p] = await Promise.all([
           fetchProfile(),
-          fetchMyLikes().then((ids) => setLiked(new Set(ids))),
+          fetchMyLikes().then((r) => setReactions(r)),
         ]);
         if (p) {
           setProfile(p);
@@ -138,23 +138,25 @@ export default function FeedScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleLike = useCallback((post: Post) => {
-    if (!isAuthenticated) {
-      setSignInVisible(true);
-      return;
-    }
-    const wasLiked = liked.has(post.id);
-    setLiked((prev) => {
-      const next = new Set(prev);
-      wasLiked ? next.delete(post.id) : next.add(post.id);
+  const handleReact = useCallback((post: Post, emoji: string | null) => {
+    if (!isAuthenticated) { setSignInVisible(true); return; }
+    const hadReaction = !!reactions[post.id];
+    const hasReaction = emoji !== null;
+    setReactions((prev) => {
+      const next = { ...prev };
+      if (emoji === null) delete next[post.id];
+      else next[post.id] = emoji;
       return next;
     });
-    setLikeCounts((prev) => ({
-      ...prev,
-      [post.id]: (prev[post.id] ?? post.likes) + (wasLiked ? -1 : 1),
-    }));
-    toggleLike(post.id, wasLiked).catch(() => {});
-  }, [isAuthenticated, liked]);
+    if (hadReaction !== hasReaction) {
+      setLikeCounts((prev) => ({
+        ...prev,
+        [post.id]: (prev[post.id] ?? post.likes) + (hasReaction ? 1 : -1),
+      }));
+    }
+    if (emoji !== null) upsertReaction(post.id, emoji).catch(() => {});
+    else deleteReaction(post.id).catch(() => {});
+  }, [isAuthenticated, reactions]);
 
   function handleSignedIn() {
     setIsAuthenticated(true);
@@ -164,7 +166,7 @@ export default function FeedScreen() {
         if (p.lang === "zh-TW" || p.lang === "zh-CN" || p.lang === "en") setLang(p.lang as LangMode);
       }
     });
-    fetchMyLikes().then((ids) => setLiked(new Set(ids)));
+    fetchMyLikes().then((r) => setReactions(r));
   }
 
   function handleSearchChange(text: string) {
@@ -275,9 +277,9 @@ export default function FeedScreen() {
                 searchQuery={lang === "zh-CN" && activeSearch ? toTraditional(activeSearch) : activeSearch}
                 reloadKey={reloadKey}
                 scrollToTopTrigger={scrollToTopTrigger}
-                liked={liked}
+                reactions={reactions}
                 likeCounts={likeCounts}
-                onLike={handleLike}
+                onReact={handleReact}
                 onOpenPost={(post) => { Keyboard.dismiss(); setOpenPost({ ...post }); }}
               />
             </View>
@@ -287,10 +289,10 @@ export default function FeedScreen() {
 
       <ArticleSheet
         post={openPost}
-        liked={openPost ? liked.has(openPost.id) : false}
+        reaction={openPost ? (reactions[openPost.id] ?? null) : null}
         likeCount={openPost ? getLikeCount(openPost) : 0}
         onClose={() => setOpenPost(null)}
-        onLike={() => openPost && handleLike(openPost)}
+        onReact={(emoji) => openPost && handleReact(openPost, emoji)}
         isAuthenticated={isAuthenticated}
         onSignInRequired={() => setSignInVisible(true)}
         autoRead={autoRead}
@@ -325,7 +327,7 @@ export default function FeedScreen() {
           setIsAuthenticated(false);
           setGuestChosen(false);
           setProfile(null);
-          setLiked(new Set());
+          setReactions({});
           clearGuestData();
         }}
         onSignIn={() => {

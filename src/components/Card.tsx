@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef } from "react";
-import { Animated, View, Text, TouchableOpacity, Pressable, StyleSheet } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, View, Text, TouchableOpacity, Pressable, StyleSheet, Modal, Dimensions } from "react-native";
 import { useTheme } from "../theme";
 import { useLang, toSimplified } from "../lang";
 import { t } from "../i18n";
@@ -10,30 +10,48 @@ function formatNum(n: number): string {
   return n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
 }
 
+const REACTIONS = ["😮", "❤️", "😂", "😢", "😡", "👍"] as const;
+const PICKER_WIDTH = REACTIONS.length * 48 + 16;
+
 interface Props {
   post: Post;
-  liked: boolean;
+  reaction: string | null;
   likeCount: number;
-  onLike: (post: Post) => void;
+  onReact: (post: Post, emoji: string | null) => void;
   onPress: (post: Post) => void;
   hideBadge?: boolean;
   overrideGradient?: string;
   animationIndex?: number;
 }
 
-export const Card = React.memo(function Card({ post, liked, likeCount, onLike, onPress, hideBadge, animationIndex = 0 }: Props) {
+export const Card = React.memo(function Card({ post, reaction, likeCount, onReact, onPress, hideBadge, animationIndex = 0 }: Props) {
   const { colors } = useTheme();
   const { lang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+
+  const displayEmojis = useMemo(() => {
+    const serverTop = Object.entries(post.reactions ?? {})
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([e]) => e);
+    if (!reaction) return serverTop;
+    // User's chosen emoji always shows first; fill second slot from server if different
+    const others = serverTop.filter((e) => e !== reaction);
+    return [reaction, ...others].slice(0, 2);
+  }, [post.reactions, reaction]);
 
   const displayTitle = (lang !== "en" && post.zhTitle
     ? (lang === "zh-CN" ? (post.zhTitleCn ?? toSimplified(post.zhTitle)) : post.zhTitle)
     : post.title).trim();
 
-
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(16)).current;
   const imgOpacity = useRef(new Animated.Value(0)).current;
+  const pickerAnim = useRef(new Animated.Value(0)).current;
+
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 });
+  const buttonRef = useRef<View>(null);
 
   useEffect(() => {
     imgOpacity.setValue(0);
@@ -48,6 +66,27 @@ export const Card = React.memo(function Card({ post, liked, likeCount, onLike, o
     ]).start();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function showPicker() {
+    buttonRef.current?.measureInWindow((x, y, w) => {
+      const screenW = Dimensions.get("window").width;
+      const centeredX = x + w / 2 - PICKER_WIDTH / 2;
+      const clampedX = Math.min(Math.max(8, centeredX), screenW - PICKER_WIDTH - 8);
+      setPickerPos({ x: clampedX, y: y - 60 });
+      setPickerVisible(true);
+      pickerAnim.setValue(0);
+      Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, bounciness: 10, speed: 18 }).start();
+    });
+  }
+
+  function hidePicker() {
+    Animated.timing(pickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setPickerVisible(false));
+  }
+
+  function handleSelect(emoji: string) {
+    onReact(post, reaction === emoji ? null : emoji);
+    hidePicker();
+  }
 
   return (
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
@@ -81,20 +120,52 @@ export const Card = React.memo(function Card({ post, liked, likeCount, onLike, o
                 : `${post._count.comments} ${t("commentPlural", lang)}`
               : ""}
           </Text>
-          <Pressable
-            onPress={(e) => { e.stopPropagation(); onLike(post); }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <View style={styles.likeRow}>
-              <Text style={[styles.likeHeart, liked && styles.likeHeartActive]}>
-                {liked ? "❤️" : "🤍"}
-              </Text>
-              <Text style={styles.like}>{formatNum(likeCount)}</Text>
-            </View>
-          </Pressable>
+          <View ref={buttonRef} collapsable={false}>
+            <Pressable
+              onPress={(e) => { e.stopPropagation(); showPicker(); }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <View style={styles.likeRow}>
+                {displayEmojis.length > 0
+                  ? displayEmojis.map((e) => (
+                      <Text key={e} style={styles.likeEmoji}>{e}</Text>
+                    ))
+                  : <Text style={[styles.likeEmoji, styles.likeEmojiDim]}>😮</Text>
+                }
+                <Text style={styles.like}>{formatNum(likeCount)}</Text>
+              </View>
+            </Pressable>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
+
+    <Modal visible={pickerVisible} transparent animationType="none" onRequestClose={hidePicker}>
+      <Pressable style={StyleSheet.absoluteFillObject} onPress={hidePicker}>
+        <Animated.View
+          style={[
+            styles.pickerRow,
+            {
+              position: "absolute",
+              left: pickerPos.x,
+              top: pickerPos.y,
+              opacity: pickerAnim,
+              transform: [{ scale: pickerAnim }],
+            },
+          ]}
+        >
+          {REACTIONS.map((emoji) => (
+            <TouchableOpacity
+              key={emoji}
+              onPress={() => handleSelect(emoji)}
+              style={[styles.pickerEmoji, reaction === emoji && styles.pickerEmojiActive]}
+            >
+              <Text style={styles.pickerEmojiText}>{emoji}</Text>
+            </TouchableOpacity>
+          ))}
+        </Animated.View>
+      </Pressable>
+    </Modal>
     </Animated.View>
   );
 });
@@ -150,13 +221,43 @@ function makeStyles(c: Colors) {
       alignItems: "center",
       gap: 2,
     },
-    likeHeart: {
-      fontSize: 11,
+    likeEmoji: {
+      fontSize: 14,
     },
-    likeHeartActive: {},
+    likeEmojiDim: {
+      opacity: 0.35,
+    },
     like: {
       fontSize: 10,
       color: c.textFaint,
+    },
+    pickerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: c.surface,
+      borderRadius: 32,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      gap: 2,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.18,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    pickerEmoji: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    pickerEmojiActive: {
+      backgroundColor: c.surfaceAlt,
+      transform: [{ scale: 1.2 }],
+    },
+    pickerEmojiText: {
+      fontSize: 26,
     },
   });
 }

@@ -68,21 +68,27 @@ export async function fetchPosts(
   return res.json();
 }
 
-export async function fetchMyLikes(): Promise<number[]> {
+export async function fetchMyLikes(): Promise<Record<number, string>> {
   try {
     const res = await apiFetch("/api/me/likes");
-    if (!res.ok) return [];
+    if (!res.ok) return {};
     const data = await res.json();
-    return data.likedPostIds ?? [];
+    const items: { postId: number; emoji: string }[] = data.reactions ?? [];
+    return Object.fromEntries(items.map((r) => [r.postId, r.emoji]));
   } catch {
-    return [];
+    return {};
   }
 }
 
-export async function toggleLike(postId: number, wasLiked: boolean): Promise<void> {
+export async function upsertReaction(postId: number, emoji: string): Promise<void> {
   await apiFetch(`/api/posts/${postId}/like`, {
-    method: wasLiked ? "DELETE" : "POST",
+    method: "POST",
+    body: JSON.stringify({ emoji }),
   });
+}
+
+export async function deleteReaction(postId: number): Promise<void> {
+  await apiFetch(`/api/posts/${postId}/like`, { method: "DELETE" });
 }
 
 export async function fetchComments(postId: number): Promise<Comment[]> {

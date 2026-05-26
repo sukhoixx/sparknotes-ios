@@ -26,9 +26,9 @@ interface Props {
   searchQuery: string;
   reloadKey: number;
   scrollToTopTrigger: number;
-  liked: Set<number>;
+  reactions: Record<number, string>;
   likeCounts: Record<number, number>;
-  onLike: (post: Post) => void;
+  onReact: (post: Post, emoji: string | null) => void;
   onOpenPost: (post: Post) => void;
   eventSlug?: string;
 }
@@ -41,9 +41,9 @@ export function CategoryFeedPage({
   searchQuery,
   reloadKey,
   scrollToTopTrigger,
-  liked,
+  reactions,
   likeCounts,
-  onLike,
+  onReact,
   onOpenPost,
   eventSlug,
 }: Props) {
@@ -165,9 +165,9 @@ export function CategoryFeedPage({
       <View style={styles.cell}>
         <Card
           post={item as Post}
-          liked={liked.has((item as Post).id)}
+          reaction={reactions[(item as Post).id] ?? null}
           likeCount={getLikeCount(item as Post)}
-          onLike={onLike}
+          onReact={onReact}
           onPress={onOpenPost}
           hideBadge={category !== "all" || !!eventSlug}
           overrideGradient={overrideGradient}
@@ -175,7 +175,7 @@ export function CategoryFeedPage({
         />
       </View>
     );
-  }, [liked, likeCounts, onLike, onOpenPost, category, overrideGradient]);
+  }, [reactions, likeCounts, onReact, onOpenPost, category, overrideGradient]);
 
   if (posts.length === 0 && !loadCompleted) {
     return (
@@ -191,7 +191,7 @@ export function CategoryFeedPage({
       key={reloadKey}
       data={flatItems}
       numColumns={2}
-      extraData={{ liked, likeCounts }}
+      extraData={{ reactions, likeCounts }}
       optimizeItemArrangement={false}
       keyExtractor={keyExtractor}
       renderItem={renderItem}

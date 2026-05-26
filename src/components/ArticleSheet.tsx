@@ -6,6 +6,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   useWindowDimensions,
   ActivityIndicator,
@@ -372,12 +373,15 @@ function getSourceName(url: string | null | undefined): string | null {
   }
 }
 
+const REACTIONS = ["😮", "❤️", "😂", "😢", "😡", "👍"] as const;
+const PICKER_WIDTH = REACTIONS.length * 48 + 16;
+
 interface Props {
   post: Post | null;
-  liked: boolean;
+  reaction: string | null;
   likeCount: number;
   onClose: () => void;
-  onLike: () => void;
+  onReact: (emoji: string | null) => void;
   isAuthenticated: boolean;
   onSignInRequired: () => void;
   autoRead: boolean;
@@ -504,10 +508,10 @@ function stripHtmlForSpeech(html: string): string {
 
 export function ArticleSheet({
   post,
-  liked,
+  reaction,
   likeCount,
   onClose,
-  onLike,
+  onReact,
   isAuthenticated,
   onSignInRequired,
   autoRead,
@@ -545,9 +549,51 @@ export function ArticleSheet({
   const heartScale = useRef(new Animated.Value(0)).current;
   const heartOpacity = useRef(new Animated.Value(0)).current;
   const autoReadToastOpacity = useRef(new Animated.Value(0)).current;
+  const adOpacity = useRef(new Animated.Value(0)).current;
+
+  const displayEmojis = useMemo(() => {
+    const serverTop = Object.entries(post?.reactions ?? {})
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([e]) => e);
+    if (!reaction) return serverTop;
+    const others = serverTop.filter((e) => e !== reaction);
+    return [reaction, ...others].slice(0, 2);
+  }, [post?.reactions, reaction]);
 
   const [autoReadToastMsg, setAutoReadToastMsg] = useState("");
   const [voiceHelpVisible, setVoiceHelpVisible] = useState(false);
+  const [fontSizeIdx, setFontSizeIdx] = useState(0);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 });
+  const reactionBtnRef = useRef<View>(null);
+  const pickerAnim = useRef(new Animated.Value(0)).current;
+
+  function showPicker() {
+    if (!isAuthenticated) { onSignInRequired(); return; }
+    reactionBtnRef.current?.measureInWindow((x, y, w) => {
+      const cx = x + w / 2 - PICKER_WIDTH / 2;
+      const clampedX = Math.min(Math.max(8, cx), width - PICKER_WIDTH - 8);
+      setPickerPos({ x: clampedX, y: y - 60 });
+      setPickerVisible(true);
+      pickerAnim.setValue(0);
+      Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, bounciness: 10, speed: 18 }).start();
+    });
+  }
+
+  function hidePicker() {
+    Animated.timing(pickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setPickerVisible(false));
+  }
+
+  function handleReactSelect(emoji: string) {
+    onReact(reaction === emoji ? null : emoji);
+    hidePicker();
+  }
+  const FONT_SIZES = [
+    { body: 15, line: 24 },
+    { body: 18, line: 28 },
+    { body: 21, line: 32 },
+  ] as const;
 
   function triggerAutoReadToast(msg: string) {
     autoReadToastOpacity.stopAnimation();
@@ -563,7 +609,7 @@ export function ArticleSheet({
   }
 
   function triggerLikeAnimation() {
-    if (!liked) onLike();
+    if (!reaction) onReact("❤️");
     heartScale.setValue(0);
     heartOpacity.setValue(1);
     Animated.sequence([
@@ -655,6 +701,7 @@ export function ArticleSheet({
     fetchOgImage(post.sourceUrl).then(setOgImage);
   }, [post?.id]);
 
+
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -702,6 +749,18 @@ export function ArticleSheet({
           { paddingTop: insets.top, opacity, transform: [{ translateX }, { scale }] },
         ]}
       >
+        {/* Article banner ad — above header, fixed height so content doesn't shift when ad loads */}
+        <View style={{ marginHorizontal: 0, minHeight: 60, backgroundColor: colors.surfaceAlt }}>
+          <Animated.View style={{ opacity: adOpacity }}>
+            <BannerAd
+              unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
+              size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+              requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+              onAdLoaded={() => Animated.timing(adOpacity, { toValue: 1, duration: 1000, useNativeDriver: true }).start()}
+            />
+          </Animated.View>
+        </View>
+
         {/* Header bar */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
@@ -720,15 +779,29 @@ export function ArticleSheet({
                 <Text style={styles.voiceHelpLabel}>?</Text>
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              onPress={() => setFontSizeIdx((i) => (i + 1) % FONT_SIZES.length)}
+              style={[styles.fontSizeBtn, fontSizeIdx > 0 && styles.fontSizeBtnActive]}
+            >
+              <Text style={[styles.fontSizeBtnLabel, fontSizeIdx > 0 && { color: colors.brand }]}>
+                {fontSizeIdx === 0 ? "A" : fontSizeIdx === 1 ? "A+" : "A++"}
+              </Text>
+            </TouchableOpacity>
           </View>
           {post && (
-            <TouchableOpacity
-              onPress={isAuthenticated ? onLike : onSignInRequired}
-              style={styles.likeBtn}
-            >
-              <Text style={styles.likeEmoji}>{liked ? "❤️" : "🤍"}</Text>
-              <Text style={styles.likeCount}>{formatNum(likeCount)}</Text>
-            </TouchableOpacity>
+            <View ref={reactionBtnRef} collapsable={false}>
+              <TouchableOpacity onPress={showPicker} style={styles.likeBtn}>
+                <View style={{ flexDirection: "row" }}>
+                  {displayEmojis.length > 0
+                    ? displayEmojis.map((e: string) => (
+                        <Text key={e} style={styles.likeEmoji}>{e}</Text>
+                      ))
+                    : <Text style={[styles.likeEmoji, { opacity: 0.35 }]}>😮</Text>
+                  }
+                </View>
+                <Text style={styles.likeCount}>{formatNum(likeCount)}</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
 
@@ -771,11 +844,13 @@ export function ArticleSheet({
 
                 {/* Body */}
                 <ArticleBodyWebView
-                  key={`body-${post.id}`}
+                  key={`body-${post.id}-${fontSizeIdx}`}
                   html={displayBody}
                   textColor={colors.textSub}
                   strongColor={colors.text}
                   bgColor={colors.surface}
+                  fontSize={FONT_SIZES[fontSizeIdx].body}
+                  lineHeight={FONT_SIZES[fontSizeIdx].line}
                   width={contentWidth}
                   onDoubleTap={triggerLikeAnimation}
                 />
@@ -795,15 +870,6 @@ export function ArticleSheet({
                     />
                   </View>
                 )}
-
-                {/* Article banner ad */}
-                <View style={{ marginHorizontal: -16 }}>
-                  <BannerAd
-                    unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
-                    size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-                    requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-                  />
-                </View>
 
                 {/* Tags */}
                 {post.tags?.length > 0 && (
@@ -960,7 +1026,30 @@ export function ArticleSheet({
           <Text style={{ fontSize: 16, fontWeight: "700", color: "#ffffff" }}>{autoReadToastMsg}</Text>
         </Animated.View>
       </Animated.View>
+
     </PanGestureHandler>
+
+    {/* Emoji reaction picker — outside PanGestureHandler so it's a single child */}
+    <Modal visible={pickerVisible} transparent animationType="none" onRequestClose={hidePicker}>
+      <Pressable style={StyleSheet.absoluteFillObject} onPress={hidePicker}>
+        <Animated.View
+          style={[
+            styles.pickerRow,
+            { position: "absolute", left: pickerPos.x, top: pickerPos.y, opacity: pickerAnim, transform: [{ scale: pickerAnim }] },
+          ]}
+        >
+          {REACTIONS.map((emoji) => (
+            <TouchableOpacity
+              key={emoji}
+              onPress={() => handleReactSelect(emoji)}
+              style={[styles.pickerEmoji, reaction === emoji && styles.pickerEmojiActive]}
+            >
+              <Text style={styles.pickerEmojiText}>{emoji}</Text>
+            </TouchableOpacity>
+          ))}
+        </Animated.View>
+      </Pressable>
+    </Modal>
     </View>
   );
 }
@@ -1009,6 +1098,16 @@ function makeStyles(c: Colors) {
       justifyContent: "center",
     },
     voiceHelpLabel: { fontSize: 11, fontWeight: "700", color: c.textMuted },
+    fontSizeBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: c.surfaceAlt,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    fontSizeBtnActive: { backgroundColor: c.brand + "33" },
+    fontSizeBtnLabel: { fontSize: 13, fontWeight: "700", color: c.textMuted },
     voiceHelpOverlay: {
       flex: 1,
       backgroundColor: "rgba(0,0,0,0.5)",
@@ -1136,6 +1235,34 @@ function makeStyles(c: Colors) {
       top: "40%",
       fontSize: 80,
       zIndex: 200,
+    },
+    pickerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: c.surface,
+      borderRadius: 32,
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+      gap: 2,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.18,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    pickerEmoji: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    pickerEmojiActive: {
+      backgroundColor: c.surfaceAlt,
+      transform: [{ scale: 1.2 }],
+    },
+    pickerEmojiText: {
+      fontSize: 26,
     },
     autoReadToast: {
       position: "absolute",
