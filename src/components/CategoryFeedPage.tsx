@@ -30,6 +30,7 @@ interface Props {
   likeCounts: Record<number, number>;
   onReact: (post: Post, emoji: string | null) => void;
   onOpenPost: (post: Post) => void;
+  onPostsLoaded?: (posts: Post[]) => void;
   eventSlug?: string;
 }
 
@@ -45,6 +46,7 @@ export function CategoryFeedPage({
   likeCounts,
   onReact,
   onOpenPost,
+  onPostsLoaded,
   eventSlug,
 }: Props) {
   const { colors } = useTheme();
@@ -80,6 +82,7 @@ export function CategoryFeedPage({
         const seen = new Set(prev.map((p) => p.id));
         return [...prev, ...data.posts.filter((p) => !seen.has(p.id))];
       });
+      onPostsLoaded?.(data.posts);
       cursorRef.current = data.nextCursor;
       hasMoreRef.current = !!data.nextCursor;
     } finally {

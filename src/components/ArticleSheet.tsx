@@ -28,6 +28,7 @@ import { useLang, toSimplified } from "../lang";
 import { t } from "../i18n";
 import type { Colors } from "../theme";
 import type { Post, Comment } from "../types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchComments, postComment, fetchOgImage } from "../api";
 
 function formatNum(n: number): string {
@@ -564,6 +565,18 @@ export function ArticleSheet({
   const [autoReadToastMsg, setAutoReadToastMsg] = useState("");
   const [voiceHelpVisible, setVoiceHelpVisible] = useState(false);
   const [fontSizeIdx, setFontSizeIdx] = useState(0);
+
+  useEffect(() => {
+    AsyncStorage.getItem("fontSizeIdx").then((v) => { if (v !== null) setFontSizeIdx(Number(v)); });
+  }, []);
+
+  function cycleFontSize() {
+    setFontSizeIdx((i) => {
+      const next = (i + 1) % FONT_SIZES.length;
+      AsyncStorage.setItem("fontSizeIdx", String(next));
+      return next;
+    });
+  }
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 });
   const reactionBtnRef = useRef<View>(null);
@@ -780,7 +793,7 @@ export function ArticleSheet({
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              onPress={() => setFontSizeIdx((i) => (i + 1) % FONT_SIZES.length)}
+              onPress={cycleFontSize}
               style={[styles.fontSizeBtn, fontSizeIdx > 0 && styles.fontSizeBtnActive]}
             >
               <Text style={[styles.fontSizeBtnLabel, fontSizeIdx > 0 && { color: colors.brand }]}>

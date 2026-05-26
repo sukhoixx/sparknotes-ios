@@ -280,6 +280,11 @@ export default function FeedScreen() {
                 reactions={reactions}
                 likeCounts={likeCounts}
                 onReact={handleReact}
+                onPostsLoaded={(posts) => setLikeCounts((prev) => {
+                  const next = { ...prev };
+                  posts.forEach((p) => { delete next[p.id]; });
+                  return next;
+                })}
                 onOpenPost={(post) => { Keyboard.dismiss(); setOpenPost({ ...post }); }}
               />
             </View>
