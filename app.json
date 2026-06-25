@@ -42,7 +42,7 @@
     },
     "android": {
       "package": "com.newsblock.app",
-      "versionCode": 20
+      "versionCode": 21
     }
   }
 }
