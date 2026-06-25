@@ -2,7 +2,7 @@
   "expo": {
     "name": "NewsBlock",
     "slug": "newsblock",
-    "version": "2.1.0",
+    "version": "2.1.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -41,7 +41,8 @@
       "typedRoutes": true
     },
     "android": {
-      "package": "com.newsblock.app"
+      "package": "com.newsblock.app",
+      "versionCode": 20
     }
   }
 }
