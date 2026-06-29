@@ -142,7 +142,7 @@ export function CategoryFeedPage({
 const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
 
   const flatItems = useMemo<FlatItem[]>(() => {
-    const AD_EVERY = 16;
+    const AD_EVERY = 12;
     const result: FlatItem[] = [];
     posts.forEach((post, i) => {
       if (i > 0 && i % AD_EVERY === 0) result.push("ad");
