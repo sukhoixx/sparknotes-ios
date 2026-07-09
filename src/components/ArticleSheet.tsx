@@ -568,6 +568,7 @@ export function ArticleSheet({
       return next;
     });
   }
+  const commentInputRef = useRef<TextInput>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 });
   const reactionBtnRef = useRef<View>(null);
@@ -633,6 +634,7 @@ export function ArticleSheet({
       translateX.setValue(0);
       scale.setValue(0.88);
       opacity.setValue(0);
+      adOpacity.setValue(0);
       Animated.parallel([
         Animated.spring(scale, { toValue: 1, useNativeDriver: true, bounciness: 0, speed: 18 }),
         Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: true }),
@@ -692,6 +694,7 @@ export function ArticleSheet({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
+    if (Platform.OS !== "ios") return;
     const show = Keyboard.addListener("keyboardWillShow", (e) => setKeyboardHeight(e.endCoordinates.height));
     const hide = Keyboard.addListener("keyboardWillHide", () => setKeyboardHeight(0));
     return () => { show.remove(); hide.remove(); };
@@ -731,7 +734,9 @@ export function ArticleSheet({
     if (comment) {
       setComments((prev) => [comment, ...prev]);
       setCommentText("");
+      commentInputRef.current?.blur();
       Keyboard.dismiss();
+
     }
     setSubmitting(false);
   }
@@ -757,6 +762,7 @@ export function ArticleSheet({
         <View style={{ marginHorizontal: 0, minHeight: 60, backgroundColor: colors.surfaceAlt }}>
           <Animated.View style={{ opacity: adOpacity }}>
             <BannerAd
+              key={post?.id}
               unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
               size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
               requestOptions={{ requestNonPersonalizedAdsOnly: false }}
@@ -811,12 +817,13 @@ export function ArticleSheet({
           )}
         </View>
 
+        <View style={{ flex: 1, paddingBottom: keyboardHeight }}>
         <TapGestureHandler
           ref={doubleTapRef}
           numberOfTaps={2}
           onHandlerStateChange={onDoubleTap}
         >
-        <View style={{ flex: 1, paddingBottom: keyboardHeight }}>
+        <View style={{ flex: 1 }}>
           <ScrollView
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
@@ -971,30 +978,32 @@ export function ArticleSheet({
               </>
             )}
           </ScrollView>
-
-          {/* Comment input */}
-          <View style={[styles.inputRow, { paddingBottom: Math.max(12, insets.bottom) }]}>
-            <TextInput
-              style={styles.input}
-              placeholder={isAuthenticated ? t("addComment", lang) : t("signInToComment", lang)}
-              placeholderTextColor={colors.textMuted}
-              value={commentText}
-              onChangeText={setCommentText}
-              onFocus={() => { if (!isAuthenticated) onSignInRequired(); }}
-              editable={isAuthenticated && !!post}
-              multiline
-              maxLength={500}
-            />
-            <TouchableOpacity
-              onPress={handleComment}
-              disabled={!commentText.trim() || submitting}
-              style={[styles.sendBtn, (!commentText.trim() || submitting) && styles.sendBtnDisabled]}
-            >
-              <Text style={styles.sendLabel}>↑</Text>
-            </TouchableOpacity>
-          </View>
         </View>
         </TapGestureHandler>
+        <View style={[styles.inputRow, { paddingBottom: Math.max(12, insets.bottom) }]}>
+          <TextInput
+            ref={commentInputRef}
+            style={styles.input}
+            placeholder={isAuthenticated ? t("addComment", lang) : t("signInToComment", lang)}
+            placeholderTextColor={colors.textMuted}
+            value={commentText}
+            onChangeText={setCommentText}
+            onFocus={() => { if (!isAuthenticated) onSignInRequired(); }}
+            editable={isAuthenticated && !!post}
+            multiline
+            maxLength={500}
+            onTouchEnd={Platform.OS === "android" ? () => requestAnimationFrame(() => commentInputRef.current?.focus()) : undefined}
+          />
+          <TouchableOpacity
+            onPress={handleComment}
+            disabled={!commentText.trim() || submitting}
+            style={[styles.sendBtn, (!commentText.trim() || submitting) && styles.sendBtnDisabled]}
+          >
+            <Text style={styles.sendLabel}>↑</Text>
+          </TouchableOpacity>
+        </View>
+
+        </View>
 
         {/* Double-tap heart animation */}
         <Animated.View

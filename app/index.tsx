@@ -55,6 +55,7 @@ export default function FeedScreen() {
   const [activePageIndex, setActivePageIndex] = useState(0);
 
   const [reactions, setReactions] = useState<Record<number, string>>({});
+  const patchPostRef = useRef<((post: Post) => void) | null>(null);
 
   const [openPost, setOpenPost] = useState<Post | null>(null);
   const [autoRead, setAutoRead] = useState(false);
@@ -139,17 +140,17 @@ export default function FeedScreen() {
 
   const handleReact = useCallback((post: Post, emoji: string | null) => {
     if (!isAuthenticated) { setSignInVisible(true); return; }
-    const hadReaction = !!reactions[post.id];
-    const hasReaction = emoji !== null;
     setReactions((prev) => {
       const next = { ...prev };
       if (emoji === null) delete next[post.id];
       else next[post.id] = emoji;
       return next;
     });
-    if (emoji !== null) upsertReaction(post.id, emoji).catch(() => {});
-    else deleteReaction(post.id).catch(() => {});
-  }, [isAuthenticated, reactions]);
+    const apiCall = emoji !== null ? upsertReaction(post.id, emoji) : deleteReaction(post.id);
+    apiCall.then(() => fetchPost(post.id)).then((updated) => {
+      if (updated) patchPostRef.current?.(updated);
+    }).catch(() => {});
+  }, [isAuthenticated]);
 
   function handleSignedIn() {
     setIsAuthenticated(true);
@@ -269,6 +270,7 @@ export default function FeedScreen() {
                 reactions={reactions}
                 onReact={handleReact}
                 onOpenPost={(post) => { Keyboard.dismiss(); setOpenPost({ ...post }); }}
+                onRegisterPatch={idx === activePageIndex ? (fn) => { patchPostRef.current = fn; } : undefined}
               />
             </View>
           );
@@ -278,7 +280,14 @@ export default function FeedScreen() {
       <ArticleSheet
         post={openPost}
         reaction={openPost ? (reactions[openPost.id] ?? null) : null}
-        onClose={() => setOpenPost(null)}
+        onClose={() => {
+          if (openPost) {
+            fetchPost(openPost.id).then((updated) => {
+              if (updated) patchPostRef.current?.(updated);
+            }).catch(() => {});
+          }
+          setOpenPost(null);
+        }}
         onReact={(emoji) => openPost && handleReact(openPost, emoji)}
         isAuthenticated={isAuthenticated}
         onSignInRequired={() => setSignInVisible(true)}

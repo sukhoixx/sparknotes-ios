@@ -30,6 +30,7 @@ interface Props {
   onReact: (post: Post, emoji: string | null) => void;
   onOpenPost: (post: Post) => void;
   onPostsLoaded?: (posts: Post[]) => void;
+  onRegisterPatch?: (fn: (post: Post) => void) => void;
   eventSlug?: string;
 }
 
@@ -45,6 +46,7 @@ export function CategoryFeedPage({
   onReact,
   onOpenPost,
   onPostsLoaded,
+  onRegisterPatch,
   eventSlug,
 }: Props) {
   const { colors } = useTheme();
@@ -61,6 +63,12 @@ export function CategoryFeedPage({
   const loadedForKeyRef = useRef(-1);
   const loadDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<MasonryFlashList<FlatItem>>(null);
+
+  useEffect(() => {
+    onRegisterPatch?.((updated) => {
+      setPosts((prev) => prev.map((p) => p.id === updated.id ? updated : p));
+    });
+  }, [onRegisterPatch]);
 
   async function doLoad(
     nextCursor: string | null,
