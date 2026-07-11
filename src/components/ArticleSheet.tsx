@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as Speech from "expo-speech";
-import { Audio } from "expo-av";
+
 import {
   View,
   Text,
@@ -385,6 +385,37 @@ interface Props {
   onToggleAutoRead: () => void;
 }
 
+function renderHtmlAsText(html: string, color: string, boldColor: string, fontSize: number, lineHeight: number) {
+  const paragraphs = html
+    .split(/<\/p>/i)
+    .map(p => p.replace(/<p[^>]*>/i, '').trim())
+    .filter(Boolean);
+
+  return paragraphs.map((para, i) => {
+    const parts = para.split(/(<strong>.*?<\/strong>)/gi);
+    const spans = parts.map((part, j) => {
+      const boldMatch = part.match(/^<strong>(.*?)<\/strong>$/i);
+      if (boldMatch) {
+        const text = boldMatch[1].replace(/<[^>]*>/g, '');
+        return (
+          <Text key={j} style={{ fontWeight: '700', color: boldColor }}>{text}</Text>
+        );
+      }
+      const text = part.replace(/<[^>]*>/g, '');
+      if (!text) return null;
+      return (
+        <Text key={j} style={{ fontWeight: '400', color }}>{text}</Text>
+      );
+    }).filter(Boolean);
+
+    return (
+      <Text key={i} style={{ fontSize, lineHeight, marginBottom: 12, color }}>
+        {spans}
+      </Text>
+    );
+  });
+}
+
 function ArticleBodyWebView({
   html,
   textColor,
@@ -404,19 +435,25 @@ function ArticleBodyWebView({
   width: number;
   onDoubleTap?: () => void;
 }) {
-  const [height, setHeight] = useState(1);
+  const [height, setHeight] = useState(800);
   const styledHtml = `<!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { overflow: hidden; }
+html, body { overflow: visible; }
 body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: ${bgColor}; -webkit-user-select: text; user-select: text; }
 p { color: ${textColor}; font-size: ${fontSize}px; line-height: ${lineHeight}px; margin-bottom: 12px; }
 strong { color: ${strongColor}; font-weight: 700; }
 </style></head><body>${html}</body></html>`;
 
   const injectedJS = `
-    window.ReactNativeWebView.postMessage(JSON.stringify({type:'height',value:document.body.getBoundingClientRect().height+1}));
+    function sendHeight() {
+      var h = document.body.scrollHeight || document.documentElement.scrollHeight;
+      if (h > 1) window.ReactNativeWebView.postMessage(JSON.stringify({type:'height',value:h+1}));
+    }
+    sendHeight();
+    setTimeout(sendHeight, 100);
+    setTimeout(sendHeight, 500);
     var _lastTap=0;
     document.addEventListener('touchend',function(e){
       var now=Date.now();
@@ -443,8 +480,15 @@ strong { color: ${strongColor}; font-weight: 700; }
       style={{ width, height, backgroundColor: bgColor }}
       onMessage={handleMessage}
       injectedJavaScript={injectedJS}
+      javaScriptEnabled={true}
       originWhitelist={["*"]}
       showsVerticalScrollIndicator={false}
+      onLoad={() => {
+        // Fallback: set a reasonable height if postMessage never fires
+        setTimeout(() => {
+          setHeight((h) => h === 200 ? 400 : h);
+        }, 1000);
+      }}
     />
   );
 }
@@ -678,7 +722,7 @@ export function ArticleSheet({
       const locale = lang === "zh-TW" ? "zh-TW" : lang === "zh-CN" ? "zh-CN" : "en-US";
       (async () => {
         const voiceId = await getPreferredVoice(locale);
-        Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
+        // Note: silent mode override not available in SDK 55 (expo-av removed)
         Speech.speak(text, {
           language: locale,
           rate: 0.95,
@@ -856,31 +900,12 @@ export function ArticleSheet({
                 )}
 
                 {/* Body */}
-                <ArticleBodyWebView
-                  key={`body-${post.id}-${fontSizeIdx}`}
-                  html={displayBody}
-                  textColor={colors.textSub}
-                  strongColor={colors.text}
-                  bgColor={colors.surface}
-                  fontSize={FONT_SIZES[fontSizeIdx].body}
-                  lineHeight={FONT_SIZES[fontSizeIdx].line}
-                  width={contentWidth}
-                  onDoubleTap={triggerLikeAnimation}
-                />
+                {renderHtmlAsText(displayBody, colors.textSub, colors.text, FONT_SIZES[fontSizeIdx].body, FONT_SIZES[fontSizeIdx].line)}
 
                 {/* Fun fact */}
                 {!!post.funFact && (
                   <View style={styles.funFact}>
-                    <ArticleBodyWebView
-                      key={`fact-${post.id}`}
-                      html={`<p>${displayFunFact}</p>`}
-                      textColor="#92400e"
-                      strongColor="#92400e"
-                      bgColor="#fffbeb"
-                      fontSize={13}
-                      lineHeight={20}
-                      width={contentWidth - 28}
-                    />
+                    {renderHtmlAsText(displayFunFact, "#92400e", "#92400e", 13, 20)}
                   </View>
                 )}
 

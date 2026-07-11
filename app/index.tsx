@@ -148,7 +148,10 @@ export default function FeedScreen() {
     });
     const apiCall = emoji !== null ? upsertReaction(post.id, emoji) : deleteReaction(post.id);
     apiCall.then(() => fetchPost(post.id)).then((updated) => {
-      if (updated) patchPostRef.current?.(updated);
+      if (updated) {
+        patchPostRef.current?.(updated);
+        setOpenPost((prev) => prev?.id === updated.id ? updated : prev);
+      }
     }).catch(() => {});
   }, [isAuthenticated]);
 

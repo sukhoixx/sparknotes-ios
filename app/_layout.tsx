@@ -15,6 +15,12 @@ import { useEffect, useState } from "react";
 
 LogBox.ignoreLogs(["Support for defaultProps will be removed"]);
 
+const origHandler = ErrorUtils.getGlobalHandler();
+ErrorUtils.setGlobalHandler((e, fatal) => {
+  require("react-native").Alert.alert("Error", `${e?.message}\n\n${e?.stack?.slice(0, 500)}`);
+  origHandler?.(e, fatal);
+});
+
 MobileAds().initialize();
 
 GoogleSignin.configure({

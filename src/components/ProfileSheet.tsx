@@ -12,7 +12,7 @@ import {
   Keyboard,
   Linking,
 } from "react-native";
-import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
+import { FlatList } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
@@ -211,35 +211,25 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
             {t("interests", lang)}{" "}
             <Text style={styles.labelSub}>
               {t("interestsMin", lang)}
-              {lang === "en" ? " · Long press to reorder" : lang === "zh-TW" ? " · 長按拖曳排序" : " · 长按拖拽排序"}
+              {""}
             </Text>
           </Text>
           <View style={styles.dragList}>
-            <DraggableFlatList
+            <FlatList
               data={tabOrder}
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
-              onDragEnd={({ data }) => {
-                setTabOrder(data);
-                const allCat = allCats.find((c) => c.id === "all");
-                reorderCategories([...(allCat ? [allCat] : []), ...data]);
-              }}
-              renderItem={({ item, drag, isActive }: RenderItemParams<CategoryItem>) => {
+              renderItem={({ item }) => {
                 const on = selectedCats.has(item.id);
                 return (
-                  <ScaleDecorator>
-                    <TouchableOpacity
-                      onPress={() => toggleCat(item.id)}
-                      onLongPress={drag}
-                      delayLongPress={150}
-                      style={[styles.dragRow, isActive && styles.dragRowActive]}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.dragCheck, on && styles.dragCheckActive]}>{on ? "✓" : "○"}</Text>
-                      <Text style={[styles.dragLabel, on && styles.dragLabelActive]}>{getLabel(item.id, lang)}</Text>
-                      <Text style={styles.dragHandle}>≡</Text>
-                    </TouchableOpacity>
-                  </ScaleDecorator>
+                  <TouchableOpacity
+                    onPress={() => toggleCat(item.id)}
+                    style={[styles.dragRow]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.dragCheck, on && styles.dragCheckActive]}>{on ? "✓" : "○"}</Text>
+                    <Text style={[styles.dragLabel, on && styles.dragLabelActive]}>{getLabel(item.id, lang)}</Text>
+                  </TouchableOpacity>
                 );
               }}
             />
