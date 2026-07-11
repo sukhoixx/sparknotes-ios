@@ -1,0 +1,24 @@
+diff --git a/node_modules/react-native-pager-view/ios/Fabric/RNCPagerViewComponentView.mm b/node_modules/react-native-pager-view/ios/Fabric/RNCPagerViewComponentView.mm
+index 652a5c1..9464288 100644
+--- a/node_modules/react-native-pager-view/ios/Fabric/RNCPagerViewComponentView.mm
++++ b/node_modules/react-native-pager-view/ios/Fabric/RNCPagerViewComponentView.mm
+@@ -58,6 +58,7 @@ - (void)initializeNativePageViewController {
+         if([subview isKindOfClass:UIScrollView.class]){
+             ((UIScrollView *)subview).delegate = self;
+             ((UIScrollView *)subview).delaysContentTouches = NO;
++            ((UIScrollView *)subview).scrollsToTop = NO;
+             scrollView = (UIScrollView *)subview;
+         }
+     }
+diff --git a/node_modules/react-native-pager-view/ios/RNCPagerView.m b/node_modules/react-native-pager-view/ios/RNCPagerView.m
+index 507b45d..6154b42 100644
+--- a/node_modules/react-native-pager-view/ios/RNCPagerView.m
++++ b/node_modules/react-native-pager-view/ios/RNCPagerView.m
+@@ -107,6 +107,7 @@ - (void)embed {
+             ((UIScrollView *)subview).keyboardDismissMode = _dismissKeyboard;
+ #endif
+             ((UIScrollView *)subview).delaysContentTouches = YES;
++            ((UIScrollView *)subview).scrollsToTop = NO;
+             self.scrollView = (UIScrollView *)subview;
+         }
+     }
