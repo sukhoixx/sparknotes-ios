@@ -10,6 +10,7 @@ const FALLBACK: CategoryItem[] = [
   { id: "news",          labels: { en: "📰 News",          "zh-TW": "📰 新聞",      "zh-CN": "📰 新闻" } },
   { id: "us",            labels: { en: "🇺🇸 US",            "zh-TW": "🇺🇸 美國",    "zh-CN": "🇺🇸 美国" } },
   { id: "world",         labels: { en: "🌍 World",         "zh-TW": "🌍 世界",      "zh-CN": "🌍 世界" } },
+  { id: "asia",          labels: { en: "🌏 Asia",          "zh-TW": "🌏 亞洲",      "zh-CN": "🌏 亚洲" } },
   { id: "politics",      labels: { en: "🏛️ Politics",      "zh-TW": "🏛️ 政治",    "zh-CN": "🏛️ 政治" } },
   { id: "military",      labels: { en: "🪖 Military",      "zh-TW": "🪖 軍事",      "zh-CN": "🪖 军事" } },
   { id: "science",       labels: { en: "🔬 Science",       "zh-TW": "🔬 科學",      "zh-CN": "🔬 科学" } },
@@ -25,7 +26,6 @@ const FALLBACK: CategoryItem[] = [
   { id: "finance",       labels: { en: "💰 Finance",       "zh-TW": "💰 財經",      "zh-CN": "💰 财经" } },
   { id: "health",        labels: { en: "💊 Health",        "zh-TW": "💊 健康",      "zh-CN": "💊 健康" } },
   { id: "beauty",        labels: { en: "💄 Beauty",        "zh-TW": "💄 美妝",      "zh-CN": "💄 美妆" } },
-  { id: "asia",          labels: { en: "🌏 Asia",          "zh-TW": "🌏 亞洲",      "zh-CN": "🌏 亚洲" } },
 ];
 
 function applyOrder(cats: CategoryItem[], savedOrder: string[]): CategoryItem[] {
