@@ -58,7 +58,7 @@ function AppShell() {
 
   return (
     <>
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? "light" : "dark"} translucent={false} backgroundColor={isDark ? "#1c1c1e" : "#ffffff"} />
       <Stack screenOptions={{ headerShown: false }} />
       <ForceUpgradeModal visible={forceUpgrade} />
     </>
