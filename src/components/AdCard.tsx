@@ -13,16 +13,18 @@ interface Props {
 export function AdCard({ width: propWidth }: Props) {
   const { width: windowWidth } = useWindowDimensions();
   const columnWidth = propWidth ?? (Math.floor(windowWidth / 2) - 8);
-  const [loaded, setLoaded] = useState(false);
+  const [status, setStatus] = useState<"pending" | "loaded" | "failed">("pending");
+
+  if (status === "failed") return null;
 
   return (
-    <View style={{ width: columnWidth, minHeight: loaded ? undefined : 0 }}>
+    <View style={{ width: columnWidth, minHeight: status === "loaded" ? undefined : 0 }}>
       <BannerAd
         unitId={AD_UNIT_ID}
         size={`${columnWidth}x250`}
         requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-        onAdLoaded={() => setLoaded(true)}
-        onAdFailedToLoad={() => setLoaded(false)}
+        onAdLoaded={() => setStatus("loaded")}
+        onAdFailedToLoad={() => setStatus("failed")}
       />
     </View>
   );
