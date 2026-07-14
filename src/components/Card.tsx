@@ -38,8 +38,8 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
     ? (lang === "zh-CN" ? (post.zhTitleCn ?? toSimplified(post.zhTitle)) : post.zhTitle)
     : post.title).trim();
 
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(16)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
   const imgOpacity = useRef(new Animated.Value(0)).current;
   const pickerAnim = useRef(new Animated.Value(0)).current;
 
@@ -53,14 +53,6 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.imageUrl]);
 
-  useEffect(() => {
-    const delay = Math.min(animationIndex, 7) * 25;
-    Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 180, delay, useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: 0, duration: 180, delay, useNativeDriver: true }),
-    ]).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   function showPicker() {
     buttonRef.current?.measureInWindow((x, y, w) => {
