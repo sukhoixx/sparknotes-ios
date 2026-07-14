@@ -5,8 +5,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
-  ScrollView,
 } from "react-native";
+import { MasonryFlashList, MasonryFlashListRef } from "@shopify/flash-list";
 import { Card } from "./Card";
 import { AdCard } from "./AdCard";
 import { fetchPosts } from "../api";
@@ -62,7 +62,8 @@ export function CategoryFeedPage({
   const hasMoreRef = useRef(true);
   const loadedForKeyRef = useRef(-1);
   const loadDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const listRef = useRef<ScrollView>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const listRef = useRef<any>(null);
 
   useEffect(() => {
     onRegisterPatch?.((updated) => {
@@ -124,7 +125,7 @@ export function CategoryFeedPage({
 
   useEffect(() => {
     if (scrollToTopTrigger > 0) {
-      listRef.current?.scrollTo({ y: 0, animated: true });
+      listRef.current?.scrollToOffset({ offset: 0, animated: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollToTopTrigger]);
@@ -149,27 +150,28 @@ export function CategoryFeedPage({
 
   const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
 
-  const { leftCol, rightCol } = useMemo(() => {
+  const flatItems = useMemo<FlatItem[]>(() => {
     const AD_EVERY = 12;
-    const items: FlatItem[] = [];
+    const result: FlatItem[] = [];
     posts.forEach((post, i) => {
-      if (i > 0 && i % AD_EVERY === 0) items.push("ad");
-      items.push(post);
+      if (i > 0 && i % AD_EVERY === 0) result.push("ad");
+      result.push(post);
     });
-    const left: FlatItem[] = [];
-    const right: FlatItem[] = [];
-    items.forEach((item, i) => (i % 2 === 0 ? left : right).push(item));
-    return { leftCol: left, rightCol: right };
+    return result;
   }, [posts]);
 
-  const renderCell = useCallback((item: FlatItem, index: number) => {
-    if (item === "ad") return <View key={`ad-${index}`} style={styles.cell}><AdCard /></View>;
-    const post = item as Post;
+  const keyExtractor = useCallback((item: FlatItem, index: number) => {
+    if (item === "ad") return `ad-${index}`;
+    return `post-${(item as Post).id}`;
+  }, []);
+
+  const renderItem = useCallback(({ item, index }: { item: FlatItem; index: number }) => {
+    if (item === "ad") return <View style={styles.cell}><AdCard /></View>;
     return (
-      <View key={`post-${post.id}`} style={styles.cell}>
+      <View style={styles.cell}>
         <Card
-          post={post}
-          reaction={reactions[post.id] ?? null}
+          post={item as Post}
+          reaction={reactions[(item as Post).id] ?? null}
           onReact={onReact}
           onPress={onOpenPost}
           hideBadge={category !== "all" || !!eventSlug}
@@ -189,40 +191,42 @@ export function CategoryFeedPage({
   }
 
   return (
-    <ScrollView
+    <MasonryFlashList
       ref={listRef}
+      key={reloadKey}
+      data={flatItems}
+      numColumns={2}
+      extraData={reactions}
+      optimizeItemArrangement={false}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      estimatedItemSize={250}
+      getItemType={(item) => (item === "ad" ? "ad" : "post")}
+      overrideItemLayout={(layout, item) => {
+        if (item === "ad") { layout.size = 250; return; }
+        const post = item as Post;
+        const titleLines = Math.ceil((post.title?.length ?? 30) / 22);
+        layout.size = (post.imageUrl ? 120 : 0) + titleLines * 19 + 120;
+      }}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      scrollEventThrottle={16}
-      onScroll={(e) => {
-        const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
-        if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 300) {
-          handleEndReached();
-        }
-      }}
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.5}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand} />
       }
-    >
-      {posts.length === 0 ? (
+      ListEmptyComponent={
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>📭</Text>
           <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t("noPostsYet", lang)}</Text>
         </View>
-      ) : (
-        <View style={styles.columns}>
-          <View style={styles.column}>
-            {leftCol.map((item, i) => renderCell(item, i * 2))}
-          </View>
-          <View style={styles.column}>
-            {rightCol.map((item, i) => renderCell(item, i * 2 + 1))}
-          </View>
-        </View>
-      )}
-      {loading && <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} />}
-    </ScrollView>
+      }
+      ListFooterComponent={
+        loading ? <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} /> : null
+      }
+    />
   );
 }
 
@@ -231,13 +235,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 8,
     paddingBottom: 40,
-  },
-  columns: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  column: {
-    flex: 1,
   },
   cell: {
     padding: 2,
