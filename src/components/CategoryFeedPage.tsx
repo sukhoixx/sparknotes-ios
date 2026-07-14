@@ -5,8 +5,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
-  FlatList,
 } from "react-native";
+import { FlashList, FlashListRef } from "@shopify/flash-list";
 import { Card } from "./Card";
 import { AdCard } from "./AdCard";
 import { fetchPosts } from "../api";
@@ -17,6 +17,7 @@ import { t } from "../i18n";
 import type { Post, PageData } from "../types";
 
 type FlatItem = Post | "ad";
+type Row = [FlatItem, FlatItem | null];
 
 interface Props {
   category: string;
@@ -62,7 +63,7 @@ export function CategoryFeedPage({
   const hasMoreRef = useRef(true);
   const loadedForKeyRef = useRef(-1);
   const loadDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const listRef = useRef<FlatList<FlatItem>>(null);
+  const listRef = useRef<FlashListRef<Row>>(null);
 
   useEffect(() => {
     onRegisterPatch?.((updated) => {
@@ -124,7 +125,7 @@ export function CategoryFeedPage({
 
   useEffect(() => {
     if (scrollToTopTrigger > 0) {
-      listRef.current?.scrollToOffset({ offset: 0, animated: true });
+      listRef.current?.scrollToIndex({ index: 0, animated: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollToTopTrigger]);
@@ -150,26 +151,26 @@ export function CategoryFeedPage({
 
 const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
 
-  const flatItems = useMemo<FlatItem[]>(() => {
+  const rows = useMemo<Row[]>(() => {
     const AD_EVERY = 12;
-    const result: FlatItem[] = [];
+    const items: FlatItem[] = [];
     posts.forEach((post, i) => {
-      if (i > 0 && i % AD_EVERY === 0) result.push("ad");
-      result.push(post);
+      if (i > 0 && i % AD_EVERY === 0) items.push("ad");
+      items.push(post);
     });
-    // FlatList numColumns=2 requires even item count to avoid layout gaps
-    if (result.length % 2 !== 0) result.push("pad" as unknown as FlatItem);
+    const result: Row[] = [];
+    for (let i = 0; i < items.length; i += 2) {
+      result.push([items[i], items[i + 1] ?? null]);
+    }
     return result;
   }, [posts]);
 
-  const keyExtractor = useCallback((item: FlatItem, index: number) => {
-    if (item === "ad") return `ad-${index}`;
-    if ((item as unknown as string) === "pad") return `pad-${index}`;
-    return `post-${(item as Post).id}`;
+  const keyExtractor = useCallback((row: Row, index: number) => {
+    const left = row[0];
+    return left === "ad" ? `ad-${index}` : `post-${(left as Post).id}`;
   }, []);
 
-  const renderItem = useCallback(({ item, index }: { item: FlatItem; index: number }) => {
-    if ((item as unknown as string) === "pad") return <View style={styles.cell} />;
+  const renderCell = useCallback((item: FlatItem, index: number) => {
     if (item === "ad") return <View style={styles.cell}><AdCard /></View>;
     return (
       <View style={styles.cell}>
@@ -186,6 +187,16 @@ const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : und
     );
   }, [reactions, onReact, onOpenPost, category, overrideGradient, eventSlug]);
 
+  const renderItem = useCallback(({ item, index }: { item: Row; index: number }) => {
+    const [left, right] = item;
+    return (
+      <View style={styles.row}>
+        <View style={styles.col}>{renderCell(left, index * 2)}</View>
+        <View style={styles.col}>{right ? renderCell(right, index * 2 + 1) : null}</View>
+      </View>
+    );
+  }, [renderCell]);
+
   if (posts.length === 0 && !loadCompleted) {
     return (
       <View style={styles.initialLoader}>
@@ -195,23 +206,17 @@ const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : und
   }
 
   return (
-    <FlatList
+    <FlashList
       ref={listRef}
-      data={flatItems}
+      data={rows}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
-      numColumns={2}
       contentContainerStyle={styles.scrollContent}
-      columnWrapperStyle={styles.columnWrapper}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       onEndReached={handleEndReached}
       onEndReachedThreshold={0.4}
-      removeClippedSubviews
-      maxToRenderPerBatch={10}
-      windowSize={10}
-      initialNumToRender={10}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -242,11 +247,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingBottom: 40,
   },
-  columnWrapper: {
+  row: {
+    flexDirection: "row",
     alignItems: "flex-start",
   },
-  cell: {
+  col: {
     flex: 1,
+  },
+  cell: {
     padding: 2,
   },
   initialLoader: {
