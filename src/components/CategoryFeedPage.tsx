@@ -42,7 +42,7 @@ interface CardCellProps {
 }
 
 const CardCell = React.memo(function CardCell({ item, index, reaction, onReact, onOpenPost, hideBadge, overrideGradient, columnWidth }: CardCellProps) {
-  if (item === "ad") return <View style={styles.cell}><AdCard width={columnWidth != null ? columnWidth - 4 : undefined} /></View>;
+  if (item === "ad") return <View style={[styles.cell, styles.adCell]}><AdCard width={columnWidth != null ? columnWidth - 4 : undefined} /></View>;
   return (
     <View style={styles.cell}>
       <Card
@@ -272,6 +272,9 @@ const styles = StyleSheet.create({
   },
   cell: {
     padding: 2,
+  },
+  adCell: {
+    minHeight: 250,
   },
   initialLoader: {
     flex: 1,

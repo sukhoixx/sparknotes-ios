@@ -186,7 +186,11 @@ export function VirtualizedMasonryList<T>({
                 width: layout.width,
               },
             ]}
-            onLayout={(e) => handleItemLayout(key, e.nativeEvent.layout.height)}
+            onLayout={(e) => {
+              const h = e.nativeEvent.layout.height;
+              // Ignore near-zero measurements (e.g. ad before it loads)
+              if (h > 10) handleItemLayout(key, h);
+            }}
           >
             {renderItem({ item, index, columnWidth })}
           </View>
