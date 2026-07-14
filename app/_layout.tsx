@@ -1,6 +1,6 @@
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { LogBox, Platform } from "react-native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
@@ -12,7 +12,7 @@ import { LangProvider } from "../src/lang";
 import { EventProvider, useEvent } from "../src/event";
 import { CategoriesProvider } from "../src/categoriesContext";
 import { ForceUpgradeModal } from "../src/components/ForceUpgradeModal";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -72,6 +72,8 @@ function AppShell() {
   const { isDark } = useTheme();
   const { setActiveEvents } = useEvent();
   const [forceUpgrade, setForceUpgrade] = useState(false);
+  const router = useRouter();
+  const notificationListener = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {
     fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/config`)
@@ -85,6 +87,19 @@ function AppShell() {
       .catch(() => {});
 
     registerForPushNotifications();
+
+    // Handle notification tap — open the article
+    notificationListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      const postId = response.notification.request.content.data?.postId;
+      if (postId) {
+        router.push({ pathname: "/", params: { openPostId: String(postId) } });
+      }
+    });
+
+    // Handle notification received while app is open (already shown by setNotificationHandler)
+    return () => {
+      notificationListener.current?.remove();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
