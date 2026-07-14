@@ -22,6 +22,14 @@
       "expo-secure-store",
       "expo-apple-authentication",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ff2442",
+          "sounds": []
+        }
+      ],
+      [
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.228391293170-82itthm8uao5q6g2nkvd856rfj570qub"
