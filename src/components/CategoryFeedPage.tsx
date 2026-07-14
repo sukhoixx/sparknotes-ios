@@ -5,8 +5,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
+  ScrollView,
 } from "react-native";
-import { FlashList, FlashListRef } from "@shopify/flash-list";
 import { Card } from "./Card";
 import { AdCard } from "./AdCard";
 import { fetchPosts } from "../api";
@@ -17,7 +17,6 @@ import { t } from "../i18n";
 import type { Post, PageData } from "../types";
 
 type FlatItem = Post | "ad";
-type Row = [FlatItem, FlatItem | null];
 
 interface Props {
   category: string;
@@ -63,7 +62,7 @@ export function CategoryFeedPage({
   const hasMoreRef = useRef(true);
   const loadedForKeyRef = useRef(-1);
   const loadDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const listRef = useRef<FlashListRef<Row>>(null);
+  const listRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     onRegisterPatch?.((updated) => {
@@ -125,7 +124,7 @@ export function CategoryFeedPage({
 
   useEffect(() => {
     if (scrollToTopTrigger > 0) {
-      listRef.current?.scrollToIndex({ index: 0, animated: true });
+      listRef.current?.scrollTo({ y: 0, animated: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollToTopTrigger]);
@@ -141,42 +140,36 @@ export function CategoryFeedPage({
     setRefreshing(false);
   }
 
-  const handleEndReached = useCallback(() => {
+  function handleEndReached() {
     if (!hasMoreRef.current || loadingRef.current) return;
     const cats = category === "all" && profileCats ? profileCats : undefined;
     const q = searchQuery || undefined;
     doLoad(cursorRef.current, false, cats, q, eventSlug);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, profileCats, searchQuery, eventSlug]);
+  }
 
-const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
+  const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
 
-  const rows = useMemo<Row[]>(() => {
+  const { leftCol, rightCol } = useMemo(() => {
     const AD_EVERY = 12;
     const items: FlatItem[] = [];
     posts.forEach((post, i) => {
       if (i > 0 && i % AD_EVERY === 0) items.push("ad");
       items.push(post);
     });
-    const result: Row[] = [];
-    for (let i = 0; i < items.length; i += 2) {
-      result.push([items[i], items[i + 1] ?? null]);
-    }
-    return result;
+    const left: FlatItem[] = [];
+    const right: FlatItem[] = [];
+    items.forEach((item, i) => (i % 2 === 0 ? left : right).push(item));
+    return { leftCol: left, rightCol: right };
   }, [posts]);
 
-  const keyExtractor = useCallback((row: Row, index: number) => {
-    const left = row[0];
-    return left === "ad" ? `ad-${index}` : `post-${(left as Post).id}`;
-  }, []);
-
   const renderCell = useCallback((item: FlatItem, index: number) => {
-    if (item === "ad") return <View style={styles.cell}><AdCard /></View>;
+    if (item === "ad") return <View key={`ad-${index}`} style={styles.cell}><AdCard /></View>;
+    const post = item as Post;
     return (
-      <View style={styles.cell}>
+      <View key={`post-${post.id}`} style={styles.cell}>
         <Card
-          post={item as Post}
-          reaction={reactions[(item as Post).id] ?? null}
+          post={post}
+          reaction={reactions[post.id] ?? null}
           onReact={onReact}
           onPress={onOpenPost}
           hideBadge={category !== "all" || !!eventSlug}
@@ -187,16 +180,6 @@ const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : und
     );
   }, [reactions, onReact, onOpenPost, category, overrideGradient, eventSlug]);
 
-  const renderItem = useCallback(({ item, index }: { item: Row; index: number }) => {
-    const [left, right] = item;
-    return (
-      <View style={styles.row}>
-        <View style={styles.col}>{renderCell(left, index * 2)}</View>
-        <View style={styles.col}>{right ? renderCell(right, index * 2 + 1) : null}</View>
-      </View>
-    );
-  }, [renderCell]);
-
   if (posts.length === 0 && !loadCompleted) {
     return (
       <View style={styles.initialLoader}>
@@ -206,38 +189,40 @@ const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : und
   }
 
   return (
-    <FlashList
+    <ScrollView
       ref={listRef}
-      data={rows}
-      keyExtractor={keyExtractor}
-      renderItem={renderItem}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      onEndReached={handleEndReached}
-      onEndReachedThreshold={0.4}
+      scrollEventThrottle={16}
+      onScroll={(e) => {
+        const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+        if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 300) {
+          handleEndReached();
+        }
+      }}
       refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-          tintColor={colors.brand}
-        />
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand} />
       }
-      ListEmptyComponent={
-        loadCompleted ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📭</Text>
-            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-              {t("noPostsYet", lang)}
-            </Text>
+    >
+      {posts.length === 0 ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyIcon}>📭</Text>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t("noPostsYet", lang)}</Text>
+        </View>
+      ) : (
+        <View style={styles.columns}>
+          <View style={styles.column}>
+            {leftCol.map((item, i) => renderCell(item, i * 2))}
           </View>
-        ) : null
-      }
-      ListFooterComponent={
-        loading ? <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} /> : null
-      }
-    />
+          <View style={styles.column}>
+            {rightCol.map((item, i) => renderCell(item, i * 2 + 1))}
+          </View>
+        </View>
+      )}
+      {loading && <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} />}
+    </ScrollView>
   );
 }
 
@@ -247,11 +232,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingBottom: 40,
   },
-  row: {
+  columns: {
     flexDirection: "row",
     alignItems: "flex-start",
   },
-  col: {
+  column: {
     flex: 1,
   },
   cell: {
