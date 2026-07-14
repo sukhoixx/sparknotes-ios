@@ -138,6 +138,15 @@ export default function FeedScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleOpenPost = useCallback((post: Post) => {
+    Keyboard.dismiss();
+    setOpenPost({ ...post });
+  }, []);
+
+  const handleRegisterPatch = useCallback((fn: (post: Post) => void) => {
+    patchPostRef.current = fn;
+  }, []);
+
   const handleReact = useCallback((post: Post, emoji: string | null) => {
     if (!isAuthenticated) { setSignInVisible(true); return; }
     setReactions((prev) => {
@@ -272,8 +281,8 @@ export default function FeedScreen() {
                 scrollToTopTrigger={scrollToTopTrigger}
                 reactions={reactions}
                 onReact={handleReact}
-                onOpenPost={(post) => { Keyboard.dismiss(); setOpenPost({ ...post }); }}
-                onRegisterPatch={idx === activePageIndex ? (fn) => { patchPostRef.current = fn; } : undefined}
+                onOpenPost={handleOpenPost}
+                onRegisterPatch={idx === activePageIndex ? handleRegisterPatch : undefined}
               />
             </View>
           );

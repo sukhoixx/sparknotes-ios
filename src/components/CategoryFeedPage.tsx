@@ -35,7 +35,7 @@ interface Props {
   eventSlug?: string;
 }
 
-export function CategoryFeedPage({
+export const CategoryFeedPage = React.memo(function CategoryFeedPage({
   category,
   isVisible,
   isActive,
@@ -217,7 +217,7 @@ export function CategoryFeedPage({
       }
     />
   );
-}
+});
 
 const styles = StyleSheet.create({
   scrollContent: {
