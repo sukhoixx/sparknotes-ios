@@ -6,7 +6,8 @@ import {
   RefreshControl,
   StyleSheet,
 } from "react-native";
-import { MasonryFlashList, MasonryFlashListRef } from "@shopify/flash-list";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const WaterfallFlow = require("react-native-waterfall-flow").default as any;
 import { Card } from "./Card";
 import { AdCard } from "./AdCard";
 import { fetchPosts } from "../api";
@@ -62,8 +63,7 @@ export function CategoryFeedPage({
   const hasMoreRef = useRef(true);
   const loadedForKeyRef = useRef(-1);
   const loadDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const listRef = useRef<any>(null);
+  const listRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
 
   useEffect(() => {
     onRegisterPatch?.((updated) => {
@@ -191,23 +191,12 @@ export function CategoryFeedPage({
   }
 
   return (
-    <MasonryFlashList
+    <WaterfallFlow
       ref={listRef}
-      key={reloadKey}
       data={flatItems}
       numColumns={2}
-      extraData={reactions}
-      optimizeItemArrangement={false}
       keyExtractor={keyExtractor}
       renderItem={renderItem}
-      estimatedItemSize={250}
-      getItemType={(item) => (item === "ad" ? "ad" : "post")}
-      overrideItemLayout={(layout, item) => {
-        if (item === "ad") { layout.size = 250; return; }
-        const post = item as Post;
-        const titleLines = Math.ceil((post.title?.length ?? 30) / 22);
-        layout.size = (post.imageUrl ? 120 : 0) + titleLines * 19 + 120;
-      }}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
