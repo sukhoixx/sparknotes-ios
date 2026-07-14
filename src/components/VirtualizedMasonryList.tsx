@@ -132,6 +132,11 @@ export function VirtualizedMasonryList<T>({
     []
   );
 
+  // Reset end-reached gate whenever new data arrives so next page can load
+  useEffect(() => {
+    endReachedRef.current = false;
+  }, [data.length]);
+
   // Re-check end reached whenever totalHeight or scrollY changes
   useEffect(() => {
     checkEndReached();
