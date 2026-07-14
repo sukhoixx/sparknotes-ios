@@ -23,7 +23,7 @@ interface Props<T> {
   data: T[];
   numColumns: number;
   estimateHeight: (item: T, index: number) => number;
-  renderItem: (info: { item: T; index: number }) => ReactNode;
+  renderItem: (info: { item: T; index: number; columnWidth: number }) => ReactNode;
   keyExtractor: (item: T, index: number) => string;
   onEndReached: () => void;
   onEndReachedThreshold?: number;
@@ -164,7 +164,7 @@ export function VirtualizedMasonryList<T>({
             ]}
             onLayout={(e) => handleItemLayout(key, e.nativeEvent.layout.height)}
           >
-            {renderItem({ item, index })}
+            {renderItem({ item, index, columnWidth })}
           </View>
         );
       })}

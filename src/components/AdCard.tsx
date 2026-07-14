@@ -6,9 +6,13 @@ const AD_UNIT_ID = __DEV__
   ? TestIds.ADAPTIVE_BANNER
   : "ca-app-pub-2618352557321545/6335999163";
 
-export function AdCard() {
-  const { width } = useWindowDimensions();
-  const columnWidth = Math.floor(width / 2) - 8;
+interface Props {
+  width?: number;
+}
+
+export function AdCard({ width: propWidth }: Props) {
+  const { width: windowWidth } = useWindowDimensions();
+  const columnWidth = propWidth ?? (Math.floor(windowWidth / 2) - 8);
   const [loaded, setLoaded] = useState(false);
 
   return (

@@ -38,10 +38,11 @@ interface CardCellProps {
   onOpenPost: (post: Post) => void;
   hideBadge: boolean;
   overrideGradient?: string;
+  columnWidth?: number;
 }
 
-const CardCell = React.memo(function CardCell({ item, index, reaction, onReact, onOpenPost, hideBadge, overrideGradient }: CardCellProps) {
-  if (item === "ad") return <View style={styles.cell}><AdCard /></View>;
+const CardCell = React.memo(function CardCell({ item, index, reaction, onReact, onOpenPost, hideBadge, overrideGradient, columnWidth }: CardCellProps) {
+  if (item === "ad") return <View style={styles.cell}><AdCard width={columnWidth} /></View>;
   return (
     <View style={styles.cell}>
       <Card
@@ -209,7 +210,7 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
     return estimateCardHeight(item, hideBadge);
   }, [hideBadge]);
 
-  const renderItem = useCallback(({ item, index }: { item: FlatItem; index: number }) => {
+  const renderItem = useCallback(({ item, index, columnWidth }: { item: FlatItem; index: number; columnWidth: number }) => {
     const reaction = item === "ad" ? null : (reactions[(item as Post).id] ?? null);
     return (
       <CardCell
@@ -220,6 +221,7 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
         onOpenPost={onOpenPost}
         hideBadge={hideBadge}
         overrideGradient={overrideGradient}
+        columnWidth={columnWidth}
       />
     );
   }, [reactions, onReact, onOpenPost, hideBadge, overrideGradient]);
