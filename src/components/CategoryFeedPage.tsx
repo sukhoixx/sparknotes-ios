@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ScrollView,
 } from "react-native";
+import { VirtualizedMasonryList } from "./VirtualizedMasonryList";
 import { Card } from "./Card";
 import { AdCard } from "./AdCard";
 import { fetchPosts } from "../api";
@@ -17,6 +18,17 @@ import { t } from "../i18n";
 import type { Post, PageData } from "../types";
 
 type FlatItem = Post | "ad";
+
+function estimateCardHeight(item: FlatItem, hideBadge: boolean): number {
+  if (item === "ad") return 250;
+  const post = item as Post;
+  const badgeH = hideBadge ? 0 : 21;
+  const imageH = post.imageUrl ? 120 : 0;
+  const charPerLine = 22;
+  const titleLines = Math.min(5, Math.ceil((post.title?.length ?? 30) / charPerLine));
+  const contentH = Math.max(80, 8 + titleLines * 19 + 10 + 14 + 10);
+  return badgeH + imageH + contentH + 4;
+}
 
 interface CardCellProps {
   item: FlatItem;
@@ -167,33 +179,50 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
     setRefreshing(false);
   }
 
-  function handleEndReached() {
+  const handleEndReached = useCallback(() => {
     if (!hasMoreRef.current || loadingRef.current) return;
     const cats = category === "all" && profileCats ? profileCats : undefined;
     const q = searchQuery || undefined;
     doLoad(cursorRef.current, false, cats, q, eventSlug);
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, profileCats, searchQuery, eventSlug]);
 
   const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
   const hideBadge = category !== "all" || !!eventSlug;
 
-  const { leftCol, rightCol } = useMemo(() => {
+  const flatItems = useMemo<FlatItem[]>(() => {
     const AD_EVERY = 12;
-    const items: FlatItem[] = [];
+    const result: FlatItem[] = [];
     posts.forEach((post, i) => {
-      if (i > 0 && i % AD_EVERY === 0) items.push("ad");
-      items.push(post);
+      if (i > 0 && i % AD_EVERY === 0) result.push("ad");
+      result.push(post);
     });
-    const left: FlatItem[] = [];
-    const right: FlatItem[] = [];
-    items.forEach((item, i) => (i % 2 === 0 ? left : right).push(item));
-    return { leftCol: left, rightCol: right };
+    return result;
   }, [posts]);
 
-  const getReaction = useCallback((item: FlatItem) => {
-    if (item === "ad") return null;
-    return reactions[(item as Post).id] ?? null;
-  }, [reactions]);
+  const keyExtractor = useCallback((item: FlatItem, index: number) => {
+    if (item === "ad") return `ad-${index}`;
+    return `post-${(item as Post).id}`;
+  }, []);
+
+  const estimateHeight = useCallback((item: FlatItem, _index: number) => {
+    return estimateCardHeight(item, hideBadge);
+  }, [hideBadge]);
+
+  const renderItem = useCallback(({ item, index }: { item: FlatItem; index: number }) => {
+    const reaction = item === "ad" ? null : (reactions[(item as Post).id] ?? null);
+    return (
+      <CardCell
+        item={item}
+        index={index}
+        reaction={reaction}
+        onReact={onReact}
+        onOpenPost={onOpenPost}
+        hideBadge={hideBadge}
+        overrideGradient={overrideGradient}
+      />
+    );
+  }, [reactions, onReact, onOpenPost, hideBadge, overrideGradient]);
 
   if (posts.length === 0 && !loadCompleted) {
     return (
@@ -204,77 +233,40 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
   }
 
   return (
-    <ScrollView
-      ref={listRef}
+    <VirtualizedMasonryList
+      data={flatItems}
+      numColumns={2}
+      estimateHeight={estimateHeight}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.5}
+      scrollRef={listRef}
       contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
-      scrollEventThrottle={100}
-      onScroll={(e) => {
-        const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
-        if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 300) {
-          handleEndReached();
-        }
-      }}
+      columnGap={0}
+      rowGap={0}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand} />
       }
-    >
-      {posts.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>📭</Text>
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t("noPostsYet", lang)}</Text>
-        </View>
-      ) : (
-        <View style={styles.columns}>
-          <View style={styles.column}>
-            {leftCol.map((item, i) => (
-              <CardCell
-                key={item === "ad" ? `ad-l-${i}` : `post-${(item as Post).id}`}
-                item={item}
-                index={i * 2}
-                reaction={getReaction(item)}
-                onReact={onReact}
-                onOpenPost={onOpenPost}
-                hideBadge={hideBadge}
-                overrideGradient={overrideGradient}
-              />
-            ))}
+      ListEmptyComponent={
+        loadCompleted ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyIcon}>📭</Text>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t("noPostsYet", lang)}</Text>
           </View>
-          <View style={styles.column}>
-            {rightCol.map((item, i) => (
-              <CardCell
-                key={item === "ad" ? `ad-r-${i}` : `post-${(item as Post).id}`}
-                item={item}
-                index={i * 2 + 1}
-                reaction={getReaction(item)}
-                onReact={onReact}
-                onOpenPost={onOpenPost}
-                hideBadge={hideBadge}
-                overrideGradient={overrideGradient}
-              />
-            ))}
-          </View>
-        </View>
-      )}
-      {loading && <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} />}
-    </ScrollView>
+        ) : null
+      }
+      ListFooterComponent={
+        loading ? <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} /> : null
+      }
+    />
   );
 });
 
 const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 4,
-    paddingVertical: 8,
-    paddingBottom: 40,
-  },
-  columns: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
-  column: {
-    flex: 1,
+    paddingTop: 8,
   },
   cell: {
     padding: 2,
