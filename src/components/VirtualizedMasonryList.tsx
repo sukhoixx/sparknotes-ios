@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   RefreshControl,
@@ -56,6 +56,7 @@ export function VirtualizedMasonryList<T>({
   const [containerWidth, setContainerWidth] = useState(
     Dimensions.get("window").width
   );
+  const [viewportHeight, setViewportHeight] = useState(SCREEN_HEIGHT);
   const [measureVersion, setMeasureVersion] = useState(0);
   const endReachedRef = useRef(false);
   const measuredHeightsRef = useRef<Map<string, number>>(new Map());
@@ -105,31 +106,45 @@ export function VirtualizedMasonryList<T>({
     []
   );
 
+  const totalHeightRef = useRef(0);
+  totalHeightRef.current = totalHeight;
+  const viewportHeightRef = useRef(SCREEN_HEIGHT);
+
+  const checkEndReached = useCallback(() => {
+    const threshold = onEndReachedThreshold * viewportHeightRef.current;
+    const atEnd = scrollY + viewportHeightRef.current >= totalHeightRef.current - threshold;
+    if (!endReachedRef.current && atEnd) {
+      endReachedRef.current = true;
+      onEndReached();
+    } else if (!atEnd) {
+      endReachedRef.current = false;
+    }
+  }, [scrollY, onEndReachedThreshold, onEndReached]);
+
   const handleScroll = useCallback(
     (e: { nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number } } }) => {
       const y = e.nativeEvent.contentOffset.y;
       const viewportH = e.nativeEvent.layoutMeasurement.height;
+      viewportHeightRef.current = viewportH;
+      setViewportHeight(viewportH);
       setScrollY(y);
-
-      const threshold = onEndReachedThreshold * viewportH;
-      if (!endReachedRef.current && y + viewportH >= totalHeight - threshold) {
-        endReachedRef.current = true;
-        onEndReached();
-      } else if (y + viewportH < totalHeight - threshold) {
-        endReachedRef.current = false;
-      }
     },
-    [totalHeight, onEndReachedThreshold, onEndReached]
+    []
   );
+
+  // Re-check end reached whenever totalHeight or scrollY changes
+  useEffect(() => {
+    checkEndReached();
+  }, [checkEndReached, totalHeight, scrollY]);
 
   // Render only items within the viewport + buffer
   const visibleItems = useMemo(() => {
     const top = scrollY - BUFFER;
-    const bottom = scrollY + SCREEN_HEIGHT + BUFFER;
+    const bottom = scrollY + viewportHeight + BUFFER;
     return layouts
       .map((layout, index) => ({ layout, index }))
       .filter(({ layout }) => layout.top + layout.height > top && layout.top < bottom);
-  }, [layouts, scrollY]);
+  }, [layouts, scrollY, viewportHeight]);
 
   return (
     <ScrollView
@@ -144,7 +159,11 @@ export function VirtualizedMasonryList<T>({
       scrollEventThrottle={100}
       onScroll={handleScroll}
       refreshControl={refreshControl}
-      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+      onLayout={(e) => {
+        setContainerWidth(e.nativeEvent.layout.width);
+        viewportHeightRef.current = e.nativeEvent.layout.height;
+        setViewportHeight(e.nativeEvent.layout.height);
+      }}
     >
       {data.length === 0 && ListEmptyComponent}
 
