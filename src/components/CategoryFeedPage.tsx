@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   },
   adCell: {
     minHeight: 250,
-    paddingBottom: 8,
+    paddingBottom: 2,
   },
   initialLoader: {
     flex: 1,
