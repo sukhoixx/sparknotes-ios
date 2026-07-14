@@ -43,6 +43,13 @@
     "android": {
       "package": "com.newsblock.app",
       "versionCode": 22
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7a1b7bfc-3762-4976-bb82-9b805b346e66"
+      }
+    },
+    "owner": "sukhoixx"
   }
 }

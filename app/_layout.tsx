@@ -55,7 +55,9 @@ async function registerForPushNotifications() {
     : (await Notifications.requestPermissionsAsync()).status;
   if (finalStatus !== "granted") return;
 
-  const token = await Notifications.getExpoPushTokenAsync().catch(() => null);
+  const token = await Notifications.getExpoPushTokenAsync({
+    projectId: "7a1b7bfc-3762-4976-bb82-9b805b346e66",
+  }).catch(() => null);
   if (!token) return;
 
   const platform = Platform.OS;
