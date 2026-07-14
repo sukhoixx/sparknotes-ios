@@ -5,7 +5,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
-  ScrollView,
+  FlatList,
 } from "react-native";
 import { Card } from "./Card";
 import { AdCard } from "./AdCard";
@@ -62,7 +62,7 @@ export function CategoryFeedPage({
   const hasMoreRef = useRef(true);
   const loadedForKeyRef = useRef(-1);
   const loadDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const listRef = useRef<ScrollView>(null);
+  const listRef = useRef<FlatList<FlatItem>>(null);
 
   useEffect(() => {
     onRegisterPatch?.((updated) => {
@@ -124,7 +124,7 @@ export function CategoryFeedPage({
 
   useEffect(() => {
     if (scrollToTopTrigger > 0) {
-      listRef.current?.scrollTo({ y: 0, animated: true });
+      listRef.current?.scrollToOffset({ offset: 0, animated: true });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollToTopTrigger]);
@@ -140,12 +140,13 @@ export function CategoryFeedPage({
     setRefreshing(false);
   }
 
-  function handleEndReached() {
+  const handleEndReached = useCallback(() => {
     if (!hasMoreRef.current || loadingRef.current) return;
     const cats = category === "all" && profileCats ? profileCats : undefined;
     const q = searchQuery || undefined;
     doLoad(cursorRef.current, false, cats, q, eventSlug);
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, profileCats, searchQuery, eventSlug]);
 
 const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : undefined;
 
@@ -156,15 +157,19 @@ const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : und
       if (i > 0 && i % AD_EVERY === 0) result.push("ad");
       result.push(post);
     });
+    // FlatList numColumns=2 requires even item count to avoid layout gaps
+    if (result.length % 2 !== 0) result.push("pad" as unknown as FlatItem);
     return result;
   }, [posts]);
 
   const keyExtractor = useCallback((item: FlatItem, index: number) => {
     if (item === "ad") return `ad-${index}`;
+    if ((item as unknown as string) === "pad") return `pad-${index}`;
     return `post-${(item as Post).id}`;
   }, []);
 
   const renderItem = useCallback(({ item, index }: { item: FlatItem; index: number }) => {
+    if ((item as unknown as string) === "pad") return <View style={styles.cell} />;
     if (item === "ad") return <View style={styles.cell}><AdCard /></View>;
     return (
       <View style={styles.cell}>
@@ -179,10 +184,7 @@ const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : und
         />
       </View>
     );
-  }, [reactions, onReact, onOpenPost, category, overrideGradient]);
-
-  const leftCol = useMemo(() => flatItems.filter((_, i) => i % 2 === 0), [flatItems]);
-  const rightCol = useMemo(() => flatItems.filter((_, i) => i % 2 === 1), [flatItems]);
+  }, [reactions, onReact, onOpenPost, category, overrideGradient, eventSlug]);
 
   if (posts.length === 0 && !loadCompleted) {
     return (
@@ -193,20 +195,23 @@ const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : und
   }
 
   return (
-    <ScrollView
+    <FlatList
       ref={listRef}
+      data={flatItems}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      numColumns={2}
       contentContainerStyle={styles.scrollContent}
+      columnWrapperStyle={styles.columnWrapper}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      scrollEventThrottle={16}
-      onScroll={(e) => {
-        const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
-        const paddingToBottom = 200;
-        if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
-          handleEndReached();
-        }
-      }}
+      onEndReached={handleEndReached}
+      onEndReachedThreshold={0.4}
+      removeClippedSubviews
+      maxToRenderPerBatch={10}
+      windowSize={10}
+      initialNumToRender={10}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -214,54 +219,20 @@ const overrideGradient = category !== "all" ? CATEGORY_GRADIENTS[category] : und
           tintColor={colors.brand}
         />
       }
-    >
-      {flatItems.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>📭</Text>
-          <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-            {t("noPostsYet", lang)}
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.columns}>
-          <View style={styles.column}>
-            {leftCol.map((item, index) => (
-              <View key={item === "ad" ? `ad-l-${index}` : `post-${(item as Post).id}`} style={styles.cell}>
-                {item === "ad" ? <AdCard /> : (
-                  <Card
-                    post={item as Post}
-                    reaction={reactions[(item as Post).id] ?? null}
-                    onReact={onReact}
-                    onPress={onOpenPost}
-                    hideBadge={category !== "all" || !!eventSlug}
-                    overrideGradient={overrideGradient}
-                    animationIndex={index * 2}
-                  />
-                )}
-              </View>
-            ))}
+      ListEmptyComponent={
+        loadCompleted ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyIcon}>📭</Text>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+              {t("noPostsYet", lang)}
+            </Text>
           </View>
-          <View style={styles.column}>
-            {rightCol.map((item, index) => (
-              <View key={item === "ad" ? `ad-r-${index}` : `post-${(item as Post).id}`} style={styles.cell}>
-                {item === "ad" ? <AdCard /> : (
-                  <Card
-                    post={item as Post}
-                    reaction={reactions[(item as Post).id] ?? null}
-                    onReact={onReact}
-                    onPress={onOpenPost}
-                    hideBadge={category !== "all" || !!eventSlug}
-                    overrideGradient={overrideGradient}
-                    animationIndex={index * 2 + 1}
-                  />
-                )}
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
-      {loading && <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} />}
-    </ScrollView>
+        ) : null
+      }
+      ListFooterComponent={
+        loading ? <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} /> : null
+      }
+    />
   );
 }
 
@@ -271,14 +242,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingBottom: 40,
   },
-  columns: {
-    flexDirection: "row",
+  columnWrapper: {
     alignItems: "flex-start",
   },
-  column: {
-    flex: 1,
-  },
   cell: {
+    flex: 1,
     padding: 2,
   },
   initialLoader: {
