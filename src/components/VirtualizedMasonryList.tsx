@@ -56,19 +56,29 @@ export function VirtualizedMasonryList<T>({
   const [containerWidth, setContainerWidth] = useState(
     Dimensions.get("window").width
   );
+  const [measureVersion, setMeasureVersion] = useState(0);
   const endReachedRef = useRef(false);
+  const measuredHeightsRef = useRef<Map<string, number>>(new Map());
 
   const columnWidth =
     (containerWidth - columnGap * (numColumns - 1)) / numColumns;
 
-  // Compute absolute positions for all items using shortest-column algorithm
+  // Build key list so layout can use measured heights when available
+  const keys = useMemo(
+    () => data.map((item, index) => keyExtractor(item, index)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data]
+  );
+
+  // Compute absolute positions: shortest-column masonry using measured or estimated heights
   const { layouts, totalHeight } = useMemo(() => {
     const colHeights = new Array(numColumns).fill(0) as number[];
     const layouts: ItemLayout[] = [];
 
     data.forEach((item, index) => {
-      const height = estimateHeight(item, index);
-      // Find shortest column
+      const key = keys[index];
+      const height =
+        measuredHeightsRef.current.get(key) ?? estimateHeight(item, index);
       let col = 0;
       for (let c = 1; c < numColumns; c++) {
         if (colHeights[c] < colHeights[col]) col = c;
@@ -81,7 +91,21 @@ export function VirtualizedMasonryList<T>({
 
     const totalHeight = Math.max(...colHeights, 0);
     return { layouts, totalHeight };
-  }, [data, numColumns, columnWidth, columnGap, rowGap, estimateHeight]);
+    // measureVersion is intentionally included to recompute when heights are measured
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, numColumns, columnWidth, columnGap, rowGap, estimateHeight, keys, measureVersion]);
+
+  const handleItemLayout = useCallback(
+    (key: string, height: number) => {
+      const prev = measuredHeightsRef.current.get(key);
+      // Only trigger recompute if height changed by more than 4px
+      if (prev === undefined || Math.abs(prev - height) > 4) {
+        measuredHeightsRef.current.set(key, height);
+        setMeasureVersion((v) => v + 1);
+      }
+    },
+    []
+  );
 
   const handleScroll = useCallback(
     (e: { nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number } } }) => {
@@ -90,10 +114,7 @@ export function VirtualizedMasonryList<T>({
       setScrollY(y);
 
       const threshold = onEndReachedThreshold * viewportH;
-      if (
-        !endReachedRef.current &&
-        y + viewportH >= totalHeight - threshold
-      ) {
+      if (!endReachedRef.current && y + viewportH >= totalHeight - threshold) {
         endReachedRef.current = true;
         onEndReached();
       } else if (y + viewportH < totalHeight - threshold) {
@@ -115,7 +136,10 @@ export function VirtualizedMasonryList<T>({
   return (
     <ScrollView
       ref={scrollRef}
-      contentContainerStyle={[contentContainerStyle, { height: totalHeight + (ListFooterComponent ? 60 : 0) }]}
+      contentContainerStyle={[
+        contentContainerStyle,
+        { height: totalHeight + (ListFooterComponent ? 60 : 0) },
+      ]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
@@ -128,19 +152,19 @@ export function VirtualizedMasonryList<T>({
 
       {visibleItems.map(({ layout, index }) => {
         const item = data[index];
-        const key = keyExtractor(item, index);
+        const key = keys[index];
         return (
           <View
             key={key}
             style={[
               styles.item,
               {
-                position: "absolute",
                 top: layout.top,
                 left: layout.left,
                 width: layout.width,
               },
             ]}
+            onLayout={(e) => handleItemLayout(key, e.nativeEvent.layout.height)}
           >
             {renderItem({ item, index })}
           </View>
@@ -148,7 +172,15 @@ export function VirtualizedMasonryList<T>({
       })}
 
       {ListFooterComponent && (
-        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, alignItems: "center" }}>
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            alignItems: "center",
+          }}
+        >
           {ListFooterComponent}
         </View>
       )}
