@@ -79,11 +79,12 @@ export function CategoryFeedPage({
   const { colors } = useTheme();
   const { lang } = useLang();
 
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [visiblePosts, setVisiblePosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadCompleted, setLoadCompleted] = useState(false);
 
+  const allPostsRef = useRef<Post[]>([]);
   const loadingRef = useRef(false);
   const cursorRef = useRef<string | null>(null);
   const hasMoreRef = useRef(true);
@@ -91,9 +92,12 @@ export function CategoryFeedPage({
   const loadDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<ScrollView>(null);
 
+  const RENDER_WINDOW = 30;
+
   useEffect(() => {
     onRegisterPatch?.((updated) => {
-      setPosts((prev) => prev.map((p) => p.id === updated.id ? updated : p));
+      allPostsRef.current = allPostsRef.current.map((p) => p.id === updated.id ? updated : p);
+      setVisiblePosts((prev) => prev.map((p) => p.id === updated.id ? updated : p));
     });
   }, [onRegisterPatch]);
 
@@ -110,13 +114,13 @@ export function CategoryFeedPage({
     setLoading(true);
     try {
       const data: PageData = await fetchPosts(category, nextCursor, cats, q, slug);
-      const MAX_POSTS = 80;
-      setPosts((prev) => {
-        if (reset) return data.posts;
-        const seen = new Set(prev.map((p) => p.id));
-        const merged = [...prev, ...data.posts.filter((p) => !seen.has(p.id))];
-        return merged.length > MAX_POSTS ? merged.slice(merged.length - MAX_POSTS) : merged;
-      });
+      if (reset) {
+        allPostsRef.current = data.posts;
+      } else {
+        const seen = new Set(allPostsRef.current.map((p) => p.id));
+        allPostsRef.current = [...allPostsRef.current, ...data.posts.filter((p) => !seen.has(p.id))];
+      }
+      setVisiblePosts(allPostsRef.current.slice(-RENDER_WINDOW));
       onPostsLoaded?.(data.posts);
       cursorRef.current = data.nextCursor;
       hasMoreRef.current = !!data.nextCursor;
@@ -131,7 +135,8 @@ export function CategoryFeedPage({
   useEffect(() => {
     if (!isVisible) {
       if (loadDelayRef.current) { clearTimeout(loadDelayRef.current); loadDelayRef.current = null; }
-      setPosts([]);
+      allPostsRef.current = [];
+      setVisiblePosts([]);
       setLoadCompleted(false);
       cursorRef.current = null;
       hasMoreRef.current = true;
@@ -182,7 +187,7 @@ export function CategoryFeedPage({
   const { leftCol, rightCol } = useMemo(() => {
     const AD_EVERY = 12;
     const items: FlatItem[] = [];
-    posts.forEach((post, i) => {
+    visiblePosts.forEach((post, i) => {
       if (i > 0 && i % AD_EVERY === 0) items.push("ad");
       items.push(post);
     });
@@ -190,14 +195,14 @@ export function CategoryFeedPage({
     const right: FlatItem[] = [];
     items.forEach((item, i) => (i % 2 === 0 ? left : right).push(item));
     return { leftCol: left, rightCol: right };
-  }, [posts]);
+  }, [visiblePosts]);
 
   const getReaction = useCallback((item: FlatItem) => {
     if (item === "ad") return null;
     return reactions[(item as Post).id] ?? null;
   }, [reactions]);
 
-  if (posts.length === 0 && !loadCompleted) {
+  if (visiblePosts.length === 0 && !loadCompleted) {
     return (
       <View style={styles.initialLoader}>
         <ActivityIndicator size="large" color={colors.brand} />
@@ -223,7 +228,7 @@ export function CategoryFeedPage({
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.brand} />
       }
     >
-      {posts.length === 0 ? (
+      {visiblePosts.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>📭</Text>
           <Text style={[styles.emptyText, { color: colors.textMuted }]}>{t("noPostsYet", lang)}</Text>
