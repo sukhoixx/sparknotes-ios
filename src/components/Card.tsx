@@ -48,7 +48,8 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
   const buttonRef = useRef<View>(null);
 
   useEffect(() => {
-    imgOpacity.setValue(0);
+    // Start visible — onLoad may not fire for cached images on remount
+    imgOpacity.setValue(1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.imageUrl]);
 
@@ -99,7 +100,6 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
           source={{ uri: post.imageUrl }}
           style={[styles.image, { opacity: imgOpacity }]}
           resizeMode="cover"
-          onLoad={() => Animated.timing(imgOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start()}
         />
       )}
       <View style={styles.content}>

@@ -98,11 +98,9 @@ export function VirtualizedMasonryList<T>({
   const handleItemLayout = useCallback(
     (key: string, height: number) => {
       const prev = measuredHeightsRef.current.get(key);
-      // Only trigger recompute if height changed by more than 4px
-      if (prev === undefined || Math.abs(prev - height) > 4) {
-        measuredHeightsRef.current.set(key, height);
-        setMeasureVersion((v) => v + 1);
-      }
+      if (prev !== undefined && Math.abs(prev - height) <= 4) return;
+      measuredHeightsRef.current.set(key, height);
+      setMeasureVersion((v) => v + 1);
     },
     []
   );
