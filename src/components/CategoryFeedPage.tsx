@@ -276,6 +276,7 @@ const styles = StyleSheet.create({
   adCell: {
     minHeight: 250,
     paddingBottom: 2,
+    overflow: "hidden",
   },
   initialLoader: {
     flex: 1,
