@@ -110,10 +110,12 @@ export function CategoryFeedPage({
     setLoading(true);
     try {
       const data: PageData = await fetchPosts(category, nextCursor, cats, q, slug);
+      const MAX_POSTS = 80;
       setPosts((prev) => {
         if (reset) return data.posts;
         const seen = new Set(prev.map((p) => p.id));
-        return [...prev, ...data.posts.filter((p) => !seen.has(p.id))];
+        const merged = [...prev, ...data.posts.filter((p) => !seen.has(p.id))];
+        return merged.length > MAX_POSTS ? merged.slice(merged.length - MAX_POSTS) : merged;
       });
       onPostsLoaded?.(data.posts);
       cursorRef.current = data.nextCursor;
