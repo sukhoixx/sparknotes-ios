@@ -2,16 +2,26 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { LogBox } from "react-native";
+import { LogBox, Platform } from "react-native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import MobileAds from "react-native-google-mobile-ads";
 import * as Application from "expo-application";
+import * as Notifications from "expo-notifications";
 import { ThemeProvider, useTheme } from "../src/theme";
 import { LangProvider } from "../src/lang";
 import { EventProvider, useEvent } from "../src/event";
 import { CategoriesProvider } from "../src/categoriesContext";
 import { ForceUpgradeModal } from "../src/components/ForceUpgradeModal";
 import { useEffect, useState } from "react";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 LogBox.ignoreLogs(["Support for defaultProps will be removed"]);
 
@@ -38,6 +48,24 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
+async function registerForPushNotifications() {
+  const { status: existing } = await Notifications.getPermissionsAsync();
+  const finalStatus = existing === "granted"
+    ? existing
+    : (await Notifications.requestPermissionsAsync()).status;
+  if (finalStatus !== "granted") return;
+
+  const token = await Notifications.getExpoPushTokenAsync().catch(() => null);
+  if (!token) return;
+
+  const platform = Platform.OS;
+  fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/device-token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: token.data, platform }),
+  }).catch(() => {});
+}
+
 function AppShell() {
   const { isDark } = useTheme();
   const { setActiveEvents } = useEvent();
@@ -53,6 +81,8 @@ function AppShell() {
         if (data.activeEvents?.length) setActiveEvents(data.activeEvents);
       })
       .catch(() => {});
+
+    registerForPushNotifications();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
