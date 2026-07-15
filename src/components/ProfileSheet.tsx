@@ -109,9 +109,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
     if (!canSave) return;
     setSaving(true);
     // Save in tab order — selected cats first in their drag order, then unselected
-    const orderedSelected = tabOrder.filter((c) => selectedCats.has(c.id)).map((c) => c.id);
-    const orderedUnselected = tabOrder.filter((c) => !selectedCats.has(c.id)).map((c) => c.id);
-    const orderedCats = [...orderedSelected, ...orderedUnselected];
+    const orderedCats = tabOrder.filter((c) => selectedCats.has(c.id)).map((c) => c.id);
 
     if (!isAuthenticated) {
       onSaved({ screenName: name.trim(), categories: orderedCats, lang });
