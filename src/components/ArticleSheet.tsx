@@ -899,8 +899,17 @@ export function ArticleSheet({
                   />
                 )}
 
-                {/* Body */}
-                {renderHtmlAsText(displayBody, colors.textSub, colors.text, FONT_SIZES[fontSizeIdx].body, FONT_SIZES[fontSizeIdx].line)}
+                {/* Body — WebView for native text selection (Copy, Look Up, Translate) */}
+                <ArticleBodyWebView
+                  html={displayBody}
+                  textColor={colors.textSub}
+                  strongColor={colors.text}
+                  bgColor={colors.bg}
+                  fontSize={FONT_SIZES[fontSizeIdx].body}
+                  lineHeight={FONT_SIZES[fontSizeIdx].line}
+                  width={contentWidth}
+                  onDoubleTap={triggerLikeAnimation}
+                />
 
                 {/* Fun fact */}
                 {!!post.funFact && (

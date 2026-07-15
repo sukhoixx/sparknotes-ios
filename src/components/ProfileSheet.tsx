@@ -11,8 +11,9 @@ import {
   ActivityIndicator,
   Keyboard,
   Linking,
+  PanResponder,
+  Animated,
 } from "react-native";
-import { FlatList } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
@@ -26,6 +27,126 @@ import type { LangMode } from "../lang";
 import type { UserProfile } from "../types";
 
 const THEME_OPTION_IDS: ThemeMode[] = ["light", "dark", "auto"];
+
+const ROW_HEIGHT = 46;
+
+interface DragListProps {
+  items: CategoryItem[];
+  selectedCats: Set<string>;
+  onToggle: (id: string) => void;
+  onReorder: (items: CategoryItem[]) => void;
+  getLabel: (id: string, lang: LangMode) => string;
+  lang: LangMode;
+  colors: Colors;
+}
+
+function DragList({ items, selectedCats, onToggle, onReorder, getLabel, lang, colors }: DragListProps) {
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const dragY = useRef(new Animated.Value(0)).current;
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+
+  const makePanResponder = useCallback((index: number) => {
+    let startY = 0;
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 4,
+      onPanResponderGrant: (_, gs) => {
+        startY = 0;
+        dragY.setValue(0);
+        setDraggingIndex(index);
+        setHoverIndex(index);
+      },
+      onPanResponderMove: (_, gs) => {
+        dragY.setValue(gs.dy);
+        const raw = index + Math.round(gs.dy / ROW_HEIGHT);
+        const clamped = Math.max(0, Math.min(itemsRef.current.length - 1, raw));
+        setHoverIndex(clamped);
+      },
+      onPanResponderRelease: (_, gs) => {
+        const raw = index + Math.round(gs.dy / ROW_HEIGHT);
+        const to = Math.max(0, Math.min(itemsRef.current.length - 1, raw));
+        if (to !== index) {
+          const next = [...itemsRef.current];
+          const [moved] = next.splice(index, 1);
+          next.splice(to, 0, moved);
+          onReorder(next);
+        }
+        dragY.setValue(0);
+        setDraggingIndex(null);
+        setHoverIndex(null);
+      },
+      onPanResponderTerminate: () => {
+        dragY.setValue(0);
+        setDraggingIndex(null);
+        setHoverIndex(null);
+      },
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const panResponders = useMemo(
+    () => items.map((_, i) => makePanResponder(i)),
+    // remake when item count changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items.length]
+  );
+
+  const styles = useMemo(() => StyleSheet.create({
+    list: { borderRadius: 14, overflow: "hidden", marginBottom: 8, width: "67%", alignSelf: "center" as const },
+    row: { flexDirection: "row" as const, alignItems: "center" as const, justifyContent: "space-between" as const, backgroundColor: colors.surfaceAlt, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 2, height: ROW_HEIGHT },
+    rowActive: { backgroundColor: colors.border, zIndex: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 },
+    check: { fontSize: 16, width: 24, color: colors.textMuted },
+    checkActive: { color: colors.brand },
+    label: { flex: 1, fontSize: 14, fontWeight: "500" as const, color: colors.text, marginLeft: 8 },
+    labelActive: { color: colors.brand, fontWeight: "600" as const },
+    handle: { fontSize: 18, color: colors.textMuted, paddingLeft: 8 },
+  }), [colors]);
+
+  return (
+    <View style={styles.list}>
+      {items.map((item, i) => {
+        const on = selectedCats.has(item.id);
+        const isDragging = draggingIndex === i;
+        const isHover = hoverIndex === i && draggingIndex !== null && draggingIndex !== i;
+
+        const rowStyle = [styles.row, (isDragging || isHover) && styles.rowActive];
+
+        const inner = (
+          <TouchableOpacity
+            onPress={() => draggingIndex === null && onToggle(item.id)}
+            activeOpacity={0.7}
+            style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+          >
+            <Text style={[styles.check, on && styles.checkActive]}>{on ? "✓" : "○"}</Text>
+            <Text style={[styles.label, on && styles.labelActive]}>{getLabel(item.id, lang)}</Text>
+          </TouchableOpacity>
+        );
+
+        if (isDragging) {
+          return (
+            <Animated.View key={item.id} style={[rowStyle, { transform: [{ translateY: dragY }] }]}>
+              {inner}
+              <View {...panResponders[i].panHandlers}>
+                <Text style={styles.handle}>☰</Text>
+              </View>
+            </Animated.View>
+          );
+        }
+
+        return (
+          <View key={item.id} style={rowStyle}>
+            {inner}
+            <View {...panResponders[i].panHandlers}>
+              <Text style={styles.handle}>☰</Text>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 const LANG_OPTIONS: { id: LangMode; label: string }[] = [
   { id: "en",    label: "EN" },
@@ -218,51 +339,15 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
               {""}
             </Text>
           </Text>
-          <View style={styles.dragList}>
-            <FlatList
-              data={tabOrder}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-              extraData={tabOrder}
-              renderItem={({ item, index }) => {
-                const on = selectedCats.has(item.id);
-                return (
-                  <TouchableOpacity
-                    onPress={() => toggleCat(item.id)}
-                    style={[styles.dragRow]}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.dragCheck, on && styles.dragCheckActive]}>{on ? "✓" : "○"}</Text>
-                    <Text style={[styles.dragLabel, on && styles.dragLabelActive]}>{getLabel(item.id, lang)}</Text>
-                    <View style={{ flexDirection: "row", gap: 4 }}>
-                      <TouchableOpacity
-                        onPress={() => {
-                          if (index === 0) return;
-                          const next = [...tabOrder];
-                          [next[index - 1], next[index]] = [next[index], next[index - 1]];
-                          setTabOrder(next);
-                        }}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Text style={[styles.dragHandle, index === 0 && { opacity: 0.2 }]}>↑</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => {
-                          if (index === tabOrder.length - 1) return;
-                          const next = [...tabOrder];
-                          [next[index], next[index + 1]] = [next[index + 1], next[index]];
-                          setTabOrder(next);
-                        }}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Text style={[styles.dragHandle, index === tabOrder.length - 1 && { opacity: 0.2 }]}>↓</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
+          <DragList
+            items={tabOrder}
+            selectedCats={selectedCats}
+            onToggle={toggleCat}
+            onReorder={setTabOrder}
+            getLabel={getLabel}
+            lang={lang}
+            colors={colors}
+          />
 
           {selectedCats.size > 0 && selectedCats.size < 3 && (
             <Text style={styles.errorText}>
