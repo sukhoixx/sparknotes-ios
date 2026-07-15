@@ -12,7 +12,7 @@ import {
   Keyboard,
   Linking,
 } from "react-native";
-import { FlatList } from "react-native";
+import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
@@ -108,15 +108,21 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
   async function handleSave() {
     if (!canSave) return;
     setSaving(true);
+    // Save in tab order — selected cats first in their drag order, then unselected
+    const orderedSelected = tabOrder.filter((c) => selectedCats.has(c.id)).map((c) => c.id);
+    const orderedUnselected = tabOrder.filter((c) => !selectedCats.has(c.id)).map((c) => c.id);
+    const orderedCats = [...orderedSelected, ...orderedUnselected];
+
     if (!isAuthenticated) {
-      onSaved({ screenName: name.trim(), categories: Array.from(selectedCats), lang });
+      onSaved({ screenName: name.trim(), categories: orderedCats, lang });
       setSaving(false);
       onClose();
       return;
     }
-    const updated = await saveProfile(name.trim(), Array.from(selectedCats), lang);
+    const updated = await saveProfile(name.trim(), orderedCats, lang);
     setSaving(false);
     if (updated) {
+      reorderCategories(tabOrder);
       onSaved(updated);
       onClose();
     } else {
@@ -215,21 +221,26 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
             </Text>
           </Text>
           <View style={styles.dragList}>
-            <FlatList
+            <DraggableFlatList
               data={tabOrder}
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
-              renderItem={({ item }) => {
+              onDragEnd={({ data }) => setTabOrder(data)}
+              renderItem={({ item, drag, isActive }: RenderItemParams<CategoryItem>) => {
                 const on = selectedCats.has(item.id);
                 return (
-                  <TouchableOpacity
-                    onPress={() => toggleCat(item.id)}
-                    style={[styles.dragRow]}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.dragCheck, on && styles.dragCheckActive]}>{on ? "✓" : "○"}</Text>
-                    <Text style={[styles.dragLabel, on && styles.dragLabelActive]}>{getLabel(item.id, lang)}</Text>
-                  </TouchableOpacity>
+                  <ScaleDecorator>
+                    <TouchableOpacity
+                      onPress={() => toggleCat(item.id)}
+                      onLongPress={drag}
+                      style={[styles.dragRow, isActive && styles.dragRowActive]}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.dragCheck, on && styles.dragCheckActive]}>{on ? "✓" : "○"}</Text>
+                      <Text style={[styles.dragLabel, on && styles.dragLabelActive]}>{getLabel(item.id, lang)}</Text>
+                      <Text style={styles.dragHandle}>☰</Text>
+                    </TouchableOpacity>
+                  </ScaleDecorator>
                 );
               }}
             />
