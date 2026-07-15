@@ -69,8 +69,11 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const reorderCategories = useCallback((ordered: CategoryItem[]) => {
-    setCategories(ordered);
-    const ids = ordered.map((c) => c.id);
+    // Always ensure "all" is first
+    const allCat = FALLBACK.find((c) => c.id === "all")!;
+    const withAll = [allCat, ...ordered.filter((c) => c.id !== "all")];
+    setCategories(withAll);
+    const ids = withAll.map((c) => c.id);
     AsyncStorage.setItem(ORDER_KEY, JSON.stringify(ids));
   }, []);
 
