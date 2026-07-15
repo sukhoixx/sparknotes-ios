@@ -457,9 +457,9 @@ strong { color: ${strongColor}; font-weight: 700; }
     var _lastTap=0;
     document.addEventListener('touchend',function(e){
       var now=Date.now();
-      if(now-_lastTap<300){window.ReactNativeWebView.postMessage(JSON.stringify({type:'doubletap'}));e.preventDefault();}
+      if(now-_lastTap<300){window.ReactNativeWebView.postMessage(JSON.stringify({type:'doubletap'}));}
       _lastTap=now;
-    },true);
+    },false);
     true;
   `;
 
