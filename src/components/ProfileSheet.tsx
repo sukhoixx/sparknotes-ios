@@ -223,6 +223,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
               data={tabOrder}
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
+              extraData={tabOrder}
               renderItem={({ item, index }) => {
                 const on = selectedCats.has(item.id);
                 return (
