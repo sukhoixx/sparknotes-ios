@@ -409,7 +409,7 @@ function renderHtmlAsText(html: string, color: string, boldColor: string, fontSi
     }).filter(Boolean);
 
     return (
-      <Text key={i} style={{ fontSize, lineHeight, marginBottom: 12, color }}>
+      <Text key={i} selectable style={{ fontSize, lineHeight, marginBottom: 12, color }}>
         {spans}
       </Text>
     );
@@ -457,9 +457,9 @@ strong { color: ${strongColor}; font-weight: 700; }
     var _lastTap=0;
     document.addEventListener('touchend',function(e){
       var now=Date.now();
-      if(now-_lastTap<300){window.ReactNativeWebView.postMessage(JSON.stringify({type:'doubletap'}));}
+      if(now-_lastTap<300){window.ReactNativeWebView.postMessage(JSON.stringify({type:'doubletap'}));e.preventDefault();}
       _lastTap=now;
-    },false);
+    },true);
     true;
   `;
 
