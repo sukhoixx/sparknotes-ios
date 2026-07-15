@@ -8,7 +8,7 @@ import MobileAds from "react-native-google-mobile-ads";
 import * as Application from "expo-application";
 import * as Notifications from "expo-notifications";
 import { ThemeProvider, useTheme } from "../src/theme";
-import { LangProvider } from "../src/lang";
+import { LangProvider, useLang } from "../src/lang";
 import { EventProvider, useEvent } from "../src/event";
 import { CategoriesProvider } from "../src/categoriesContext";
 import { ForceUpgradeModal } from "../src/components/ForceUpgradeModal";
@@ -48,7 +48,7 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-async function registerForPushNotifications() {
+async function registerForPushNotifications(lang: string) {
   const { status: existing } = await Notifications.getPermissionsAsync();
   const finalStatus = existing === "granted"
     ? existing
@@ -64,12 +64,13 @@ async function registerForPushNotifications() {
   fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/device-token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token: token.data, platform }),
+    body: JSON.stringify({ token: token.data, platform, lang }),
   }).catch(() => {});
 }
 
 function AppShell() {
   const { isDark } = useTheme();
+  const { lang } = useLang();
   const { setActiveEvents } = useEvent();
   const [forceUpgrade, setForceUpgrade] = useState(false);
   const router = useRouter();
@@ -86,8 +87,6 @@ function AppShell() {
       })
       .catch(() => {});
 
-    registerForPushNotifications();
-
     // Handle notification tap — open the article
     notificationListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const postId = response.notification.request.content.data?.postId;
@@ -96,12 +95,17 @@ function AppShell() {
       }
     });
 
-    // Handle notification received while app is open (already shown by setNotificationHandler)
     return () => {
       notificationListener.current?.remove();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-register push token whenever lang changes so backend has the latest preference
+  useEffect(() => {
+    registerForPushNotifications(lang);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   return (
     <>
