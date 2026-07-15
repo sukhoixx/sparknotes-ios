@@ -1,0 +1,8 @@
+diff --git a/node_modules/react-native-reanimated/Common/cpp/reanimated/Fabric/ReanimatedMountHook.h b/node_modules/react-native-reanimated/Common/cpp/reanimated/Fabric/ReanimatedMountHook.h
+--- a/node_modules/react-native-reanimated/Common/cpp/reanimated/Fabric/ReanimatedMountHook.h
++++ b/node_modules/react-native-reanimated/Common/cpp/reanimated/Fabric/ReanimatedMountHook.h
+@@ -21,7 +21,7 @@
+   void shadowTreeDidMount(
+       RootShadowNode::Shared const &rootShadowNode,
+-      double mountTime) noexcept override;
++      double mountTime) noexcept;
