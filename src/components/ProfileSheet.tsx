@@ -12,7 +12,7 @@ import {
   Keyboard,
   Linking,
 } from "react-native";
-import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
+import { FlatList } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
@@ -221,26 +221,45 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
             </Text>
           </Text>
           <View style={styles.dragList}>
-            <DraggableFlatList
+            <FlatList
               data={tabOrder}
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
-              onDragEnd={({ data }) => setTabOrder(data)}
-              renderItem={({ item, drag, isActive }: RenderItemParams<CategoryItem>) => {
+              renderItem={({ item, index }) => {
                 const on = selectedCats.has(item.id);
                 return (
-                  <ScaleDecorator>
-                    <TouchableOpacity
-                      onPress={() => toggleCat(item.id)}
-                      onLongPress={drag}
-                      style={[styles.dragRow, isActive && styles.dragRowActive]}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.dragCheck, on && styles.dragCheckActive]}>{on ? "✓" : "○"}</Text>
-                      <Text style={[styles.dragLabel, on && styles.dragLabelActive]}>{getLabel(item.id, lang)}</Text>
-                      <Text style={styles.dragHandle}>☰</Text>
-                    </TouchableOpacity>
-                  </ScaleDecorator>
+                  <TouchableOpacity
+                    onPress={() => toggleCat(item.id)}
+                    style={[styles.dragRow]}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.dragCheck, on && styles.dragCheckActive]}>{on ? "✓" : "○"}</Text>
+                    <Text style={[styles.dragLabel, on && styles.dragLabelActive]}>{getLabel(item.id, lang)}</Text>
+                    <View style={{ flexDirection: "row", gap: 4 }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (index === 0) return;
+                          const next = [...tabOrder];
+                          [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                          setTabOrder(next);
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={[styles.dragHandle, index === 0 && { opacity: 0.2 }]}>↑</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (index === tabOrder.length - 1) return;
+                          const next = [...tabOrder];
+                          [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                          setTabOrder(next);
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={[styles.dragHandle, index === tabOrder.length - 1 && { opacity: 0.2 }]}>↓</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
                 );
               }}
             />
