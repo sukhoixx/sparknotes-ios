@@ -69,6 +69,8 @@ target 'NewsBlock' do
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_USE_LIBCPP=1'
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_HAVE_PTHREAD=1'
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_CFG_NO_COROUTINES=1'
+        config.build_settings['OTHER_CPLUSPLUSFLAGS'] = '$(inherited) -Wno-overriding-method-mismatch -Wno-inconsistent-missing-override'
+        config.build_settings['WARNING_CFLAGS'] = '$(inherited) -Wno-overriding-method-mismatch -Wno-inconsistent-missing-override'
       end
     end
   end
