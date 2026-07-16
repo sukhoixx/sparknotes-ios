@@ -282,7 +282,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -428,7 +428,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
           )}
         </GHScrollView>
       </View>
-      </GestureHandlerRootView>
+      </View>
     </Modal>
   );
 }
