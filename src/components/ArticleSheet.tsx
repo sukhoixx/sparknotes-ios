@@ -1191,6 +1191,7 @@ function makeStyles(c: Colors) {
       backgroundColor: "#fffbeb",
       borderRadius: 12,
       padding: 14,
+      marginTop: 16,
       marginBottom: 16,
       borderLeftWidth: 3,
       borderLeftColor: "#f59e0b",
