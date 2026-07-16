@@ -11,10 +11,8 @@ import {
   ActivityIndicator,
   Keyboard,
   Linking,
-  Animated,
-  PanResponder,
 } from "react-native";
-import { ScrollView as GHScrollView } from "react-native-gesture-handler";
+import { FlatList } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
@@ -29,8 +27,6 @@ import type { UserProfile } from "../types";
 
 const THEME_OPTION_IDS: ThemeMode[] = ["light", "dark", "auto"];
 
-const ROW_HEIGHT = 46;
-
 interface DragListProps {
   items: CategoryItem[];
   selectedCats: Set<string>;
@@ -42,103 +38,47 @@ interface DragListProps {
   colors: Colors;
 }
 
-function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange, getLabel, lang, colors }: DragListProps) {
-  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const draggingIndexRef = useRef<number | null>(null);
-  const dragOffset = useRef(0);
-  const listY = useRef(0); // top of list in screen coords
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
-  const containerRef = useRef<View>(null);
+function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange: _, getLabel, lang, colors }: DragListProps) {
+  const [order, setOrder] = useState(items);
+  useEffect(() => { setOrder(items); }, [items]);
 
-  const commit = useCallback((fromIndex: number, currentOffset: number) => {
-    const raw = fromIndex + Math.round(currentOffset / ROW_HEIGHT);
-    const to = Math.max(0, Math.min(itemsRef.current.length - 1, raw));
-    if (to !== fromIndex) {
-      const next = [...itemsRef.current];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(to, 0, moved);
+  const move = useCallback((from: number, to: number) => {
+    setOrder(prev => {
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
       onReorder(next);
-    }
-    draggingIndexRef.current = null;
-    dragOffset.current = 0;
-    setDraggingIndex(null);
-    setHoverIndex(null);
-    onDragStateChange(false);
-  }, [onReorder, onDragStateChange]);
-
-  // One PanResponder on the whole list container
-  const panResponder = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: () => draggingIndexRef.current !== null,
-    onMoveShouldSetPanResponderCapture: () => draggingIndexRef.current !== null,
-    onPanResponderMove: (_, gs) => {
-      const idx = draggingIndexRef.current;
-      if (idx === null) return;
-      dragOffset.current = gs.dy;
-      const raw = idx + Math.round(gs.dy / ROW_HEIGHT);
-      setHoverIndex(Math.max(0, Math.min(itemsRef.current.length - 1, raw)));
-      setDraggingIndex(idx); // trigger re-render for visual
-    },
-    onPanResponderRelease: (_, gs) => {
-      const idx = draggingIndexRef.current;
-      if (idx !== null) commit(idx, gs.dy);
-    },
-    onPanResponderTerminate: (_, gs) => {
-      const idx = draggingIndexRef.current;
-      if (idx !== null) commit(idx, gs.dy);
-    },
-  }), [commit]);
+      return next;
+    });
+  }, [onReorder]);
 
   return (
-    <View
-      ref={containerRef}
-      style={{ borderRadius: 14, overflow: "hidden", marginBottom: 8, width: "67%", alignSelf: "center" }}
-      {...panResponder.panHandlers}
-    >
-      {items.map((item, i) => {
-        const on = selectedCats.has(item.id);
-        const isDragging = draggingIndex === i;
-        const isHover = hoverIndex === i && draggingIndex !== null && draggingIndex !== i;
-
-        const translateY = isDragging ? dragOffset.current : 0;
-
-        const rowStyle: any = {
-          flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-          backgroundColor: isHover || isDragging ? colors.border : colors.surfaceAlt,
-          paddingHorizontal: 16, paddingVertical: 12, marginBottom: 2, height: ROW_HEIGHT,
-          ...(isDragging ? { zIndex: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6, transform: [{ translateY }] } : {}),
-        };
-
-        return (
-          <View key={item.id} style={rowStyle}>
-            <TouchableOpacity
-              onPress={() => draggingIndexRef.current === null && onToggle(item.id)}
-              activeOpacity={0.7}
-              style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
-            >
-              <Text style={{ fontSize: 16, width: 24, color: on ? colors.brand : colors.textMuted }}>{on ? "✓" : "○"}</Text>
-              <Text style={{ flex: 1, fontSize: 14, fontWeight: on ? "600" : "500", color: on ? colors.brand : colors.text, marginLeft: 8 }}>
-                {getLabel(item.id, lang)}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onLongPress={() => {
-                draggingIndexRef.current = i;
-                dragOffset.current = 0;
-                setDraggingIndex(i);
-                setHoverIndex(i);
-                onDragStateChange(true);
-              }}
-              delayLongPress={350}
-              activeOpacity={0.6}
-              hitSlop={{ top: 10, bottom: 10, left: 16, right: 8 }}
-            >
-              <Text style={{ fontSize: 18, color: isDragging ? colors.brand : colors.textMuted, paddingLeft: 8 }}>☰</Text>
-            </TouchableOpacity>
-          </View>
-        );
-      })}
+    <View style={{ borderRadius: 14, overflow: "hidden", marginBottom: 8, width: "67%", alignSelf: "center" }}>
+      <FlatList
+        data={order}
+        keyExtractor={(item) => item.id}
+        scrollEnabled={false}
+        extraData={[order, selectedCats]}
+        renderItem={({ item, index }) => {
+          const on = selectedCats.has(item.id);
+          return (
+            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surfaceAlt, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 2 }}>
+              <TouchableOpacity onPress={() => onToggle(item.id)} activeOpacity={0.7} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+                <Text style={{ fontSize: 16, width: 24, color: on ? colors.brand : colors.textMuted }}>{on ? "✓" : "○"}</Text>
+                <Text style={{ flex: 1, fontSize: 14, fontWeight: on ? "600" : "500", color: on ? colors.brand : colors.text, marginLeft: 8 }}>
+                  {getLabel(item.id, lang)}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => index > 0 && move(index, index - 1)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}>
+                <Text style={{ fontSize: 16, color: index === 0 ? colors.textFaint : colors.textMuted }}>↑</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => index < order.length - 1 && move(index, index + 1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}>
+                <Text style={{ fontSize: 16, color: index === order.length - 1 ? colors.textFaint : colors.textMuted, marginLeft: 8 }}>↓</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        }}
+      />
     </View>
   );
 }
@@ -282,7 +222,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={{ flex: 1 }}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -292,7 +232,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
           </TouchableOpacity>
         </View>
 
-        <GHScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" nestedScrollEnabled scrollEnabled={!isDraggingList}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" nestedScrollEnabled scrollEnabled={!isDraggingList}>
           {isFirstTime && isAuthenticated && (
             <View style={styles.noProfileBanner}>
               <Text style={styles.noProfileText}>{t("noProfileText", lang)}</Text>
@@ -426,9 +366,9 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
               <Text style={styles.signOutLabel}>{t("signIn", lang)}</Text>
             </TouchableOpacity>
           )}
-        </GHScrollView>
+        </ScrollView>
       </View>
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
