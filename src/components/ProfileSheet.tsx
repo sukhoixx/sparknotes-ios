@@ -35,12 +35,13 @@ interface DragListProps {
   selectedCats: Set<string>;
   onToggle: (id: string) => void;
   onReorder: (items: CategoryItem[]) => void;
+  onDragStateChange: (dragging: boolean) => void;
   getLabel: (id: string, lang: LangMode) => string;
   lang: LangMode;
   colors: Colors;
 }
 
-function DragList({ items, selectedCats, onToggle, onReorder, getLabel, lang, colors }: DragListProps) {
+function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange, getLabel, lang, colors }: DragListProps) {
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const dragY = useRef(new Animated.Value(0)).current;
@@ -51,12 +52,15 @@ function DragList({ items, selectedCats, onToggle, onReorder, getLabel, lang, co
     let startY = 0;
     return PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 4,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
       onPanResponderGrant: (_, gs) => {
         startY = 0;
         dragY.setValue(0);
         setDraggingIndex(index);
         setHoverIndex(index);
+        onDragStateChange(true);
       },
       onPanResponderMove: (_, gs) => {
         dragY.setValue(gs.dy);
@@ -76,11 +80,13 @@ function DragList({ items, selectedCats, onToggle, onReorder, getLabel, lang, co
         dragY.setValue(0);
         setDraggingIndex(null);
         setHoverIndex(null);
+        onDragStateChange(false);
       },
       onPanResponderTerminate: () => {
         dragY.setValue(0);
         setDraggingIndex(null);
         setHoverIndex(null);
+        onDragStateChange(false);
       },
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,6 +190,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(profile ? true : null);
   const [checking, setChecking] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isDraggingList, setIsDraggingList] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstTime = !profile;
 
@@ -296,7 +303,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" nestedScrollEnabled scrollEnabled={!isDraggingList}>
           {isFirstTime && isAuthenticated && (
             <View style={styles.noProfileBanner}>
               <Text style={styles.noProfileText}>{t("noProfileText", lang)}</Text>
@@ -344,6 +351,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
             selectedCats={selectedCats}
             onToggle={toggleCat}
             onReorder={setTabOrder}
+            onDragStateChange={setIsDraggingList}
             getLabel={getLabel}
             lang={lang}
             colors={colors}

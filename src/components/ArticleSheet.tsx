@@ -904,7 +904,7 @@ export function ArticleSheet({
                   html={displayBody}
                   textColor={colors.textSub}
                   strongColor={colors.text}
-                  bgColor={colors.bg}
+                  bgColor={colors.surface}
                   fontSize={FONT_SIZES[fontSizeIdx].body}
                   lineHeight={FONT_SIZES[fontSizeIdx].line}
                   width={contentWidth}
