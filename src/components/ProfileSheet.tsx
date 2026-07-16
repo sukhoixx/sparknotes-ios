@@ -56,20 +56,12 @@ function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange:
         renderItem={({ item, index }) => {
           const on = selectedCats.has(item.id);
           return (
-            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surfaceAlt, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 2 }}>
-              <TouchableOpacity onPress={() => onToggle(item.id)} activeOpacity={0.7} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
-                <Text style={{ fontSize: 16, width: 24, color: on ? colors.brand : colors.textMuted }}>{on ? "✓" : "○"}</Text>
-                <Text style={{ flex: 1, fontSize: 14, fontWeight: on ? "600" : "500", color: on ? colors.brand : colors.text, marginLeft: 8 }}>
-                  {getLabel(item.id, lang)}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => index > 0 && move(index, index - 1)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}>
-                <Text style={{ fontSize: 16, color: index === 0 ? colors.textFaint : colors.textMuted }}>↑</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => index < items.length - 1 && move(index, index + 1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}>
-                <Text style={{ fontSize: 16, color: index === items.length - 1 ? colors.textFaint : colors.textMuted, marginLeft: 8 }}>↓</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity onPress={() => onToggle(item.id)} activeOpacity={0.7} style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surfaceAlt, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 2 }}>
+              <Text style={{ fontSize: 16, width: 24, color: on ? colors.brand : colors.textMuted }}>{on ? "✓" : "○"}</Text>
+              <Text style={{ flex: 1, fontSize: 14, fontWeight: on ? "600" : "500", color: on ? colors.brand : colors.text, marginLeft: 8 }}>
+                {getLabel(item.id, lang)}
+              </Text>
+            </TouchableOpacity>
           );
         }}
       />
