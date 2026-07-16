@@ -39,26 +39,20 @@ interface DragListProps {
 }
 
 function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange: _, getLabel, lang, colors }: DragListProps) {
-  const [order, setOrder] = useState(items);
-  useEffect(() => { setOrder(items); }, [items]);
-
   const move = useCallback((from: number, to: number) => {
-    setOrder(prev => {
-      const next = [...prev];
-      const [item] = next.splice(from, 1);
-      next.splice(to, 0, item);
-      onReorder(next);
-      return next;
-    });
-  }, [onReorder]);
+    const next = [...items];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    onReorder(next);
+  }, [items, onReorder]);
 
   return (
     <View style={{ borderRadius: 14, overflow: "hidden", marginBottom: 8, width: "67%", alignSelf: "center" }}>
       <FlatList
-        data={order}
+        data={items}
         keyExtractor={(item) => item.id}
         scrollEnabled={false}
-        extraData={[order, selectedCats]}
+        extraData={[items, selectedCats]}
         renderItem={({ item, index }) => {
           const on = selectedCats.has(item.id);
           return (
@@ -72,8 +66,8 @@ function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange:
               <TouchableOpacity onPress={() => index > 0 && move(index, index - 1)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}>
                 <Text style={{ fontSize: 16, color: index === 0 ? colors.textFaint : colors.textMuted }}>↑</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => index < order.length - 1 && move(index, index + 1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}>
-                <Text style={{ fontSize: 16, color: index === order.length - 1 ? colors.textFaint : colors.textMuted, marginLeft: 8 }}>↓</Text>
+              <TouchableOpacity onPress={() => index < items.length - 1 && move(index, index + 1)} hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}>
+                <Text style={{ fontSize: 16, color: index === items.length - 1 ? colors.textFaint : colors.textMuted, marginLeft: 8 }}>↓</Text>
               </TouchableOpacity>
             </View>
           );
