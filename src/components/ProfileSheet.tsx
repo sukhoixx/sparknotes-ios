@@ -12,8 +12,9 @@ import {
   Keyboard,
   Linking,
   Animated,
+  PanResponder,
 } from "react-native";
-import { ScrollView as GHScrollView, LongPressGestureHandler, State } from "react-native-gesture-handler";
+import { ScrollView as GHScrollView } from "react-native-gesture-handler";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
@@ -44,17 +45,15 @@ interface DragListProps {
 function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange, getLabel, lang, colors }: DragListProps) {
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const dragY = useRef(new Animated.Value(0)).current;
-  const dragYValue = useRef(0);
-  const activatedY = useRef(0);    // absoluteY when long press activated
-  const activeIndex = useRef<number | null>(null);
-  const isActive = useRef(false);
+  const draggingIndexRef = useRef<number | null>(null);
+  const dragOffset = useRef(0);
+  const listY = useRef(0); // top of list in screen coords
   const itemsRef = useRef(items);
   itemsRef.current = items;
+  const containerRef = useRef<View>(null);
 
-  const endDrag = useCallback((fromIndex: number) => {
-    const dy = dragYValue.current;
-    const raw = fromIndex + Math.round(dy / ROW_HEIGHT);
+  const commit = useCallback((fromIndex: number, currentOffset: number) => {
+    const raw = fromIndex + Math.round(currentOffset / ROW_HEIGHT);
     const to = Math.max(0, Math.min(itemsRef.current.length - 1, raw));
     if (to !== fromIndex) {
       const next = [...itemsRef.current];
@@ -62,77 +61,82 @@ function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange,
       next.splice(to, 0, moved);
       onReorder(next);
     }
-    dragY.setValue(0);
-    dragYValue.current = 0;
-    isActive.current = false;
-    activeIndex.current = null;
+    draggingIndexRef.current = null;
+    dragOffset.current = 0;
     setDraggingIndex(null);
     setHoverIndex(null);
     onDragStateChange(false);
-  }, [dragY, onReorder, onDragStateChange]);
+  }, [onReorder, onDragStateChange]);
+
+  // One PanResponder on the whole list container
+  const panResponder = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: () => draggingIndexRef.current !== null,
+    onMoveShouldSetPanResponderCapture: () => draggingIndexRef.current !== null,
+    onPanResponderMove: (_, gs) => {
+      const idx = draggingIndexRef.current;
+      if (idx === null) return;
+      dragOffset.current = gs.dy;
+      const raw = idx + Math.round(gs.dy / ROW_HEIGHT);
+      setHoverIndex(Math.max(0, Math.min(itemsRef.current.length - 1, raw)));
+      setDraggingIndex(idx); // trigger re-render for visual
+    },
+    onPanResponderRelease: (_, gs) => {
+      const idx = draggingIndexRef.current;
+      if (idx !== null) commit(idx, gs.dy);
+    },
+    onPanResponderTerminate: (_, gs) => {
+      const idx = draggingIndexRef.current;
+      if (idx !== null) commit(idx, gs.dy);
+    },
+  }), [commit]);
 
   return (
-    <View style={{ borderRadius: 14, overflow: "hidden", marginBottom: 8, width: "67%", alignSelf: "center" }}>
+    <View
+      ref={containerRef}
+      style={{ borderRadius: 14, overflow: "hidden", marginBottom: 8, width: "67%", alignSelf: "center" }}
+      {...panResponder.panHandlers}
+    >
       {items.map((item, i) => {
         const on = selectedCats.has(item.id);
         const isDragging = draggingIndex === i;
         const isHover = hoverIndex === i && draggingIndex !== null && draggingIndex !== i;
 
+        const translateY = isDragging ? dragOffset.current : 0;
+
         const rowStyle: any = {
           flexDirection: "row", alignItems: "center", justifyContent: "space-between",
           backgroundColor: isHover || isDragging ? colors.border : colors.surfaceAlt,
           paddingHorizontal: 16, paddingVertical: 12, marginBottom: 2, height: ROW_HEIGHT,
-          ...(isDragging ? { zIndex: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6 } : {}),
+          ...(isDragging ? { zIndex: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6, transform: [{ translateY }] } : {}),
         };
 
-        const rowContent = (
-          <>
-            <TouchableOpacity onPress={() => !isDragging && onToggle(item.id)} activeOpacity={0.7} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
-              <Text style={{ fontSize: 16, width: 24, color: on ? colors.brand : colors.textMuted }}>{on ? "✓" : "○"}</Text>
-              <Text style={{ flex: 1, fontSize: 14, fontWeight: on ? "600" : "500", color: on ? colors.brand : colors.text, marginLeft: 8 }}>{getLabel(item.id, lang)}</Text>
-            </TouchableOpacity>
-            <Text style={{ fontSize: 18, color: isDragging ? colors.brand : colors.textMuted, paddingLeft: 8 }}>☰</Text>
-          </>
-        );
-
         return (
-          <LongPressGestureHandler
-            key={item.id}
-            minDurationMs={400}
-            maxDist={999}
-            onGestureEvent={(e) => {
-              // onGestureEvent fires continuously after ACTIVE with absoluteY
-              if (!isActive.current || activeIndex.current !== i) return;
-              const dy = e.nativeEvent.absoluteY - activatedY.current;
-              dragY.setValue(dy);
-              dragYValue.current = dy;
-              const raw = i + Math.round(dy / ROW_HEIGHT);
-              setHoverIndex(Math.max(0, Math.min(itemsRef.current.length - 1, raw)));
-            }}
-            onHandlerStateChange={(e) => {
-              const { state, absoluteY } = e.nativeEvent;
-              if (state === State.ACTIVE) {
-                activatedY.current = absoluteY;
-                dragY.setValue(0);
-                dragYValue.current = 0;
-                isActive.current = true;
-                activeIndex.current = i;
+          <View key={item.id} style={rowStyle}>
+            <TouchableOpacity
+              onPress={() => draggingIndexRef.current === null && onToggle(item.id)}
+              activeOpacity={0.7}
+              style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+            >
+              <Text style={{ fontSize: 16, width: 24, color: on ? colors.brand : colors.textMuted }}>{on ? "✓" : "○"}</Text>
+              <Text style={{ flex: 1, fontSize: 14, fontWeight: on ? "600" : "500", color: on ? colors.brand : colors.text, marginLeft: 8 }}>
+                {getLabel(item.id, lang)}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onLongPress={() => {
+                draggingIndexRef.current = i;
+                dragOffset.current = 0;
                 setDraggingIndex(i);
                 setHoverIndex(i);
                 onDragStateChange(true);
-              } else if (state === State.END || state === State.CANCELLED || state === State.FAILED) {
-                if (activeIndex.current === i) endDrag(i);
-              }
-            }}
-          >
-            {isDragging ? (
-              <Animated.View style={[rowStyle, { transform: [{ translateY: dragY }] }]}>
-                {rowContent}
-              </Animated.View>
-            ) : (
-              <View style={rowStyle}>{rowContent}</View>
-            )}
-          </LongPressGestureHandler>
+              }}
+              delayLongPress={350}
+              activeOpacity={0.6}
+              hitSlop={{ top: 10, bottom: 10, left: 16, right: 8 }}
+            >
+              <Text style={{ fontSize: 18, color: isDragging ? colors.brand : colors.textMuted, paddingLeft: 8 }}>☰</Text>
+            </TouchableOpacity>
+          </View>
         );
       })}
     </View>
