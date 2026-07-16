@@ -13,7 +13,7 @@ import {
   Linking,
   Animated,
 } from "react-native";
-import { PanGestureHandler, LongPressGestureHandler, State } from "react-native-gesture-handler";
+import { ScrollView as GHScrollView, LongPressGestureHandler, State } from "react-native-gesture-handler";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
@@ -45,18 +45,13 @@ function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange,
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const dragY = useRef(new Animated.Value(0)).current;
-  const activeDragIndex = useRef<number | null>(null);
+  const dragYValue = useRef(0);
+  const activeIndex = useRef<number | null>(null);
   const itemsRef = useRef(items);
   itemsRef.current = items;
 
-  const panRefs = useRef<any[]>([]);
-  const longPressRefs = useRef<any[]>([]);
-
-  // Ensure ref arrays are sized correctly
-  while (panRefs.current.length < items.length) panRefs.current.push(React.createRef());
-  while (longPressRefs.current.length < items.length) longPressRefs.current.push(React.createRef());
-
-  const commit = useCallback((fromIndex: number, dy: number) => {
+  const endDrag = useCallback((fromIndex: number) => {
+    const dy = dragYValue.current;
     const raw = fromIndex + Math.round(dy / ROW_HEIGHT);
     const to = Math.max(0, Math.min(itemsRef.current.length - 1, raw));
     if (to !== fromIndex) {
@@ -66,7 +61,8 @@ function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange,
       onReorder(next);
     }
     dragY.setValue(0);
-    activeDragIndex.current = null;
+    dragYValue.current = 0;
+    activeIndex.current = null;
     setDraggingIndex(null);
     setHoverIndex(null);
     onDragStateChange(false);
@@ -81,65 +77,56 @@ function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange,
 
         const rowStyle: any = {
           flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-          backgroundColor: colors.surfaceAlt, paddingHorizontal: 16, paddingVertical: 12,
-          marginBottom: 2, height: ROW_HEIGHT,
-          ...(isDragging ? { backgroundColor: colors.border, zIndex: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6 } : {}),
-          ...(isHover ? { backgroundColor: colors.border } : {}),
+          backgroundColor: isHover || isDragging ? colors.border : colors.surfaceAlt,
+          paddingHorizontal: 16, paddingVertical: 12, marginBottom: 2, height: ROW_HEIGHT,
+          ...(isDragging ? { zIndex: 10, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6 } : {}),
         };
+
+        const rowContent = (
+          <>
+            <TouchableOpacity onPress={() => !isDragging && onToggle(item.id)} activeOpacity={0.7} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+              <Text style={{ fontSize: 16, width: 24, color: on ? colors.brand : colors.textMuted }}>{on ? "✓" : "○"}</Text>
+              <Text style={{ flex: 1, fontSize: 14, fontWeight: on ? "600" : "500", color: on ? colors.brand : colors.text, marginLeft: 8 }}>{getLabel(item.id, lang)}</Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 18, color: isDragging ? colors.brand : colors.textMuted, paddingLeft: 8 }}>☰</Text>
+          </>
+        );
 
         return (
           <LongPressGestureHandler
             key={item.id}
-            ref={longPressRefs.current[i]}
-            simultaneousHandlers={panRefs.current[i]}
-            minDurationMs={300}
+            minDurationMs={400}
+            maxDist={100000}
+            onGestureEvent={(e) => {
+              if (activeIndex.current !== i) return;
+              // y position relative to where long press started
+              const dy = e.nativeEvent.y - ROW_HEIGHT / 2 - i * (ROW_HEIGHT + 2);
+              dragY.setValue(dy);
+              dragYValue.current = dy;
+              const raw = i + Math.round(dy / ROW_HEIGHT);
+              setHoverIndex(Math.max(0, Math.min(itemsRef.current.length - 1, raw)));
+            }}
             onHandlerStateChange={(e) => {
-              if (e.nativeEvent.state === State.ACTIVE) {
+              const { state } = e.nativeEvent;
+              if (state === State.ACTIVE) {
                 dragY.setValue(0);
-                activeDragIndex.current = i;
+                dragYValue.current = 0;
+                activeIndex.current = i;
                 setDraggingIndex(i);
                 setHoverIndex(i);
                 onDragStateChange(true);
+              } else if (state === State.END || state === State.CANCELLED || state === State.FAILED) {
+                if (activeIndex.current === i) endDrag(i);
               }
             }}
           >
-            <PanGestureHandler
-              ref={panRefs.current[i]}
-              simultaneousHandlers={longPressRefs.current[i]}
-              enabled={true}
-              onGestureEvent={(e) => {
-                if (activeDragIndex.current !== i) return;
-                const dy = e.nativeEvent.translationY;
-                dragY.setValue(dy);
-                const raw = i + Math.round(dy / ROW_HEIGHT);
-                setHoverIndex(Math.max(0, Math.min(itemsRef.current.length - 1, raw)));
-              }}
-              onHandlerStateChange={(e) => {
-                const { state, translationY } = e.nativeEvent;
-                if (activeDragIndex.current !== i) return;
-                if (state === State.END || state === State.CANCELLED || state === State.FAILED) {
-                  commit(i, translationY);
-                }
-              }}
-            >
-              {isDragging ? (
-                <Animated.View style={[rowStyle, { transform: [{ translateY: dragY }] }]}>
-                  <TouchableOpacity onPress={() => onToggle(item.id)} activeOpacity={0.7} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
-                    <Text style={{ fontSize: 16, width: 24, color: on ? colors.brand : colors.textMuted }}>{on ? "✓" : "○"}</Text>
-                    <Text style={{ flex: 1, fontSize: 14, fontWeight: on ? "600" : "500", color: on ? colors.brand : colors.text, marginLeft: 8 }}>{getLabel(item.id, lang)}</Text>
-                  </TouchableOpacity>
-                  <Text style={{ fontSize: 18, color: colors.brand, paddingLeft: 8 }}>☰</Text>
-                </Animated.View>
-              ) : (
-                <View style={rowStyle}>
-                  <TouchableOpacity onPress={() => onToggle(item.id)} activeOpacity={0.7} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
-                    <Text style={{ fontSize: 16, width: 24, color: on ? colors.brand : colors.textMuted }}>{on ? "✓" : "○"}</Text>
-                    <Text style={{ flex: 1, fontSize: 14, fontWeight: on ? "600" : "500", color: on ? colors.brand : colors.text, marginLeft: 8 }}>{getLabel(item.id, lang)}</Text>
-                  </TouchableOpacity>
-                  <Text style={{ fontSize: 18, color: colors.textMuted, paddingLeft: 8 }}>☰</Text>
-                </View>
-              )}
-            </PanGestureHandler>
+            {isDragging ? (
+              <Animated.View style={[rowStyle, { transform: [{ translateY: dragY }] }]}>
+                {rowContent}
+              </Animated.View>
+            ) : (
+              <View style={rowStyle}>{rowContent}</View>
+            )}
           </LongPressGestureHandler>
         );
       })}
@@ -296,7 +283,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" nestedScrollEnabled scrollEnabled={!isDraggingList}>
+        <GHScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" nestedScrollEnabled scrollEnabled={!isDraggingList}>
           {isFirstTime && isAuthenticated && (
             <View style={styles.noProfileBanner}>
               <Text style={styles.noProfileText}>{t("noProfileText", lang)}</Text>
@@ -430,7 +417,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
               <Text style={styles.signOutLabel}>{t("signIn", lang)}</Text>
             </TouchableOpacity>
           )}
-        </ScrollView>
+        </GHScrollView>
       </View>
       </GestureHandlerRootView>
     </Modal>
