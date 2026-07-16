@@ -13,7 +13,7 @@ import {
   Linking,
   Animated,
 } from "react-native";
-import { ScrollView as GHScrollView, LongPressGestureHandler, PanGestureHandler, State } from "react-native-gesture-handler";
+import { ScrollView as GHScrollView, LongPressGestureHandler, State } from "react-native-gesture-handler";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { saveProfile, deleteAccount } from "../api";
 import { signOut } from "../auth";
@@ -46,17 +46,11 @@ function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange,
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const dragY = useRef(new Animated.Value(0)).current;
   const dragYValue = useRef(0);
+  const activatedY = useRef(0);    // absoluteY when long press activated
   const activeIndex = useRef<number | null>(null);
+  const isActive = useRef(false);
   const itemsRef = useRef(items);
   itemsRef.current = items;
-
-  // Per-row refs for gesture handler coordination
-  const longPressRefs = useRef<React.MutableRefObject<any>[]>([]);
-  const panRefs = useRef<React.MutableRefObject<any>[]>([]);
-  while (longPressRefs.current.length < items.length) {
-    longPressRefs.current.push({ current: null });
-    panRefs.current.push({ current: null });
-  }
 
   const endDrag = useCallback((fromIndex: number) => {
     const dy = dragYValue.current;
@@ -70,6 +64,7 @@ function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange,
     }
     dragY.setValue(0);
     dragYValue.current = 0;
+    isActive.current = false;
     activeIndex.current = null;
     setDraggingIndex(null);
     setHoverIndex(null);
@@ -103,52 +98,40 @@ function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange,
         return (
           <LongPressGestureHandler
             key={item.id}
-            ref={longPressRefs.current[i]}
-            simultaneousHandlers={[panRefs.current[i]]}
             minDurationMs={400}
+            maxDist={999}
+            onGestureEvent={(e) => {
+              // onGestureEvent fires continuously after ACTIVE with absoluteY
+              if (!isActive.current || activeIndex.current !== i) return;
+              const dy = e.nativeEvent.absoluteY - activatedY.current;
+              dragY.setValue(dy);
+              dragYValue.current = dy;
+              const raw = i + Math.round(dy / ROW_HEIGHT);
+              setHoverIndex(Math.max(0, Math.min(itemsRef.current.length - 1, raw)));
+            }}
             onHandlerStateChange={(e) => {
-              if (e.nativeEvent.state === State.ACTIVE) {
+              const { state, absoluteY } = e.nativeEvent;
+              if (state === State.ACTIVE) {
+                activatedY.current = absoluteY;
                 dragY.setValue(0);
                 dragYValue.current = 0;
+                isActive.current = true;
                 activeIndex.current = i;
                 setDraggingIndex(i);
                 setHoverIndex(i);
                 onDragStateChange(true);
-              } else if (
-                (e.nativeEvent.state === State.END || e.nativeEvent.state === State.CANCELLED || e.nativeEvent.state === State.FAILED) &&
-                activeIndex.current === i
-              ) {
-                endDrag(i);
+              } else if (state === State.END || state === State.CANCELLED || state === State.FAILED) {
+                if (activeIndex.current === i) endDrag(i);
               }
             }}
           >
-            <PanGestureHandler
-              ref={panRefs.current[i]}
-              simultaneousHandlers={[longPressRefs.current[i]]}
-              onGestureEvent={(e) => {
-                if (activeIndex.current !== i) return;
-                const dy = e.nativeEvent.translationY;
-                dragY.setValue(dy);
-                dragYValue.current = dy;
-                const raw = i + Math.round(dy / ROW_HEIGHT);
-                setHoverIndex(Math.max(0, Math.min(itemsRef.current.length - 1, raw)));
-              }}
-              onHandlerStateChange={(e) => {
-                const { state, translationY } = e.nativeEvent;
-                if (activeIndex.current !== i) return;
-                if (state === State.END || state === State.CANCELLED || state === State.FAILED) {
-                  endDrag(i);
-                }
-              }}
-            >
-              {isDragging ? (
-                <Animated.View style={[rowStyle, { transform: [{ translateY: dragY }] }]}>
-                  {rowContent}
-                </Animated.View>
-              ) : (
-                <View style={rowStyle}>{rowContent}</View>
-              )}
-            </PanGestureHandler>
+            {isDragging ? (
+              <Animated.View style={[rowStyle, { transform: [{ translateY: dragY }] }]}>
+                {rowContent}
+              </Animated.View>
+            ) : (
+              <View style={rowStyle}>{rowContent}</View>
+            )}
           </LongPressGestureHandler>
         );
       })}
