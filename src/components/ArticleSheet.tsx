@@ -942,15 +942,6 @@ export function ArticleSheet({
                       style={styles.shareBtn}
                       onPress={() => {
                         const appLink = `https://sparknotes-production.up.railway.app/posts/${post.id}`;
-                        Linking.openURL(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(appLink)}&quote=${encodeURIComponent(post.title)}`);
-                      }}
-                    >
-                      <Text style={[styles.shareBtnText, { color: "#1877f2" }]}>f</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.shareBtn}
-                      onPress={() => {
-                        const appLink = `https://sparknotes-production.up.railway.app/posts/${post.id}`;
                         Linking.openURL(`https://twitter.com/intent/tweet?url=${encodeURIComponent(appLink)}&text=${encodeURIComponent(post.title)}`);
                       }}
                     >
