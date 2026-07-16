@@ -87,7 +87,15 @@ function AppShell() {
       })
       .catch(() => {});
 
-    // Handle notification tap — open the article
+    // Handle notification tap when app is launched cold (from locked screen / killed state)
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      const postId = response?.notification.request.content.data?.postId;
+      if (postId) {
+        router.push({ pathname: "/", params: { openPostId: String(postId) } });
+      }
+    });
+
+    // Handle notification tap when app is already running
     notificationListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const postId = response.notification.request.content.data?.postId;
       if (postId) {
