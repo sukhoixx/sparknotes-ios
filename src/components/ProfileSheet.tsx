@@ -46,6 +46,7 @@ function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange,
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const dragY = useRef(new Animated.Value(0)).current;
   const dragYValue = useRef(0);
+  const startY = useRef(0);
   const activeIndex = useRef<number | null>(null);
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -99,16 +100,16 @@ function DragList({ items, selectedCats, onToggle, onReorder, onDragStateChange,
             maxDist={100000}
             onGestureEvent={(e) => {
               if (activeIndex.current !== i) return;
-              // y position relative to where long press started
-              const dy = e.nativeEvent.y - ROW_HEIGHT / 2 - i * (ROW_HEIGHT + 2);
+              const dy = e.nativeEvent.y - startY.current;
               dragY.setValue(dy);
               dragYValue.current = dy;
               const raw = i + Math.round(dy / ROW_HEIGHT);
               setHoverIndex(Math.max(0, Math.min(itemsRef.current.length - 1, raw)));
             }}
             onHandlerStateChange={(e) => {
-              const { state } = e.nativeEvent;
+              const { state, y } = e.nativeEvent;
               if (state === State.ACTIVE) {
+                startY.current = y;
                 dragY.setValue(0);
                 dragYValue.current = 0;
                 activeIndex.current = i;
