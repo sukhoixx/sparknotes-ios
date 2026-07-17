@@ -35,20 +35,24 @@ export function toTraditional(text: string): string {
 
 interface LangContextValue {
   lang: LangMode;
+  langLoaded: boolean;
   setLang: (lang: LangMode) => void;
 }
 
 const LangContext = createContext<LangContextValue>({
   lang: "en",
+  langLoaded: false,
   setLang: () => {},
 });
 
 export function LangProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<LangMode>("en");
+  const [langLoaded, setLangLoaded] = useState(false);
 
   useEffect(() => {
     SecureStore.getItemAsync(STORAGE_KEY).then((v) => {
       if (v === "en" || v === "zh-TW" || v === "zh-CN") setLangState(v);
+      setLangLoaded(true);
     });
   }, []);
 
@@ -57,7 +61,7 @@ export function LangProvider({ children }: { children: React.ReactNode }) {
     SecureStore.setItemAsync(STORAGE_KEY, mode);
   }
 
-  const value = useMemo(() => ({ lang, setLang }), [lang]);
+  const value = useMemo(() => ({ lang, langLoaded, setLang }), [lang, langLoaded]);
 
   return React.createElement(LangContext.Provider, { value }, children);
 }

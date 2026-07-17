@@ -70,7 +70,7 @@ async function registerForPushNotifications(lang: string) {
 
 function AppShell() {
   const { isDark } = useTheme();
-  const { lang } = useLang();
+  const { lang, langLoaded } = useLang();
   const { setActiveEvents } = useEvent();
   const [forceUpgrade, setForceUpgrade] = useState(false);
   const router = useRouter();
@@ -109,11 +109,12 @@ function AppShell() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-register push token whenever lang changes so backend has the latest preference
+  // Re-register push token only after lang is loaded from storage, so we never send "en" as a false default
   useEffect(() => {
+    if (!langLoaded) return;
     registerForPushNotifications(lang);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang]);
+  }, [lang, langLoaded]);
 
   return (
     <>
