@@ -95,11 +95,11 @@ function AppShell() {
       }
     });
 
-    // Handle notification tap when app is already running
+    // Handle notification tap when app is already running — use setParams to avoid remounting FeedScreen
     notificationListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const postId = response.notification.request.content.data?.postId;
       if (postId) {
-        router.push({ pathname: "/", params: { openPostId: String(postId) } });
+        router.setParams({ openPostId: String(postId) });
       }
     });
 
