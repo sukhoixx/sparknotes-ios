@@ -29,7 +29,7 @@ import { t } from "../i18n";
 import type { Colors } from "../theme";
 import type { Post, Comment } from "../types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fetchComments, postComment, fetchOgImage } from "../api";
+import { fetchComments, postComment, fetchOgImage, trackReadingSession } from "../api";
 
 
 const DOMAIN_NAMES: Record<string, string> = {
@@ -757,6 +757,21 @@ export function ArticleSheet({
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const trackedPostId = useRef<number | null>(null);
+
+  // Track reading session after 3 seconds — only for authenticated users, once per post
+  useEffect(() => {
+    if (!post || !isAuthenticated) return;
+    if (trackedPostId.current === post.id) return;
+
+    const timer = setTimeout(() => {
+      trackedPostId.current = post.id;
+      trackReadingSession(post.id);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [post?.id, isAuthenticated]);
 
   useEffect(() => {
     if (!post) {

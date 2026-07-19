@@ -14,7 +14,8 @@ import {
 } from "react-native";
 import { FlatList } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { saveProfile, deleteAccount } from "../api";
+import { saveProfile, deleteAccount, fetchRewards } from "../api";
+import type { DailyReward } from "../api";
 import { signOut } from "../auth";
 import { useTheme } from "../theme";
 import { useLang } from "../lang";
@@ -26,6 +27,171 @@ import type { LangMode } from "../lang";
 import type { UserProfile } from "../types";
 
 const THEME_OPTION_IDS: ThemeMode[] = ["light", "dark", "auto"];
+
+const BADGE_META: Record<string, { emoji: string; label: string; color: string }> = {
+  bronze:  { emoji: "🥉", label: "Bronze",  color: "#cd7f32" },
+  silver:  { emoji: "🥈", label: "Silver",  color: "#9e9e9e" },
+  gold:    { emoji: "🥇", label: "Gold",    color: "#ffc107" },
+  diamond: { emoji: "💎", label: "Diamond", color: "#00b4d8" },
+};
+
+const BADGE_THRESHOLDS: { badge: string; min: number }[] = [
+  { badge: "bronze", min: 10 },
+  { badge: "silver", min: 20 },
+  { badge: "gold",   min: 30 },
+  { badge: "diamond", min: 40 },
+];
+
+function RewardsTab({ isAuthenticated, onSignIn, colors }: { isAuthenticated: boolean; onSignIn?: () => void; colors: Colors }) {
+  const [rewards, setRewards] = useState<DailyReward[]>([]);
+  const [streak, setStreak] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isAuthenticated) { setLoading(false); return; }
+    fetchRewards().then((d) => {
+      setRewards(d.rewards ?? []);
+      setStreak(d.streak ?? 0);
+    }).finally(() => setLoading(false));
+  }, [isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return (
+      <View style={{ alignItems: "center", paddingVertical: 40, paddingHorizontal: 24 }}>
+        <Text style={{ fontSize: 48 }}>🏆</Text>
+        <Text style={{ fontSize: 17, fontWeight: "800", color: colors.text, marginTop: 12, marginBottom: 8 }}>Earn Reading Rewards</Text>
+        <Text style={{ fontSize: 13, color: colors.textSub, textAlign: "center", lineHeight: 20, marginBottom: 20 }}>
+          Sign in to track your daily reading and earn points, badges, and streak multipliers.
+        </Text>
+        {onSignIn && (
+          <TouchableOpacity onPress={onSignIn} style={{ backgroundColor: colors.brand, borderRadius: 16, paddingHorizontal: 28, paddingVertical: 12 }}>
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>Sign in</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
+  if (loading) {
+    return <ActivityIndicator color={colors.brand} style={{ marginVertical: 40 }} />;
+  }
+
+  const today = rewards[0];
+  const multiplier = today?.multiplier ?? 1;
+  const multiplierLabel = multiplier >= 2 ? "2× (14-day streak!)" : multiplier >= 1.5 ? "1.5× (7-day streak!)" : "1×";
+  const todayBadge = today?.badge ? BADGE_META[today.badge] : null;
+  const totalPoints = rewards.reduce((s, r) => s + r.pointsEarned, 0);
+
+  // 30-slot grid, oldest→newest
+  const slots: (DailyReward | null)[] = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (29 - i));
+    const key = d.toISOString().slice(0, 10);
+    return rewards.find((r) => r.date.slice(0, 10) === key) ?? null;
+  });
+
+  const maxPts = Math.max(...slots.map((s) => s?.pointsEarned ?? 0), 1);
+  const BAR_MAX_HEIGHT = 48;
+
+  return (
+    <View style={{ gap: 12 }}>
+      {/* Streak banner */}
+      <View style={{ borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#6c47ff" }}>
+        <Text style={{ fontSize: 36 }}>🔥</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 20, lineHeight: 24 }}>{streak}-day streak</Text>
+          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 2 }}>
+            Multiplier: <Text style={{ color: "#fff", fontWeight: "700" }}>{multiplierLabel}</Text>
+          </Text>
+        </View>
+      </View>
+
+      {/* Today */}
+      <View style={{ backgroundColor: colors.surfaceAlt, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View>
+          <Text style={{ fontSize: 11, fontWeight: "600", color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>Today</Text>
+          <Text style={{ fontSize: 24, fontWeight: "800", color: colors.text, marginTop: 2 }}>
+            {today?.articlesRead ?? 0} <Text style={{ fontSize: 14, fontWeight: "400", color: colors.textMuted }}>articles</Text>
+          </Text>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: colors.brand, marginTop: 2 }}>
+            {today ? today.pointsEarned.toFixed(1) : "0"} pts earned
+          </Text>
+        </View>
+        {todayBadge ? (
+          <View style={{ alignItems: "center", gap: 4 }}>
+            <Text style={{ fontSize: 40 }}>{todayBadge.emoji}</Text>
+            <Text style={{ fontSize: 11, fontWeight: "700", color: todayBadge.color }}>{todayBadge.label}</Text>
+          </View>
+        ) : (
+          <View style={{ alignItems: "center", gap: 4, opacity: 0.3 }}>
+            <Text style={{ fontSize: 40 }}>🥉</Text>
+            <Text style={{ fontSize: 10, color: colors.textMuted }}>Read 10 to earn</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Badge legend */}
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {BADGE_THRESHOLDS.map(({ badge, min }) => {
+          const meta = BADGE_META[badge];
+          return (
+            <View key={badge} style={{ flex: 1, backgroundColor: colors.surfaceAlt, borderRadius: 12, alignItems: "center", paddingVertical: 10, gap: 2 }}>
+              <Text style={{ fontSize: 22 }}>{meta.emoji}</Text>
+              <Text style={{ fontSize: 10, fontWeight: "700", color: meta.color }}>{meta.label}</Text>
+              <Text style={{ fontSize: 10, color: colors.textMuted }}>{min}+ articles</Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* 30-day bar chart */}
+      <View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: colors.text }}>Last 30 days</Text>
+          <Text style={{ fontSize: 12, color: colors.textMuted }}>{totalPoints.toFixed(1)} total pts</Text>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "flex-end", height: BAR_MAX_HEIGHT, gap: 2 }}>
+          {slots.map((slot, i) => {
+            const pts = slot?.pointsEarned ?? 0;
+            const barH = pts > 0 ? Math.max(4, (pts / maxPts) * BAR_MAX_HEIGHT) : 3;
+            const badge = slot?.badge;
+            const barColor = badge ? BADGE_META[badge].color : colors.brand;
+            const isToday = i === 29;
+            return (
+              <View key={i} style={{ flex: 1, height: BAR_MAX_HEIGHT, justifyContent: "flex-end" }}>
+                <View style={{
+                  height: barH,
+                  borderRadius: 3,
+                  backgroundColor: pts > 0 ? barColor : colors.border,
+                  opacity: isToday ? 1 : 0.7,
+                  borderWidth: isToday ? 1.5 : 0,
+                  borderColor: isToday ? colors.brand : "transparent",
+                }} />
+              </View>
+            );
+          })}
+        </View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+          <Text style={{ fontSize: 10, color: colors.textMuted }}>30d ago</Text>
+          <Text style={{ fontSize: 10, color: colors.textMuted }}>Today</Text>
+        </View>
+      </View>
+
+      {/* Multiplier guide */}
+      <View style={{ backgroundColor: colors.surfaceAlt, borderRadius: 14, padding: 14, gap: 8 }}>
+        <Text style={{ fontSize: 12, fontWeight: "600", color: colors.textSub }}>Streak multipliers</Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Text style={{ fontSize: 12, color: colors.textMuted }}>7-day streak</Text>
+          <Text style={{ fontSize: 12, fontWeight: "700", color: "#6c47ff" }}>1.5× points</Text>
+        </View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Text style={{ fontSize: 12, color: colors.textMuted }}>14-day streak</Text>
+          <Text style={{ fontSize: 12, fontWeight: "700", color: colors.brand }}>2× points</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
 
 interface DragListProps {
   items: CategoryItem[];
@@ -90,6 +256,12 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
   const { lang, setLang } = useLang();
   const { categories: allCats, getLabel, reorderCategories } = useCategories();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+
+  const [activeTab, setActiveTab] = useState<"profile" | "rewards">("profile");
+
+  useEffect(() => {
+    if (visible) setActiveTab("profile");
+  }, [visible]);
 
   // Ordered list of all categories except "all" — drives both tab order and the interest picker
   const [tabOrder, setTabOrder] = useState<CategoryItem[]>(() => allCats.filter((c) => c.id !== "all"));
@@ -218,6 +390,33 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
           </TouchableOpacity>
         </View>
 
+        {/* Tab bar — only shown when profile already exists */}
+        {!isFirstTime && (
+          <View style={{ flexDirection: "row", margin: 16, marginBottom: 0, backgroundColor: colors.surfaceAlt, borderRadius: 14, padding: 3 }}>
+            {(["profile", "rewards"] as const).map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                onPress={() => setActiveTab(tab)}
+                style={[{
+                  flex: 1,
+                  paddingVertical: 8,
+                  borderRadius: 11,
+                  alignItems: "center",
+                }, activeTab === tab && { backgroundColor: colors.surface, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }]}
+              >
+                <Text style={{ fontSize: 13, fontWeight: "600", color: activeTab === tab ? colors.text : colors.textMuted }}>
+                  {tab === "profile" ? "Profile" : "🏆 Rewards"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {activeTab === "rewards" && !isFirstTime ? (
+          <ScrollView contentContainerStyle={[styles.content, { paddingTop: 16 }]} showsVerticalScrollIndicator={false}>
+            <RewardsTab isAuthenticated={isAuthenticated} onSignIn={onSignIn} colors={colors} />
+          </ScrollView>
+        ) : (
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" nestedScrollEnabled scrollEnabled={!isDraggingList}>
           {isFirstTime && isAuthenticated && (
             <View style={styles.noProfileBanner}>
@@ -353,6 +552,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
             </TouchableOpacity>
           )}
         </ScrollView>
+        )}
       </View>
       </GestureHandlerRootView>
     </Modal>

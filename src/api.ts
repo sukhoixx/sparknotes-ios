@@ -181,3 +181,32 @@ export async function signInMobile(
   const data = await res.json();
   return data.token ?? null;
 }
+
+export async function trackReadingSession(postId: number): Promise<void> {
+  try {
+    await apiFetch("/api/reading/track", {
+      method: "POST",
+      body: JSON.stringify({ postId }),
+    });
+  } catch {
+    // fire-and-forget
+  }
+}
+
+export interface DailyReward {
+  date: string;
+  articlesRead: number;
+  pointsEarned: number;
+  multiplier: number;
+  badge: string | null;
+}
+
+export async function fetchRewards(): Promise<{ rewards: DailyReward[]; streak: number }> {
+  try {
+    const res = await apiFetch("/api/rewards");
+    if (!res.ok) return { rewards: [], streak: 0 };
+    return res.json();
+  } catch {
+    return { rewards: [], streak: 0 };
+  }
+}
