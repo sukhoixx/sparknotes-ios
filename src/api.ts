@@ -186,7 +186,7 @@ export async function trackReadingSession(postId: number): Promise<void> {
   try {
     await apiFetch("/api/reading/track", {
       method: "POST",
-      body: JSON.stringify({ postId }),
+      body: JSON.stringify({ postId, tzOffset: new Date().getTimezoneOffset() }),
     });
   } catch {
     // fire-and-forget
@@ -203,7 +203,7 @@ export interface DailyReward {
 
 export async function fetchRewards(): Promise<{ rewards: DailyReward[]; streak: number }> {
   try {
-    const res = await apiFetch("/api/rewards");
+    const res = await apiFetch(`/api/rewards?tz=${new Date().getTimezoneOffset()}`);
     if (!res.ok) return { rewards: [], streak: 0 };
     return res.json();
   } catch {

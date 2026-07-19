@@ -82,11 +82,15 @@ function RewardsTab({ isAuthenticated, onSignIn, colors }: { isAuthenticated: bo
   const todayBadge = today?.badge ? BADGE_META[today.badge] : null;
   const totalPoints = rewards.reduce((s, r) => s + r.pointsEarned, 0);
 
+  function localDateKey(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
   // 30-slot grid, oldest→newest
   const slots: (DailyReward | null)[] = Array.from({ length: 30 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (29 - i));
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateKey(d);
     return rewards.find((r) => r.date.slice(0, 10) === key) ?? null;
   });
 
