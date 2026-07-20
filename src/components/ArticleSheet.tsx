@@ -19,7 +19,7 @@ import {
   Platform,
   Modal,
 } from "react-native";
-import { PanGestureHandler, TapGestureHandler, State } from "react-native-gesture-handler";
+import { PanGestureHandler, TapGestureHandler, NativeViewGestureHandler, State } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import WebView from "react-native-webview";
 import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
@@ -820,13 +820,15 @@ export function ArticleSheet({
         {/* Article banner ad — above header, fixed height so content doesn't shift when ad loads */}
         <View style={{ marginHorizontal: 0, minHeight: 60, backgroundColor: colors.surfaceAlt }}>
           <Animated.View style={{ opacity: adOpacity }}>
-            <BannerAd
-              key={post?.id}
-              unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
-              size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-              requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-              onAdLoaded={() => Animated.timing(adOpacity, { toValue: 1, duration: 1000, useNativeDriver: true }).start()}
-            />
+            <NativeViewGestureHandler>
+              <BannerAd
+                key={post?.id}
+                unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
+                size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+                requestOptions={{ requestNonPersonalizedAdsOnly: false }}
+                onAdLoaded={() => Animated.timing(adOpacity, { toValue: 1, duration: 1000, useNativeDriver: true }).start()}
+              />
+            </NativeViewGestureHandler>
           </Animated.View>
         </View>
 
