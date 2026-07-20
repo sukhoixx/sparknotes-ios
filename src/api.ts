@@ -201,12 +201,19 @@ export interface DailyReward {
   badge: string | null;
 }
 
-export async function fetchRewards(): Promise<{ rewards: DailyReward[]; streak: number }> {
+export interface RewardRank {
+  daily: number;
+  weekly: number;
+  allTime: number;
+}
+
+export async function fetchRewards(): Promise<{ rewards: DailyReward[]; streak: number; rank: RewardRank }> {
+  const fallback = { rewards: [], streak: 0, rank: { daily: 0, weekly: 0, allTime: 0 } };
   try {
     const res = await apiFetch(`/api/rewards?tz=${new Date().getTimezoneOffset()}`);
-    if (!res.ok) return { rewards: [], streak: 0 };
+    if (!res.ok) return fallback;
     return res.json();
   } catch {
-    return { rewards: [], streak: 0 };
+    return fallback;
   }
 }

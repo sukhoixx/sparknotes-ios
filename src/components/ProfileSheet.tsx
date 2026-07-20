@@ -15,7 +15,7 @@ import {
 import { FlatList } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { saveProfile, deleteAccount, fetchRewards } from "../api";
-import type { DailyReward } from "../api";
+import type { DailyReward, RewardRank } from "../api";
 import { signOut } from "../auth";
 import { useTheme } from "../theme";
 import { useLang } from "../lang";
@@ -45,6 +45,7 @@ const BADGE_THRESHOLDS: { badge: string; min: number }[] = [
 function RewardsTab({ isAuthenticated, onSignIn, colors }: { isAuthenticated: boolean; onSignIn?: () => void; colors: Colors }) {
   const [rewards, setRewards] = useState<DailyReward[]>([]);
   const [streak, setStreak] = useState(0);
+  const [rank, setRank] = useState<RewardRank>({ daily: 0, weekly: 0, allTime: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,6 +53,7 @@ function RewardsTab({ isAuthenticated, onSignIn, colors }: { isAuthenticated: bo
     fetchRewards().then((d) => {
       setRewards(d.rewards ?? []);
       setStreak(d.streak ?? 0);
+      setRank(d.rank ?? { daily: 0, weekly: 0, allTime: 0 });
     }).finally(() => setLoading(false));
   }, [isAuthenticated]);
 
@@ -179,6 +181,31 @@ function RewardsTab({ isAuthenticated, onSignIn, colors }: { isAuthenticated: bo
           <Text style={{ fontSize: 10, color: colors.textMuted }}>30d ago</Text>
           <Text style={{ fontSize: 10, color: colors.textMuted }}>Today</Text>
         </View>
+      </View>
+
+      {/* Ranking */}
+      <View style={{ backgroundColor: colors.surfaceAlt, borderRadius: 16, padding: 16, gap: 12 }}>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>📊 Your Ranking</Text>
+        {([
+          { label: "Today", value: rank.daily },
+          { label: "This Week", value: rank.weekly },
+          { label: "All Time", value: rank.allTime },
+        ] as { label: string; value: number }[]).map(({ label, value }) => (
+          <View key={label} style={{ gap: 4 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={{ fontSize: 12, color: colors.textMuted }}>{label}</Text>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.brand }}>
+                Top {100 - value}%
+              </Text>
+            </View>
+            <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.border }}>
+              <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.brand, width: `${value}%` }} />
+            </View>
+            <Text style={{ fontSize: 11, color: colors.textMuted }}>
+              You read more than {value}% of people
+            </Text>
+          </View>
+        ))}
       </View>
 
       {/* Multiplier guide */}
