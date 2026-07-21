@@ -191,18 +191,13 @@ function RewardsTab({ isAuthenticated, onSignIn, colors }: { isAuthenticated: bo
           { label: "This Week", value: rank.weekly },
           { label: "All Time", value: rank.allTime },
         ] as { label: string; value: number }[]).map(({ label, value }) => (
-          <View key={label} style={{ gap: 4 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ fontSize: 12, color: colors.textMuted }}>{label}</Text>
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.brand }}>
-                Top {100 - value}%
-              </Text>
-            </View>
+          <View key={label} style={{ gap: 6 }}>
+            <Text style={{ fontSize: 12, fontWeight: "600", color: colors.text }}>{label}</Text>
             <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.border }}>
-              <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.brand, width: `${value}%` }} />
+              <View style={{ height: 6, borderRadius: 3, backgroundColor: "#38bdf8", width: `${value}%` }} />
             </View>
-            <Text style={{ fontSize: 11, color: colors.textMuted }}>
-              You read more than {value}% of people
+            <Text style={{ fontSize: 12, color: colors.textMuted }}>
+              You read more than <Text style={{ fontWeight: "700", color: colors.text }}>{value}%</Text> of people
             </Text>
           </View>
         ))}
