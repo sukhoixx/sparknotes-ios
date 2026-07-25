@@ -15,6 +15,7 @@ import type { CategoryTabsHandle } from "../src/components/CategoryTabs";
 import { CategoryTabs } from "../src/components/CategoryTabs";
 import { useCategories } from "../src/categoriesContext";
 import { CategoryFeedPage } from "../src/components/CategoryFeedPage";
+import { HeadlinesPage } from "../src/components/HeadlinesPage";
 import { ArticleSheet } from "../src/components/ArticleSheet";
 import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
@@ -43,16 +44,23 @@ export default function FeedScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [activeEvents, lang]
   );
-  // Event tabs sit after "For You" so the app always lands on For You
-  const allPageIds = useMemo(
-    () => eventTabs.length > 0 ? [categoryIds[0], ...eventTabs.map((t) => t.id), ...categoryIds.slice(1)] : categoryIds,
+  const HEADLINES_ID = "__headlines__";
+  const headlinesPrefixTab = useMemo(() => [{ id: HEADLINES_ID, label: "📰 Headlines" }], []);
+
+  // Headlines sits at index 0; event tabs sit after "For You"; app lands on For You (index 1)
+  const allPageIds = useMemo(() => {
+    const categoryPages = eventTabs.length > 0
+      ? [categoryIds[0], ...eventTabs.map((t) => t.id), ...categoryIds.slice(1)]
+      : categoryIds;
+    return [HEADLINES_ID, ...categoryPages];
+  },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [categoryIds, eventTabs.map((t) => t.id).join(",")]
   );
 
   const pagerRef = useRef<PagerView>(null);
   const tabsRef = useRef<CategoryTabsHandle>(null);
-  const [activePageIndex, setActivePageIndex] = useState(0);
+  const [activePageIndex, setActivePageIndex] = useState(1);
 
   const [reactions, setReactions] = useState<Record<number, string>>({});
   const patchPostRef = useRef<((post: Post) => void) | null>(null);
@@ -232,6 +240,7 @@ export default function FeedScreen() {
       <CategoryTabs
         ref={tabsRef}
         active={allPageIds[activePageIndex]}
+        prefixTabs={headlinesPrefixTab}
         leadingTabs={eventTabs}
         onChange={(id) => {
           const idx = allPageIds.indexOf(id);
@@ -250,7 +259,7 @@ export default function FeedScreen() {
       <PagerView
         ref={pagerRef}
         style={{ flex: 1 }}
-        initialPage={0}
+        initialPage={1}
         offscreenPageLimit={1}
         onPageScroll={(e) => {
           const { position, offset } = e.nativeEvent;
@@ -267,6 +276,13 @@ export default function FeedScreen() {
         }}
       >
         {allPageIds.map((pageId, idx) => {
+          if (pageId === HEADLINES_ID) {
+            return (
+              <View key={pageId} style={{ flex: 1 }}>
+                <HeadlinesPage isActive={idx === activePageIndex} />
+              </View>
+            );
+          }
           const eventForPage = activeEvents.find((e) => e.slug === pageId);
           return (
             <View key={pageId} style={{ flex: 1 }}>

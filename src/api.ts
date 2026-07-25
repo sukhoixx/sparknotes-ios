@@ -217,3 +217,13 @@ export async function fetchRewards(): Promise<{ rewards: DailyReward[]; streak: 
     return fallback;
   }
 }
+
+export async function fetchHeadlines(): Promise<{ headlines: string[]; generatedAt: string | null }> {
+  try {
+    const res = await apiFetch("/api/headlines");
+    if (!res.ok) return { headlines: [], generatedAt: null };
+    return res.json();
+  } catch {
+    return { headlines: [], generatedAt: null };
+  }
+}
