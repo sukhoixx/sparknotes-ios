@@ -11,6 +11,7 @@ const FALLBACK: CategoryItem[] = [
   { id: "us",            labels: { en: "🇺🇸 US",            "zh-TW": "🇺🇸 美國",    "zh-CN": "🇺🇸 美国" } },
   { id: "world",         labels: { en: "🌍 World",         "zh-TW": "🌍 世界",      "zh-CN": "🌍 世界" } },
   { id: "asia",          labels: { en: "🌏 Asia",          "zh-TW": "🌏 亞洲",      "zh-CN": "🌏 亚洲" } },
+  { id: "taiwan",        labels: { en: "🇹🇼 Taiwan",       "zh-TW": "🇹🇼 台灣",     "zh-CN": "🇹🇼 台湾" } },
   { id: "technology",    labels: { en: "💻 Technology",    "zh-TW": "💻 科技",      "zh-CN": "💻 科技" } },
   { id: "finance",       labels: { en: "💰 Finance",       "zh-TW": "💰 財經",      "zh-CN": "💰 财经" } },
   { id: "science",       labels: { en: "🔬 Science",       "zh-TW": "🔬 科學",      "zh-CN": "🔬 科学" } },
