@@ -45,7 +45,8 @@ export default function FeedScreen() {
     [activeEvents, lang]
   );
   const HEADLINES_ID = "__headlines__";
-  const headlinesPrefixTab = useMemo(() => [{ id: HEADLINES_ID, label: "📰 Headlines" }], []);
+  const headlinesLabel = lang === "zh-TW" ? "📰 頭條" : lang === "zh-CN" ? "📰 头条" : "📰 Headlines";
+  const headlinesPrefixTab = useMemo(() => [{ id: HEADLINES_ID, label: headlinesLabel }], [headlinesLabel]);
 
   // Headlines sits at index 0; event tabs sit after "For You"; app lands on For You (index 1)
   const allPageIds = useMemo(() => {
