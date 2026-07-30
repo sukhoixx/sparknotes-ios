@@ -101,17 +101,6 @@ function RewardsTab({ isAuthenticated, onSignIn, colors }: { isAuthenticated: bo
 
   return (
     <View style={{ gap: 12 }}>
-      {/* Streak banner */}
-      <View style={{ borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#6c47ff" }}>
-        <Text style={{ fontSize: 36 }}>🔥</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 20, lineHeight: 24 }}>{streak}-day streak</Text>
-          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 2 }}>
-            Multiplier: <Text style={{ color: "#fff", fontWeight: "700" }}>{multiplierLabel}</Text>
-          </Text>
-        </View>
-      </View>
-
       {/* Today */}
       <View style={{ backgroundColor: colors.surfaceAlt, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <View>
@@ -134,20 +123,6 @@ function RewardsTab({ isAuthenticated, onSignIn, colors }: { isAuthenticated: bo
             <Text style={{ fontSize: 10, color: colors.textMuted }}>Read 10 to earn</Text>
           </View>
         )}
-      </View>
-
-      {/* Badge legend */}
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        {BADGE_THRESHOLDS.map(({ badge, min }) => {
-          const meta = BADGE_META[badge];
-          return (
-            <View key={badge} style={{ flex: 1, backgroundColor: colors.surfaceAlt, borderRadius: 12, alignItems: "center", paddingVertical: 10, gap: 2 }}>
-              <Text style={{ fontSize: 22 }}>{meta.emoji}</Text>
-              <Text style={{ fontSize: 10, fontWeight: "700", color: meta.color }}>{meta.label}</Text>
-              <Text style={{ fontSize: 10, color: colors.textMuted }}>{min}+ articles</Text>
-            </View>
-          );
-        })}
       </View>
 
       {/* 30-day bar chart */}
@@ -203,18 +178,6 @@ function RewardsTab({ isAuthenticated, onSignIn, colors }: { isAuthenticated: bo
         ))}
       </View>
 
-      {/* Multiplier guide */}
-      <View style={{ backgroundColor: colors.surfaceAlt, borderRadius: 14, padding: 14, gap: 8 }}>
-        <Text style={{ fontSize: 12, fontWeight: "600", color: colors.textSub }}>Streak multipliers</Text>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text style={{ fontSize: 12, color: colors.textMuted }}>7-day streak</Text>
-          <Text style={{ fontSize: 12, fontWeight: "700", color: "#6c47ff" }}>1.5× points</Text>
-        </View>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Text style={{ fontSize: 12, color: colors.textMuted }}>14-day streak</Text>
-          <Text style={{ fontSize: 12, fontWeight: "700", color: colors.brand }}>2× points</Text>
-        </View>
-      </View>
     </View>
   );
 }
@@ -417,32 +380,7 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
         </View>
 
         {/* Tab bar — only shown when profile already exists */}
-        {!isFirstTime && (
-          <View style={{ flexDirection: "row", margin: 16, marginBottom: 0, backgroundColor: colors.surfaceAlt, borderRadius: 14, padding: 3 }}>
-            {(["profile", "rewards"] as const).map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                onPress={() => setActiveTab(tab)}
-                style={[{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 11,
-                  alignItems: "center",
-                }, activeTab === tab && { backgroundColor: colors.surface, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 }]}
-              >
-                <Text style={{ fontSize: 13, fontWeight: "600", color: activeTab === tab ? colors.text : colors.textMuted }}>
-                  {tab === "profile" ? "Profile" : "🏆 Rewards"}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
 
-        {activeTab === "rewards" && !isFirstTime ? (
-          <ScrollView contentContainerStyle={[styles.content, { paddingTop: 16 }]} showsVerticalScrollIndicator={false}>
-            <RewardsTab isAuthenticated={isAuthenticated} onSignIn={onSignIn} colors={colors} />
-          </ScrollView>
-        ) : (
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" nestedScrollEnabled scrollEnabled={!isDraggingList}>
           {isFirstTime && isAuthenticated && (
             <View style={styles.noProfileBanner}>
@@ -578,7 +516,6 @@ export function ProfileSheet({ visible, profile, isAuthenticated, onClose, onSav
             </TouchableOpacity>
           )}
         </ScrollView>
-        )}
       </View>
       </GestureHandlerRootView>
     </Modal>

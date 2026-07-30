@@ -24,7 +24,6 @@ const FALLBACK: CategoryItem[] = [
   { id: "politics",      labels: { en: "🏛️ Politics",      "zh-TW": "🏛️ 政治",    "zh-CN": "🏛️ 政治" } },
   { id: "military",      labels: { en: "🪖 Military",      "zh-TW": "🪖 軍事",      "zh-CN": "🪖 军事" } },
   { id: "gaming",        labels: { en: "🎮 Gaming",        "zh-TW": "🎮 電玩",      "zh-CN": "🎮 游戏" } },
-  { id: "animals",       labels: { en: "🐾 Animals",       "zh-TW": "🐾 動物",      "zh-CN": "🐾 动物" } },
   { id: "inventions",    labels: { en: "💡 Inventions",    "zh-TW": "💡 發明",      "zh-CN": "💡 发明" } },
   { id: "beauty",        labels: { en: "💄 Beauty",        "zh-TW": "💄 美妝",      "zh-CN": "💄 美妆" } },
 ];
