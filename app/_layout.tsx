@@ -81,7 +81,7 @@ function AppShell() {
       .then((r) => r.json())
       .then((data) => {
         const current = Application.nativeApplicationVersion ?? "0.0.0";
-        const min = data.minVersion ?? "1.0.0";
+        const min = data.minVersionIos ?? data.minVersion ?? "1.0.0";
         if (compareVersions(current, min) < 0) setForceUpgrade(true);
         if (data.activeEvents?.length) setActiveEvents(data.activeEvents);
       })
