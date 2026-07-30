@@ -146,6 +146,15 @@ const DOMAIN_NAMES: Record<string, string> = {
   "taipeitimes.com": "Taipei Times",
   "straitstimes.com": "Straits Times",
   "channelnewsasia.com": "CNA",
+  // Taiwan
+  "ltn.com.tw": "自由時報",
+  "tvbs.com.tw": "TVBS",
+  "setn.com": "三立新聞",
+  "ettoday.net": "ETtoday",
+  "chinatimes.com": "中時電子報",
+  "udn.com": "聯合新聞網",
+  "cna.com.tw": "CNA 中央社",
+  "feedburner.com": "CNA 中央社",
   "businesstimes.com.sg": "Business Times",
   "japantimes.co.jp": "Japan Times",
   "koreatimes.co.kr": "Korea Times",
@@ -363,7 +372,9 @@ function getSourceName(url: string | null | undefined): string | null {
       const candidate = parts.slice(i).join(".");
       if (DOMAIN_NAMES[candidate]) return DOMAIN_NAMES[candidate];
     }
-    return (parts[parts.length - 2] ?? parts[0])
+    const SKIP = new Set(["com", "net", "org", "co", "gov", "edu"]);
+    const meaningful = parts.slice(0, -1).filter((p) => !SKIP.has(p));
+    return (meaningful[meaningful.length - 1] ?? parts[0])
       .replace(/-/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase());
   } catch {
