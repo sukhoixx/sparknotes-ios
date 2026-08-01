@@ -31,12 +31,18 @@ import type { LangMode } from "../src/lang";
 import type { Post, UserProfile } from "../src/types";
 import type { Colors } from "../src/theme";
 
-const MARQUEE_TEXT = "💛  Tap one ad per day to support us — it only takes a second!  •  ";
+const MARQUEE_TEXTS: Record<string, string> = {
+  en: "💛  Tap on an ad to support us!  •  ",
+  "zh-TW": "💛  點擊廣告來支持我們！  •  ",
+  "zh-CN": "💛  点击广告来支持我们！  •  ",
+};
 
 function MarqueeBanner({ colors }: { colors: Colors }) {
   const { width } = useWindowDimensions();
+  const { lang } = useLang();
   const translateX = useRef(new Animated.Value(0)).current;
-  const fullText = MARQUEE_TEXT.repeat(3);
+  const marqueeText = MARQUEE_TEXTS[lang] ?? MARQUEE_TEXTS["en"];
+  const fullText = marqueeText.repeat(3);
 
   useEffect(() => {
     const textWidth = fullText.length * 7.5; // approximate char width
@@ -50,7 +56,7 @@ function MarqueeBanner({ colors }: { colors: Colors }) {
     );
     anim.start();
     return () => anim.stop();
-  }, [width]);
+  }, [width, lang]);
 
   return (
     <View style={{ height: 20, overflow: "hidden", backgroundColor: colors.surfaceAlt, justifyContent: "center" }}>
