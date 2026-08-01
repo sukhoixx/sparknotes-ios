@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Linking,
   Keyboard,
+  Animated,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PagerView from "react-native-pager-view";
@@ -27,6 +29,45 @@ import { useEvent } from "../src/event";
 import { t } from "../src/i18n";
 import type { LangMode } from "../src/lang";
 import type { Post, UserProfile } from "../src/types";
+import type { Colors } from "../src/theme";
+
+const MARQUEE_TEXT = "💛  Tap one ad per day to support us — it only takes a second!  •  ";
+
+function MarqueeBanner({ colors }: { colors: Colors }) {
+  const { width } = useWindowDimensions();
+  const translateX = useRef(new Animated.Value(0)).current;
+  const fullText = MARQUEE_TEXT.repeat(3);
+
+  useEffect(() => {
+    const textWidth = fullText.length * 7.5; // approximate char width
+    translateX.setValue(0);
+    const anim = Animated.loop(
+      Animated.timing(translateX, {
+        toValue: -textWidth / 3,
+        duration: 18000,
+        useNativeDriver: true,
+      })
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [width]);
+
+  return (
+    <View style={{ height: 20, overflow: "hidden", backgroundColor: colors.surfaceAlt, justifyContent: "center" }}>
+      <Animated.Text
+        numberOfLines={1}
+        style={{
+          transform: [{ translateX }],
+          fontSize: 11,
+          color: colors.textMuted,
+          width: fullText.length * 7.5,
+        }}
+      >
+        {fullText}
+      </Animated.Text>
+    </View>
+  );
+}
 
 export default function FeedScreen() {
   const { openPostId } = useLocalSearchParams<{ openPostId?: string }>();
@@ -305,6 +346,8 @@ export default function FeedScreen() {
           );
         })}
       </PagerView>
+
+      <MarqueeBanner colors={colors} />
 
       <ArticleSheet
         post={openPost}
