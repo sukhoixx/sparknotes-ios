@@ -32,9 +32,9 @@ import type { Post, UserProfile } from "../src/types";
 import type { Colors } from "../src/theme";
 
 const MARQUEE_TEXTS: Record<string, string> = {
-  en: "💛  Tap on an ad to support us!  •  ",
-  "zh-TW": "💛  點擊廣告來支持我們！  •  ",
-  "zh-CN": "💛  点击广告来支持我们！  •  ",
+  en: "💛  Tap several ads per day to support us - it only takes a few seconds  •  ",
+  "zh-TW": "💛  每天點擊幾則廣告來支持我們 — 只需幾秒鐘  •  ",
+  "zh-CN": "💛  每天点击几则广告来支持我们 — 只需几秒钟  •  ",
 };
 
 function MarqueeBanner({ colors }: { colors: Colors }) {
