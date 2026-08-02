@@ -218,6 +218,38 @@ export async function fetchRewards(): Promise<{ rewards: DailyReward[]; streak: 
   }
 }
 
+export interface PostQuestion {
+  id: number;
+  question: string;
+  questionZh: string | null;
+  questionCn: string | null;
+}
+
+export async function fetchQuestions(postId: number): Promise<PostQuestion[]> {
+  try {
+    const res = await apiFetch(`/api/posts/${postId}/questions`, { method: "POST" });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.questions ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchAnswer(postId: number, question: string, lang: string): Promise<string | null> {
+  try {
+    const res = await apiFetch(`/api/posts/${postId}/answer`, {
+      method: "POST",
+      body: JSON.stringify({ question, lang }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.answer ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchHeadlines(): Promise<{ headlines: string[]; headlinesZh: string[]; headlinesCn: string[]; generatedAt: string | null }> {
   const fallback = { headlines: [], headlinesZh: [], headlinesCn: [], generatedAt: null };
   try {

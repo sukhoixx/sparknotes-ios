@@ -29,7 +29,8 @@ import { t } from "../i18n";
 import type { Colors } from "../theme";
 import type { Post, Comment } from "../types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fetchComments, postComment, fetchOgImage, trackReadingSession } from "../api";
+import { fetchComments, postComment, fetchOgImage, trackReadingSession, fetchQuestions, fetchAnswer } from "../api";
+import type { PostQuestion } from "../api";
 
 
 const DOMAIN_NAMES: Record<string, string> = {
@@ -766,6 +767,10 @@ export function ArticleSheet({
 
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [questions, setQuestions] = useState<PostQuestion[]>([]);
+  const [expandedQ, setExpandedQ] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [loadingAnswer, setLoadingAnswer] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -795,6 +800,27 @@ export function ArticleSheet({
       setCommentsLoading(false);
     });
   }, [post?.id]);
+
+  useEffect(() => {
+    if (!post) { setQuestions([]); setExpandedQ(null); setAnswers({}); return; }
+    setQuestions([]);
+    setExpandedQ(null);
+    setAnswers({});
+    fetchQuestions(post.id).then(setQuestions);
+  }, [post?.id]);
+
+  async function handleQuestionTap(index: number) {
+    if (!post) return;
+    if (expandedQ === index) { setExpandedQ(null); return; }
+    setExpandedQ(index);
+    if (answers[index] !== undefined) return;
+    const q = questions[index];
+    const displayQ = lang === "zh-TW" ? (q.questionZh ?? q.question) : lang === "zh-CN" ? (q.questionCn ?? q.question) : q.question;
+    setLoadingAnswer(index);
+    const answer = await fetchAnswer(post.id, displayQ, lang);
+    setAnswers((prev) => ({ ...prev, [index]: answer ?? "" }));
+    setLoadingAnswer(null);
+  }
 
   async function handleComment() {
     if (!post || !commentText.trim() || submitting) return;
@@ -943,6 +969,34 @@ export function ArticleSheet({
                 {!!post.funFact && (
                   <View style={styles.funFact}>
                     {renderHtmlAsText(displayFunFact, "#92400e", "#92400e", 13, 20)}
+                  </View>
+                )}
+
+                {/* AI Questions */}
+                {questions.length > 0 && (
+                  <View style={{ marginTop: 16, gap: 8 }}>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      {lang === "zh-TW" ? "延伸閱讀" : lang === "zh-CN" ? "延伸阅读" : "Questions"}
+                    </Text>
+                    {questions.map((q, i) => {
+                      const displayQ = lang === "zh-TW" ? (q.questionZh ?? q.question) : lang === "zh-CN" ? (q.questionCn ?? q.question) : q.question;
+                      return (
+                        <TouchableOpacity
+                          key={q.id}
+                          onPress={() => handleQuestionTap(i)}
+                          style={{ backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: colors.brand }}
+                        >
+                          <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text, lineHeight: 20 }}>{displayQ}</Text>
+                          {expandedQ === i && (
+                            loadingAnswer === i
+                              ? <ActivityIndicator color={colors.brand} style={{ marginTop: 8 }} />
+                              : answers[i] !== undefined
+                                ? <Text style={{ fontSize: 13, color: colors.textSub, marginTop: 8, lineHeight: 20 }}>{answers[i]}</Text>
+                                : null
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 )}
 
