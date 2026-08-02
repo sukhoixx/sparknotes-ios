@@ -973,7 +973,7 @@ export function ArticleSheet({
                 {/* Fun fact */}
                 {!!post.funFact && (
                   <View style={styles.funFact}>
-                    {renderHtmlAsText(displayFunFact, "#92400e", "#92400e", 13, 20)}
+                    {renderHtmlAsText(displayFunFact, "#92400e", "#92400e", FONT_SIZES[fontSizeIdx].body - 2, FONT_SIZES[fontSizeIdx].line - 4)}
                   </View>
                 )}
 
@@ -991,12 +991,12 @@ export function ArticleSheet({
                           onPress={() => handleQuestionTap(i)}
                           style={{ backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: colors.brand }}
                         >
-                          <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text, lineHeight: 20 }}>{displayQ}</Text>
+                          <Text style={{ fontSize: FONT_SIZES[fontSizeIdx].body - 1, fontWeight: "600", color: colors.text, lineHeight: FONT_SIZES[fontSizeIdx].line - 4 }}>{displayQ}</Text>
                           {expandedQ === i && (
                             loadingAnswer === i
                               ? <ActivityIndicator color={colors.brand} style={{ marginTop: 8 }} />
                               : answers[i] !== undefined
-                                ? <Text style={{ fontSize: 13, color: colors.textSub, marginTop: 8, lineHeight: 20 }}>{answers[i]}</Text>
+                                ? <Text style={{ fontSize: FONT_SIZES[fontSizeIdx].body - 2, color: colors.textSub, marginTop: 8, lineHeight: FONT_SIZES[fontSizeIdx].line - 4 }}>{answers[i]}</Text>
                                 : null
                           )}
                         </TouchableOpacity>
@@ -1011,7 +1011,7 @@ export function ArticleSheet({
                           backgroundColor: colors.surfaceAlt,
                           borderRadius: 12,
                           padding: 12,
-                          fontSize: 14,
+                          fontSize: FONT_SIZES[fontSizeIdx].body - 1,
                           color: colors.text,
                           maxHeight: 80,
                         }}
@@ -1046,7 +1046,7 @@ export function ArticleSheet({
                     </View>
                     {customAnswer !== null && (
                       <View style={{ backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: colors.brand }}>
-                        <Text style={{ fontSize: 13, color: colors.textSub, lineHeight: 20 }}>{customAnswer}</Text>
+                        <Text style={{ fontSize: FONT_SIZES[fontSizeIdx].body - 2, color: colors.textSub, lineHeight: FONT_SIZES[fontSizeIdx].line - 4 }}>{customAnswer}</Text>
                       </View>
                     )}
                   </View>
