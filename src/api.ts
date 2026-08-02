@@ -242,6 +242,13 @@ export async function fetchAnswer(postId: number, question: string, lang: string
       method: "POST",
       body: JSON.stringify({ question, lang }),
     });
+    if (res.status === 408) {
+      return lang === "zh-TW"
+        ? "目前無法回答，請稍後再試。"
+        : lang === "zh-CN"
+        ? "目前无法回答，请稍后再试。"
+        : "Unable to answer right now. Please try again later.";
+    }
     if (!res.ok) return null;
     const data = await res.json();
     return data.answer ?? null;
