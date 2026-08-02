@@ -192,7 +192,7 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
   const hideBadge = category !== "all" || !!eventSlug;
 
   const flatItems = useMemo<FlatItem[]>(() => {
-    const AD_EVERY = 12;
+    const AD_EVERY = 10;
     const result: FlatItem[] = [];
     posts.forEach((post, i) => {
       if (i > 0 && i % AD_EVERY === 0) result.push("ad");
