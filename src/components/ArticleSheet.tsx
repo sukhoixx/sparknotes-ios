@@ -771,6 +771,9 @@ export function ArticleSheet({
   const [expandedQ, setExpandedQ] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [loadingAnswer, setLoadingAnswer] = useState<number | null>(null);
+  const [customQuestion, setCustomQuestion] = useState("");
+  const [customAnswer, setCustomAnswer] = useState<string | null>(null);
+  const [loadingCustomAnswer, setLoadingCustomAnswer] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -802,10 +805,12 @@ export function ArticleSheet({
   }, [post?.id]);
 
   useEffect(() => {
-    if (!post) { setQuestions([]); setExpandedQ(null); setAnswers({}); return; }
+    if (!post) { setQuestions([]); setExpandedQ(null); setAnswers({}); setCustomQuestion(""); setCustomAnswer(null); return; }
     setQuestions([]);
     setExpandedQ(null);
     setAnswers({});
+    setCustomQuestion("");
+    setCustomAnswer(null);
     fetchQuestions(post.id).then(setQuestions);
   }, [post?.id]);
 
@@ -973,7 +978,7 @@ export function ArticleSheet({
                 )}
 
                 {/* AI Questions */}
-                {questions.length > 0 && (
+                {(questions.length > 0 || post) && (
                   <View style={{ marginTop: 16, gap: 8 }}>
                     <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>
                       {lang === "zh-TW" ? "延伸閱讀" : lang === "zh-CN" ? "延伸阅读" : "Questions"}
@@ -997,6 +1002,53 @@ export function ArticleSheet({
                         </TouchableOpacity>
                       );
                     })}
+
+                    {/* Custom question input */}
+                    <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, marginTop: 4 }}>
+                      <TextInput
+                        style={{
+                          flex: 1,
+                          backgroundColor: colors.surfaceAlt,
+                          borderRadius: 12,
+                          padding: 12,
+                          fontSize: 14,
+                          color: colors.text,
+                          maxHeight: 80,
+                        }}
+                        placeholder={lang === "zh-TW" ? "問我任何問題..." : lang === "zh-CN" ? "问我任何问题..." : "Ask your own question..."}
+                        placeholderTextColor={colors.textMuted}
+                        value={customQuestion}
+                        onChangeText={(v) => { setCustomQuestion(v); setCustomAnswer(null); }}
+                        multiline
+                        returnKeyType="send"
+                        onSubmitEditing={async () => {
+                          if (!customQuestion.trim() || !post) return;
+                          setLoadingCustomAnswer(true);
+                          const a = await fetchAnswer(post.id, customQuestion.trim(), lang);
+                          setCustomAnswer(a);
+                          setLoadingCustomAnswer(false);
+                        }}
+                      />
+                      <TouchableOpacity
+                        onPress={async () => {
+                          if (!customQuestion.trim() || !post || loadingCustomAnswer) return;
+                          setLoadingCustomAnswer(true);
+                          const a = await fetchAnswer(post.id, customQuestion.trim(), lang);
+                          setCustomAnswer(a);
+                          setLoadingCustomAnswer(false);
+                        }}
+                        style={{ backgroundColor: colors.brand, borderRadius: 10, padding: 12, justifyContent: "center", alignItems: "center", width: 44, height: 44 }}
+                      >
+                        {loadingCustomAnswer
+                          ? <ActivityIndicator color="#fff" size="small" />
+                          : <Text style={{ color: "#fff", fontSize: 16 }}>↑</Text>}
+                      </TouchableOpacity>
+                    </View>
+                    {customAnswer !== null && (
+                      <View style={{ backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: colors.brand }}>
+                        <Text style={{ fontSize: 13, color: colors.textSub, lineHeight: 20 }}>{customAnswer}</Text>
+                      </View>
+                    )}
                   </View>
                 )}
 
