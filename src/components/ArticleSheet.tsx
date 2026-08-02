@@ -625,6 +625,7 @@ export function ArticleSheet({
     });
   }
   const commentInputRef = useRef<TextInput>(null);
+  const articleScrollRef = useRef<ScrollView>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 });
   const reactionBtnRef = useRef<View>(null);
@@ -928,6 +929,7 @@ export function ArticleSheet({
         >
         <View style={{ flex: 1 }}>
           <ScrollView
+            ref={articleScrollRef}
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
@@ -1019,6 +1021,7 @@ export function ArticleSheet({
                         placeholderTextColor={colors.textMuted}
                         value={customQuestion}
                         onChangeText={(v) => { setCustomQuestion(v); setCustomAnswer(null); }}
+                        onFocus={() => setTimeout(() => articleScrollRef.current?.scrollToEnd({ animated: true }), 300)}
                         multiline
                         returnKeyType="send"
                         onSubmitEditing={async () => {
