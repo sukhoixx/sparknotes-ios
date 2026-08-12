@@ -153,9 +153,10 @@ export function VirtualizedMasonryList<T>({
     []
   );
 
-  // Reset end-reached gate whenever new data arrives so next page can load
+  // Reset end-reached gate and mounted set whenever data resets so stale indices don't persist
   useEffect(() => {
     endReachedRef.current = false;
+    if (data.length === 0) mountedKeysRef.current = new Set();
   }, [data.length]);
 
   // Re-check end reached whenever totalHeight or scrollY changes
@@ -163,14 +164,15 @@ export function VirtualizedMasonryList<T>({
     checkEndReached();
   }, [checkEndReached, totalHeight, scrollY]);
 
-  // Render items within viewport + 3x buffer. scrollY only updates on scroll end
-  // so the buffer must be large enough to keep cards mounted during active scroll.
+  // Mount cards progressively as user scrolls — once mounted, never unmount.
+  // Avoids tap failures from stale scroll position unmounting visible cards.
+  const mountedKeysRef = useRef<Set<number>>(new Set());
   const visibleItems = useMemo(() => {
-    const top = scrollY - BUFFER;
     const bottom = scrollY + viewportHeight + BUFFER;
-    return layouts
-      .map((layout, index) => ({ layout, index }))
-      .filter(({ layout }) => layout.top + layout.height > top && layout.top < bottom);
+    return layouts.map((layout, index) => {
+      if (layout.top < bottom) mountedKeysRef.current.add(index);
+      return { layout, index };
+    }).filter(({ index }) => mountedKeysRef.current.has(index));
   }, [layouts, scrollY, viewportHeight]);
 
   return (
