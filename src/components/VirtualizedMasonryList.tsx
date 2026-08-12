@@ -96,12 +96,21 @@ export function VirtualizedMasonryList<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, numColumns, columnWidth, columnGap, rowGap, estimateHeight, keys, measureVersion]);
 
+  const measureDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleItemLayout = useCallback(
     (key: string, height: number) => {
       const prev = measuredHeightsRef.current.get(key);
       if (prev !== undefined && Math.abs(prev - height) <= 4) return;
       measuredHeightsRef.current.set(key, height);
-      setMeasureVersion((v) => v + 1);
+      // Debounce layout recomputation — collapses multiple onLayout calls into
+      // one re-render, eliminating the stale-position overlap window that causes
+      // cards to block taps on cards above them.
+      if (measureDebounceRef.current) clearTimeout(measureDebounceRef.current);
+      measureDebounceRef.current = setTimeout(() => {
+        setMeasureVersion((v) => v + 1);
+        measureDebounceRef.current = null;
+      }, 50);
     },
     []
   );
@@ -184,6 +193,7 @@ export function VirtualizedMasonryList<T>({
                 top: layout.top,
                 left: layout.left,
                 width: layout.width,
+                zIndex: index,
               },
             ]}
             onLayout={(e) => {
