@@ -151,14 +151,11 @@ export function VirtualizedMasonryList<T>({
     checkEndReached();
   }, [checkEndReached, totalHeight, scrollY]);
 
-  // Render only items within the viewport + buffer
+  // Render all items — virtualization was causing tap failures when scrollY state
+  // lagged behind actual scroll position, leaving cards unmounted at the tap location.
   const visibleItems = useMemo(() => {
-    const top = scrollY - BUFFER;
-    const bottom = scrollY + viewportHeight + BUFFER;
-    return layouts
-      .map((layout, index) => ({ layout, index }))
-      .filter(({ layout }) => layout.top + layout.height > top && layout.top < bottom);
-  }, [layouts, scrollY, viewportHeight]);
+    return layouts.map((layout, index) => ({ layout, index }));
+  }, [layouts]);
 
   return (
     <ScrollView
