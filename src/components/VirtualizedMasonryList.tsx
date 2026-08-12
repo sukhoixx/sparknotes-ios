@@ -10,7 +10,7 @@ import type { ReactElement, ReactNode, RefObject } from "react";
 import type { StyleProp, ViewStyle, RefreshControlProps } from "react-native";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
-const BUFFER = SCREEN_HEIGHT * 1.5;
+const BUFFER = SCREEN_HEIGHT * 3;
 
 interface ItemLayout {
   top: number;
