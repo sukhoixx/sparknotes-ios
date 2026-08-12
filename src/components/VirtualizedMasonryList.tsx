@@ -53,6 +53,7 @@ export function VirtualizedMasonryList<T>({
   rowGap = 0,
 }: Props<T>) {
   const [scrollY, setScrollY] = useState(0);
+  const scrollYRef = useRef(0); // always-current scroll position, no re-render on update
   const [containerWidth, setContainerWidth] = useState(
     Dimensions.get("window").width
   );
@@ -121,14 +122,14 @@ export function VirtualizedMasonryList<T>({
 
   const checkEndReached = useCallback(() => {
     const threshold = onEndReachedThreshold * viewportHeightRef.current;
-    const atEnd = scrollY + viewportHeightRef.current >= totalHeightRef.current - threshold;
+    const atEnd = scrollYRef.current + viewportHeightRef.current >= totalHeightRef.current - threshold;
     if (!endReachedRef.current && atEnd) {
       endReachedRef.current = true;
       onEndReached();
     } else if (!atEnd) {
       endReachedRef.current = false;
     }
-  }, [scrollY, onEndReachedThreshold, onEndReached]);
+  }, [onEndReachedThreshold, onEndReached]);
 
   const handleScroll = useCallback(
     (e: { nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number } } }) => {
@@ -136,7 +137,18 @@ export function VirtualizedMasonryList<T>({
       const viewportH = e.nativeEvent.layoutMeasurement.height;
       viewportHeightRef.current = viewportH;
       setViewportHeight(viewportH);
-      setScrollY(y);
+      // Update ref immediately (no re-render) so end-reached check is always accurate
+      scrollYRef.current = y;
+      // Don't call setScrollY here — visible items update only when scroll stops
+    },
+    []
+  );
+
+  const handleScrollEnd = useCallback(
+    (e: { nativeEvent: { contentOffset: { y: number } } }) => {
+      const y = e.nativeEvent.contentOffset.y;
+      scrollYRef.current = y;
+      setScrollY(y); // triggers visible items recompute after scroll stops
     },
     []
   );
@@ -151,11 +163,15 @@ export function VirtualizedMasonryList<T>({
     checkEndReached();
   }, [checkEndReached, totalHeight, scrollY]);
 
-  // Render all items — virtualization was causing tap failures when scrollY state
-  // lagged behind actual scroll position, leaving cards unmounted at the tap location.
+  // Render items within viewport + 3x buffer. scrollY only updates on scroll end
+  // so the buffer must be large enough to keep cards mounted during active scroll.
   const visibleItems = useMemo(() => {
-    return layouts.map((layout, index) => ({ layout, index }));
-  }, [layouts]);
+    const top = scrollY - BUFFER;
+    const bottom = scrollY + viewportHeight + BUFFER;
+    return layouts
+      .map((layout, index) => ({ layout, index }))
+      .filter(({ layout }) => layout.top + layout.height > top && layout.top < bottom);
+  }, [layouts, scrollY, viewportHeight]);
 
   return (
     <ScrollView
@@ -169,6 +185,8 @@ export function VirtualizedMasonryList<T>({
       keyboardDismissMode="on-drag"
       scrollEventThrottle={100}
       onScroll={handleScroll}
+      onMomentumScrollEnd={handleScrollEnd}
+      onScrollEndDrag={handleScrollEnd}
       refreshControl={refreshControl}
       onLayout={(e) => {
         setContainerWidth(e.nativeEvent.layout.width);
