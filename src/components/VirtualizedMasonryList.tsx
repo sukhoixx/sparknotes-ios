@@ -53,7 +53,7 @@ export function VirtualizedMasonryList<T>({
   rowGap = 0,
 }: Props<T>) {
   const [scrollY, setScrollY] = useState(0);
-  const scrollYRef = useRef(0); // always-current scroll position, no re-render on update
+  const scrollYRef = useRef(0);
   const [containerWidth, setContainerWidth] = useState(
     Dimensions.get("window").width
   );
@@ -164,16 +164,11 @@ export function VirtualizedMasonryList<T>({
     checkEndReached();
   }, [checkEndReached, totalHeight, scrollY]);
 
-  // Mount cards progressively as user scrolls — once mounted, never unmount.
-  // Avoids tap failures from stale scroll position unmounting visible cards.
-  const mountedKeysRef = useRef<Set<number>>(new Set());
+  // No virtualization — all cards always mounted.
+  // Virtualization caused tap failures when scroll position lagged behind actual position.
   const visibleItems = useMemo(() => {
-    const bottom = scrollY + viewportHeight + BUFFER;
-    return layouts.map((layout, index) => {
-      if (layout.top < bottom) mountedKeysRef.current.add(index);
-      return { layout, index };
-    }).filter(({ index }) => mountedKeysRef.current.has(index));
-  }, [layouts, scrollY, viewportHeight]);
+    return layouts.map((layout, index) => ({ layout, index }));
+  }, [layouts]);
 
   return (
     <ScrollView
