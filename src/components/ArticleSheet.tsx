@@ -630,18 +630,19 @@ export function ArticleSheet({
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 });
   const reactionBtnRef = useRef<View>(null);
+  const reactionBtnPosRef = useRef({ x: 0, y: 0, w: 0 }); // cached position, updated on layout
   const pickerAnim = useRef(new Animated.Value(0)).current;
 
   function showPicker() {
     if (!isAuthenticated) { onSignInRequired(); return; }
-    reactionBtnRef.current?.measureInWindow((x, y, w) => {
-      const cx = x + w / 2 - PICKER_WIDTH / 2;
-      const clampedX = Math.min(Math.max(8, cx), width - PICKER_WIDTH - 8);
-      setPickerPos({ x: clampedX, y: y - 60 });
-      setPickerVisible(true);
-      pickerAnim.setValue(0);
-      Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, bounciness: 10, speed: 18 }).start();
-    });
+    // Use cached position — avoids measureInWindow on touch which can freeze the UI
+    const { x, y, w } = reactionBtnPosRef.current;
+    const cx = x + w / 2 - PICKER_WIDTH / 2;
+    const clampedX = Math.min(Math.max(8, cx), width - PICKER_WIDTH - 8);
+    setPickerPos({ x: clampedX, y: y - 60 });
+    setPickerVisible(true);
+    pickerAnim.setValue(0);
+    Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, bounciness: 10, speed: 18 }).start();
   }
 
   function hidePicker() {
@@ -904,7 +905,11 @@ export function ArticleSheet({
             </TouchableOpacity>
           </View>
           {post && (
-            <View ref={reactionBtnRef} collapsable={false}>
+            <View ref={reactionBtnRef} collapsable={false} onLayout={() => {
+              reactionBtnRef.current?.measureInWindow((x, y, w) => {
+                reactionBtnPosRef.current = { x, y, w };
+              });
+            }}>
               <TouchableOpacity onPress={showPicker} style={styles.likeBtn}>
                 <View style={styles.likeBtn}>
                   {reactionEntries.length > 0
