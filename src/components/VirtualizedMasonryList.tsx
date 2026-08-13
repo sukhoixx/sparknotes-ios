@@ -128,6 +128,7 @@ export function VirtualizedMasonryList<T>({
 
   // Touch tracking for fallback tap detection on unmounted cards
   const touchStartYRef = useRef<number | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
   const touchStartScrollYRef = useRef(0);
   const isMomentumScrollingRef = useRef(false); // true while decelerating after a fling
   const tapHandledByCardRef = useRef(false); // set by mounted cards that handle their own tap
@@ -226,6 +227,7 @@ export function VirtualizedMasonryList<T>({
         tapHandledByCardRef.current = false;
         if (tapHandledRef) tapHandledRef.current = false;
         touchStartYRef.current = e.nativeEvent.pageY;
+        touchStartXRef.current = e.nativeEvent.pageX;
         touchStartScrollYRef.current = scrollYRef.current;
       }}
       onTouchEnd={(e) => {
@@ -233,11 +235,14 @@ export function VirtualizedMasonryList<T>({
         const endPageX = e.nativeEvent.pageX;
         const endPageY = e.nativeEvent.pageY;
         const verticalMove = Math.abs(endPageY - touchStartYRef.current);
+        const horizontalMove = Math.abs(endPageX - (touchStartXRef.current ?? endPageX));
         const startScrollY = touchStartScrollYRef.current;
         touchStartYRef.current = null;
-        // Skip if: was stopping momentum scroll, scroll moved, or a mounted card handled it
+        touchStartXRef.current = null;
+        // Skip if: was stopping momentum scroll, scroll/swipe moved, or a mounted card handled it
         if (tapWasScrollStopRef.current) return;
         if (verticalMove > 8) return;
+        if (horizontalMove > 10) return; // horizontal swipe (tab change)
         if (Math.abs(scrollYRef.current - startScrollY) > 4) return;
         if (tapHandledByCardRef.current || tapHandledRef?.current) return;
         // Defer to next tick so card onPress handlers can set tapHandledRef first,
