@@ -240,21 +240,29 @@ export function VirtualizedMasonryList<T>({
         if (verticalMove > 8) return;
         if (Math.abs(scrollYRef.current - startScrollY) > 4) return;
         if (tapHandledByCardRef.current || tapHandledRef?.current) return;
-        // Measure ScrollView's screen position for accurate content coordinates
-        (scrollRef as React.RefObject<ScrollView>)?.current?.measureInWindow((svX, svY) => {
-          const contentX = endPageX - svX;
-          const contentY = startScrollY + (endPageY - svY);
-          const tappedIndex = layouts.findIndex(
-            (l) =>
-              contentY >= l.top &&
-              contentY <= l.top + l.height &&
-              contentX >= l.left &&
-              contentX <= l.left + l.width
-          );
-          if (tappedIndex >= 0 && tappedIndex < data.length) {
-            onTapFallback(data[tappedIndex]);
-          }
-        });
+        // Defer to next tick so card onPress handlers can set tapHandledRef first,
+        // preventing concurrent measureInWindow calls that can freeze the UI.
+        const capturedPageX = endPageX;
+        const capturedPageY = endPageY;
+        const capturedStartScrollY = startScrollY;
+        setTimeout(() => {
+          if (tapHandledByCardRef.current || tapHandledRef?.current) return;
+          // Measure ScrollView's screen position for accurate content coordinates
+          (scrollRef as React.RefObject<ScrollView>)?.current?.measureInWindow((svX, svY) => {
+            const contentX = capturedPageX - svX;
+            const contentY = capturedStartScrollY + (capturedPageY - svY);
+            const tappedIndex = layouts.findIndex(
+              (l) =>
+                contentY >= l.top &&
+                contentY <= l.top + l.height &&
+                contentX >= l.left &&
+                contentX <= l.left + l.width
+            );
+            if (tappedIndex >= 0 && tappedIndex < data.length) {
+              onTapFallback(data[tappedIndex]);
+            }
+          });
+        }, 50);
       }}
       refreshControl={refreshControl}
       onLayout={(e) => {
