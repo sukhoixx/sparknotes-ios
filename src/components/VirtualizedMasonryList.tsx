@@ -131,44 +131,57 @@ export function VirtualizedMasonryList<T>({
     }
   }, [onEndReachedThreshold, onEndReached]);
 
+  // Only trigger a re-render when scroll position moves far enough that the visible
+  // window needs updating — prevents re-renders on every scroll tick.
+  const UPDATE_THRESHOLD = BUFFER / 2;
+
   const handleScroll = useCallback(
     (e: { nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number } } }) => {
       const y = e.nativeEvent.contentOffset.y;
       const viewportH = e.nativeEvent.layoutMeasurement.height;
       viewportHeightRef.current = viewportH;
       setViewportHeight(viewportH);
-      // Update ref immediately (no re-render) so end-reached check is always accurate
       scrollYRef.current = y;
-      // Don't call setScrollY here — visible items update only when scroll stops
+      checkEndReached();
+      // Only update state (and re-render visible items) when position has moved
+      // enough that cards are entering/leaving the buffer zone.
+      if (Math.abs(y - scrollY) > UPDATE_THRESHOLD) {
+        setScrollY(y);
+      }
     },
-    []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scrollY, checkEndReached]
   );
 
   const handleScrollEnd = useCallback(
     (e: { nativeEvent: { contentOffset: { y: number } } }) => {
       const y = e.nativeEvent.contentOffset.y;
       scrollYRef.current = y;
-      setScrollY(y); // triggers visible items recompute after scroll stops
+      setScrollY(y);
     },
     []
   );
 
-  // Reset end-reached gate and mounted set whenever data resets so stale indices don't persist
+  // Reset end-reached gate whenever data resets
   useEffect(() => {
     endReachedRef.current = false;
-    if (data.length === 0) mountedKeysRef.current = new Set();
   }, [data.length]);
 
-  // Re-check end reached whenever totalHeight or scrollY changes
+  // Re-check end reached whenever totalHeight changes
   useEffect(() => {
     checkEndReached();
-  }, [checkEndReached, totalHeight, scrollY]);
+  }, [checkEndReached, totalHeight]);
 
-  // No virtualization — all cards always mounted.
-  // Virtualization caused tap failures when scroll position lagged behind actual position.
+  // Virtualize with large buffer so cards are pre-mounted before user scrolls to them.
+  // scrollY state only updates when position moves > BUFFER/2, so the visible window
+  // always leads actual scroll position — cards are never unmounted at the tap target.
   const visibleItems = useMemo(() => {
-    return layouts.map((layout, index) => ({ layout, index }));
-  }, [layouts]);
+    const top = scrollY - BUFFER;
+    const bottom = scrollY + viewportHeight + BUFFER;
+    return layouts
+      .map((layout, index) => ({ layout, index }))
+      .filter(({ layout }) => layout.top + layout.height > top && layout.top < bottom);
+  }, [layouts, scrollY, viewportHeight]);
 
   return (
     <ScrollView
