@@ -38,8 +38,6 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
     ? (lang === "zh-CN" ? (post.zhTitleCn ?? toSimplified(post.zhTitle)) : post.zhTitle)
     : post.title).trim();
 
-  const opacity = useRef(new Animated.Value(1)).current;
-  const translateY = useRef(new Animated.Value(0)).current;
   const imgOpacity = useRef(new Animated.Value(0)).current;
   const pickerAnim = useRef(new Animated.Value(0)).current;
 
@@ -76,16 +74,13 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
   }
 
   return (
-    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
     <TouchableOpacity
       onPress={() => onPress(post)}
       activeOpacity={0.88}
       style={styles.container}
     >
       {!hideBadge && (
-        <View style={styles.badgeWrap}>
-          <Text style={styles.badge}>{t(`cat_${post.category}`, lang)}</Text>
-        </View>
+        <Text style={styles.badge}>{t(`cat_${post.category}`, lang)}</Text>
       )}
       {!!post.imageUrl && (
         <Animated.Image
@@ -110,24 +105,22 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
             <Pressable
               onPress={(e) => { e.stopPropagation(); showPicker(); }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.likeRow}
             >
-              <View style={styles.likeRow}>
-                {reactionEntries.length > 0
-                  ? reactionEntries.map(([emoji, count]) => (
-                      <React.Fragment key={emoji}>
-                        <Text style={styles.likeEmoji}>{emoji}</Text>
-                        <Text style={styles.like}>{count}</Text>
-                      </React.Fragment>
-                    ))
-                  : <Text style={[styles.likeEmoji, styles.likeEmojiDim]}>😮</Text>
-                }
-              </View>
+              {reactionEntries.length > 0
+                ? reactionEntries.map(([emoji, count]) => (
+                    <React.Fragment key={emoji}>
+                      <Text style={styles.likeEmoji}>{emoji}</Text>
+                      <Text style={styles.like}>{count}</Text>
+                    </React.Fragment>
+                  ))
+                : <Text style={[styles.likeEmoji, styles.likeEmojiDim]}>😮</Text>
+              }
             </Pressable>
           </View>
         </View>
       </View>
     </TouchableOpacity>
-
     <Modal visible={pickerVisible} transparent animationType="none" onRequestClose={hidePicker}>
       <Pressable style={StyleSheet.absoluteFillObject} onPress={hidePicker}>
         <Animated.View
@@ -154,7 +147,6 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
         </Animated.View>
       </Pressable>
     </Modal>
-    </Animated.View>
   );
 });
 
@@ -166,15 +158,13 @@ function makeStyles(c: Colors) {
       marginBottom: 0,
       backgroundColor: c.surface,
     },
-    badgeWrap: {
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-      backgroundColor: c.surface,
-    },
     badge: {
       fontSize: 9,
       fontWeight: "600",
       color: c.textFaint,
+      paddingHorizontal: 8,
+      paddingTop: 6,
+      paddingBottom: 2,
     },
     image: {
       width: "100%",
