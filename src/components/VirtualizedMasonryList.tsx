@@ -37,6 +37,8 @@ interface Props<T> {
   // Fallback: called when a tap lands on empty space (unmounted card).
   // Receives the item at the tapped position so caller can open it directly.
   onTapFallback?: (item: T) => void;
+  // Ref that mounted cards set to true when they handle a tap, preventing the fallback from firing.
+  tapHandledRef?: React.MutableRefObject<boolean>;
 }
 
 export function VirtualizedMasonryList<T>({
@@ -55,6 +57,7 @@ export function VirtualizedMasonryList<T>({
   columnGap = 0,
   rowGap = 0,
   onTapFallback,
+  tapHandledRef,
 }: Props<T>) {
   const [scrollY, setScrollY] = useState(0);
   const scrollYRef = useRef(0);
@@ -123,6 +126,8 @@ export function VirtualizedMasonryList<T>({
   // Touch tracking for fallback tap detection on unmounted cards
   const touchStartYRef = useRef<number | null>(null);
   const touchStartScrollYRef = useRef(0);
+  const isMomentumScrollingRef = useRef(false); // true while decelerating after a fling
+  const tapHandledByCardRef = useRef(false); // set by mounted cards that handle their own tap
 
   const totalHeightRef = useRef(0);
   totalHeightRef.current = totalHeight;
@@ -205,36 +210,43 @@ export function VirtualizedMasonryList<T>({
       keyboardDismissMode="on-drag"
       scrollEventThrottle={100}
       onScroll={handleScroll}
+      onMomentumScrollBegin={() => { isMomentumScrollingRef.current = true; }}
       onMomentumScrollEnd={handleScrollEnd}
       onScrollEndDrag={handleScrollEnd}
       onTouchStart={(e) => {
         if (!onTapFallback) return;
-        touchStartYRef.current = e.nativeEvent.locationY;
+        isMomentumScrollingRef.current = false; // touch stops momentum
+        tapHandledByCardRef.current = false;
+        if (tapHandledRef) tapHandledRef.current = false;
+        touchStartYRef.current = e.nativeEvent.pageY;
         touchStartScrollYRef.current = scrollYRef.current;
       }}
       onTouchEnd={(e) => {
         if (!onTapFallback || touchStartYRef.current === null) return;
-        const endX = e.nativeEvent.locationX;
-        const endY = e.nativeEvent.locationY;
-        const verticalMove = Math.abs(endY - touchStartYRef.current);
+        const endPageX = e.nativeEvent.pageX;
+        const endPageY = e.nativeEvent.pageY;
+        const verticalMove = Math.abs(endPageY - touchStartYRef.current);
         const startScrollY = touchStartScrollYRef.current;
         touchStartYRef.current = null;
-        // Only treat as tap if minimal vertical movement and scroll didn't change
-        if (verticalMove > 8 || Math.abs(scrollYRef.current - startScrollY) > 4) return;
-        // Content position: scrollY + locationY, minus contentContainerStyle paddingTop (8px) and paddingHorizontal (4px)
-        const contentX = endX - 4;
-        const contentY = startScrollY + endY - 8;
-        // Find layout that contains both X and Y
-        const tappedIndex = layouts.findIndex(
-          (l) =>
-            contentY >= l.top &&
-            contentY <= l.top + l.height &&
-            contentX >= l.left &&
-            contentX <= l.left + l.width
-        );
-        if (tappedIndex >= 0 && tappedIndex < data.length) {
-          onTapFallback(data[tappedIndex]);
-        }
+        // Skip if: scroll moved, was a scroll-stop tap, or a mounted card handled it
+        if (verticalMove > 8) return;
+        if (Math.abs(scrollYRef.current - startScrollY) > 4) return;
+        if (tapHandledByCardRef.current || tapHandledRef?.current) return;
+        // Measure ScrollView's screen position for accurate content coordinates
+        (scrollRef as React.RefObject<ScrollView>)?.current?.measureInWindow((svX, svY) => {
+          const contentX = endPageX - svX;
+          const contentY = startScrollY + (endPageY - svY);
+          const tappedIndex = layouts.findIndex(
+            (l) =>
+              contentY >= l.top &&
+              contentY <= l.top + l.height &&
+              contentX >= l.left &&
+              contentX <= l.left + l.width
+          );
+          if (tappedIndex >= 0 && tappedIndex < data.length) {
+            onTapFallback(data[tappedIndex]);
+          }
+        });
       }}
       refreshControl={refreshControl}
       onLayout={(e) => {

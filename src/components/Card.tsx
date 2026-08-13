@@ -24,12 +24,13 @@ interface Props {
   onReact: (post: Post, emoji: string | null) => void;
   onPress: (post: Post) => void;
   onReactPress: (post: Post, buttonRef: React.RefObject<View>) => void;
+  onTapHandled?: () => void; // called when card handles its own tap
   hideBadge?: boolean;
   colors: Colors;
   lang: LangMode;
 }
 
-export const Card = React.memo(function Card({ post, reaction, onPress, onReactPress, hideBadge, colors, lang }: Props) {
+export const Card = React.memo(function Card({ post, reaction, onPress, onReactPress, onTapHandled, hideBadge, colors, lang }: Props) {
   const styles = getCachedStyles(colors);
 
   const reactionEntries = useMemo(() => {
@@ -52,7 +53,7 @@ export const Card = React.memo(function Card({ post, reaction, onPress, onReactP
 
   return (
     <TouchableOpacity
-      onPress={() => onPress(post)}
+      onPress={() => { onTapHandled?.(); onPress(post); }}
       activeOpacity={0.88}
       style={styles.container}
       shouldRasterizeIOS={true}

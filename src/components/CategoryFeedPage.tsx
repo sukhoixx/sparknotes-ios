@@ -44,6 +44,7 @@ interface CardCellProps {
   onReact: (post: Post, emoji: string | null) => void;
   onOpenPost: (post: Post) => void;
   onReactPress: (post: Post, buttonRef: React.RefObject<View>) => void;
+  onTapHandled: () => void;
   hideBadge: boolean;
   overrideGradient?: string;
   columnWidth?: number;
@@ -51,7 +52,7 @@ interface CardCellProps {
   lang: LangMode;
 }
 
-const CardCell = React.memo(function CardCell({ item, index, reaction, onReact, onOpenPost, onReactPress, hideBadge, overrideGradient, columnWidth, colors, lang }: CardCellProps) {
+const CardCell = React.memo(function CardCell({ item, index, reaction, onReact, onOpenPost, onReactPress, onTapHandled, hideBadge, overrideGradient, columnWidth, colors, lang }: CardCellProps) {
   if (item === "ad") return <View style={styles.cell}><AdCard /></View>;
   return (
     <View style={styles.cell}>
@@ -61,6 +62,7 @@ const CardCell = React.memo(function CardCell({ item, index, reaction, onReact, 
         onReact={onReact}
         onPress={onOpenPost}
         onReactPress={onReactPress}
+        onTapHandled={onTapHandled}
         hideBadge={hideBadge}
         colors={colors}
         lang={lang}
@@ -109,7 +111,11 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
   const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 });
   const pickerAnim = useRef(new Animated.Value(0)).current;
 
+  // Ref that cards set when they handle a tap — prevents the ScrollView fallback from also firing
+  const tapHandledRef = useRef(false);
+
   const handleReactPress = useCallback((post: Post, buttonRef: React.RefObject<View>) => {
+    tapHandledRef.current = true; // mark tap as handled so fallback doesn't fire
     buttonRef.current?.measureInWindow((x, y, w) => {
       const screenW = Dimensions.get("window").width;
       const centeredX = x + w / 2 - PICKER_WIDTH / 2;
@@ -256,6 +262,7 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
         onReact={onReact}
         onOpenPost={onOpenPost}
         onReactPress={handleReactPress}
+        onTapHandled={() => { tapHandledRef.current = true; }}
         hideBadge={hideBadge}
         overrideGradient={overrideGradient}
         columnWidth={columnWidth}
@@ -318,6 +325,7 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
       onTapFallback={(item) => {
         if (item !== "ad") onOpenPost(item as Post);
       }}
+      tapHandledRef={tapHandledRef}
       contentContainerStyle={styles.scrollContent}
       columnGap={0}
       rowGap={0}
