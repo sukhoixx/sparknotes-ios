@@ -79,6 +79,8 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
       onPress={() => onPress(post)}
       activeOpacity={0.88}
       style={styles.container}
+      shouldRasterizeIOS={true}
+      renderToHardwareTextureAndroid={true}
     >
       {!hideBadge && (
         <Text style={styles.badge}>{t(`cat_${post.category}`, lang)}</Text>
