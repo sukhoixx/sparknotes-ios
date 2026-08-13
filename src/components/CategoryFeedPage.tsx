@@ -113,6 +113,8 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
 
   // Ref that cards set when they handle a tap — prevents the ScrollView fallback from also firing
   const tapHandledRef = useRef(false);
+  // Ref set by VirtualizedMasonryList when a touch is stopping momentum scroll
+  const scrollStoppingRef = useRef(false);
 
   const handleReactPress = useCallback((post: Post, buttonRef: React.RefObject<View>) => {
     tapHandledRef.current = true; // mark tap as handled so fallback doesn't fire
@@ -252,6 +254,12 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
   const reactionsRef = useRef(reactions);
   reactionsRef.current = reactions;
 
+  // Wrap onOpenPost to prevent opening when user tapped to stop momentum scroll
+  const handleOpenPost = useCallback((post: Post) => {
+    if (scrollStoppingRef.current) return;
+    onOpenPost(post);
+  }, [onOpenPost]);
+
   const renderItem = useCallback(({ item, index, columnWidth }: { item: FlatItem; index: number; columnWidth: number }) => {
     const reaction = item === "ad" ? null : (reactionsRef.current[(item as Post).id] ?? null);
     return (
@@ -260,7 +268,7 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
         index={index}
         reaction={reaction}
         onReact={onReact}
-        onOpenPost={onOpenPost}
+        onOpenPost={handleOpenPost}
         onReactPress={handleReactPress}
         onTapHandled={() => { tapHandledRef.current = true; }}
         hideBadge={hideBadge}
@@ -323,9 +331,10 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
       onEndReachedThreshold={0.5}
       scrollRef={listRef}
       onTapFallback={(item) => {
-        if (item !== "ad") onOpenPost(item as Post);
+        if (item !== "ad") handleOpenPost(item as Post);
       }}
       tapHandledRef={tapHandledRef}
+      scrollStoppingRef={scrollStoppingRef}
       contentContainerStyle={styles.scrollContent}
       columnGap={0}
       rowGap={0}

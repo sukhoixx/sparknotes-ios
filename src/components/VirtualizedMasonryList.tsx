@@ -39,6 +39,8 @@ interface Props<T> {
   onTapFallback?: (item: T) => void;
   // Ref that mounted cards set to true when they handle a tap, preventing the fallback from firing.
   tapHandledRef?: React.MutableRefObject<boolean>;
+  // Ref exposed to parent — true when a touch is stopping momentum scroll.
+  scrollStoppingRef?: React.MutableRefObject<boolean>;
 }
 
 export function VirtualizedMasonryList<T>({
@@ -58,6 +60,7 @@ export function VirtualizedMasonryList<T>({
   rowGap = 0,
   onTapFallback,
   tapHandledRef,
+  scrollStoppingRef,
 }: Props<T>) {
   const [scrollY, setScrollY] = useState(0);
   const scrollYRef = useRef(0);
@@ -128,6 +131,7 @@ export function VirtualizedMasonryList<T>({
   const touchStartScrollYRef = useRef(0);
   const isMomentumScrollingRef = useRef(false); // true while decelerating after a fling
   const tapHandledByCardRef = useRef(false); // set by mounted cards that handle their own tap
+  const tapWasScrollStopRef = useRef(false); // true if this touch started during momentum scroll
 
   const totalHeightRef = useRef(0);
   totalHeightRef.current = totalHeight;
@@ -215,7 +219,10 @@ export function VirtualizedMasonryList<T>({
       onScrollEndDrag={handleScrollEnd}
       onTouchStart={(e) => {
         if (!onTapFallback) return;
-        isMomentumScrollingRef.current = false; // touch stops momentum
+        // Capture whether this touch is stopping a momentum scroll — if so, ignore as a tap
+        tapWasScrollStopRef.current = isMomentumScrollingRef.current;
+        if (scrollStoppingRef) scrollStoppingRef.current = isMomentumScrollingRef.current;
+        isMomentumScrollingRef.current = false;
         tapHandledByCardRef.current = false;
         if (tapHandledRef) tapHandledRef.current = false;
         touchStartYRef.current = e.nativeEvent.pageY;
@@ -228,7 +235,8 @@ export function VirtualizedMasonryList<T>({
         const verticalMove = Math.abs(endPageY - touchStartYRef.current);
         const startScrollY = touchStartScrollYRef.current;
         touchStartYRef.current = null;
-        // Skip if: scroll moved, was a scroll-stop tap, or a mounted card handled it
+        // Skip if: was stopping momentum scroll, scroll moved, or a mounted card handled it
+        if (tapWasScrollStopRef.current) return;
         if (verticalMove > 8) return;
         if (Math.abs(scrollYRef.current - startScrollY) > 4) return;
         if (tapHandledByCardRef.current || tapHandledRef?.current) return;
