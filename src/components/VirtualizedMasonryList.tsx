@@ -34,6 +34,9 @@ interface Props<T> {
   scrollRef?: RefObject<ScrollView | null>;
   columnGap?: number;
   rowGap?: number;
+  // Fallback: called when a tap lands on empty space (unmounted card).
+  // Receives the item at the tapped position so caller can open it directly.
+  onTapFallback?: (item: T) => void;
 }
 
 export function VirtualizedMasonryList<T>({
@@ -51,6 +54,7 @@ export function VirtualizedMasonryList<T>({
   scrollRef,
   columnGap = 0,
   rowGap = 0,
+  onTapFallback,
 }: Props<T>) {
   const [scrollY, setScrollY] = useState(0);
   const scrollYRef = useRef(0);
@@ -115,6 +119,10 @@ export function VirtualizedMasonryList<T>({
     },
     []
   );
+
+  // Touch tracking for fallback tap detection on unmounted cards
+  const touchStartYRef = useRef<number | null>(null);
+  const touchStartScrollYRef = useRef(0);
 
   const totalHeightRef = useRef(0);
   totalHeightRef.current = totalHeight;
@@ -199,6 +207,29 @@ export function VirtualizedMasonryList<T>({
       onScroll={handleScroll}
       onMomentumScrollEnd={handleScrollEnd}
       onScrollEndDrag={handleScrollEnd}
+      onTouchStart={(e) => {
+        if (!onTapFallback) return;
+        touchStartYRef.current = e.nativeEvent.locationY;
+        touchStartScrollYRef.current = scrollYRef.current;
+      }}
+      onTouchEnd={(e) => {
+        if (!onTapFallback || touchStartYRef.current === null) return;
+        const endY = e.nativeEvent.locationY;
+        const verticalMove = Math.abs(endY - touchStartYRef.current);
+        const startScrollY = touchStartScrollYRef.current;
+        touchStartYRef.current = null;
+        // Only treat as tap if minimal movement and scroll didn't change
+        if (verticalMove > 8 || Math.abs(scrollYRef.current - startScrollY) > 4) return;
+        // Content Y = scroll offset + touch Y within viewport
+        const contentY = startScrollY + endY;
+        // Find which layout contains this Y position
+        const tappedIndex = layouts.findIndex(
+          (l) => contentY >= l.top && contentY <= l.top + l.height
+        );
+        if (tappedIndex >= 0 && tappedIndex < data.length) {
+          onTapFallback(data[tappedIndex]);
+        }
+      }}
       refreshControl={refreshControl}
       onLayout={(e) => {
         setContainerWidth(e.nativeEvent.layout.width);
@@ -207,6 +238,7 @@ export function VirtualizedMasonryList<T>({
       }}
     >
       {data.length === 0 && ListEmptyComponent}
+
 
       {visibleItems.map(({ layout, index }) => {
         const item = data[index];
