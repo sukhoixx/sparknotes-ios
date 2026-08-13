@@ -214,17 +214,23 @@ export function VirtualizedMasonryList<T>({
       }}
       onTouchEnd={(e) => {
         if (!onTapFallback || touchStartYRef.current === null) return;
+        const endX = e.nativeEvent.locationX;
         const endY = e.nativeEvent.locationY;
         const verticalMove = Math.abs(endY - touchStartYRef.current);
         const startScrollY = touchStartScrollYRef.current;
         touchStartYRef.current = null;
-        // Only treat as tap if minimal movement and scroll didn't change
+        // Only treat as tap if minimal vertical movement and scroll didn't change
         if (verticalMove > 8 || Math.abs(scrollYRef.current - startScrollY) > 4) return;
-        // Content Y = scroll offset + touch Y within viewport
-        const contentY = startScrollY + endY;
-        // Find which layout contains this Y position
+        // Content position: scrollY + locationY, minus contentContainerStyle paddingTop (8px) and paddingHorizontal (4px)
+        const contentX = endX - 4;
+        const contentY = startScrollY + endY - 8;
+        // Find layout that contains both X and Y
         const tappedIndex = layouts.findIndex(
-          (l) => contentY >= l.top && contentY <= l.top + l.height
+          (l) =>
+            contentY >= l.top &&
+            contentY <= l.top + l.height &&
+            contentX >= l.left &&
+            contentX <= l.left + l.width
         );
         if (tappedIndex >= 0 && tappedIndex < data.length) {
           onTapFallback(data[tappedIndex]);
