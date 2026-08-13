@@ -172,12 +172,14 @@ export function VirtualizedMasonryList<T>({
     checkEndReached();
   }, [checkEndReached, totalHeight]);
 
-  // Virtualize with large buffer so cards are pre-mounted before user scrolls to them.
-  // scrollY state only updates when position moves > BUFFER/2, so the visible window
-  // always leads actual scroll position — cards are never unmounted at the tap target.
+  // Asymmetric buffer: large buffer below (prevents tap failures scrolling forward),
+  // small buffer above (reclaims memory for cards already scrolled past).
+  // scrollY state only updates when position moves > BUFFER/2, so the downward
+  // window always LEADS actual scroll — cards ahead are always pre-mounted.
+  const BUFFER_ABOVE = SCREEN_HEIGHT * 1;  // 1 screen above: reclaim memory
   const visibleItems = useMemo(() => {
-    const top = scrollY - BUFFER;
-    const bottom = scrollY + viewportHeight + BUFFER;
+    const top = scrollY - BUFFER_ABOVE;
+    const bottom = scrollY + viewportHeight + BUFFER; // 3x below
     return layouts
       .map((layout, index) => ({ layout, index }))
       .filter(({ layout }) => layout.top + layout.height > top && layout.top < bottom);
