@@ -74,6 +74,7 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
   }
 
   return (
+    <>
     <TouchableOpacity
       onPress={() => onPress(post)}
       activeOpacity={0.88}
@@ -147,6 +148,7 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
         </Animated.View>
       </Pressable>
     </Modal>
+    </>
   );
 });
 
