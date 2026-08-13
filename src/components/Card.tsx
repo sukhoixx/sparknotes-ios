@@ -1,32 +1,36 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, View, Text, TouchableOpacity, Pressable, StyleSheet, Modal, Dimensions } from "react-native";
-import { useTheme } from "../theme";
-import { useLang, toSimplified } from "../lang";
+import React, { useEffect, useRef, useMemo } from "react";
+import { Animated, View, Text, TouchableOpacity, Pressable, StyleSheet } from "react-native";
+import { toSimplified } from "../lang";
 import { t } from "../i18n";
 import type { Colors } from "../theme";
+import type { LangMode } from "../lang";
 import type { Post } from "../types";
 
-function formatNum(n: number): string {
-  return n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
-}
-
 const REACTIONS = ["😮", "❤️", "😂", "😢", "😡", "👍"] as const;
-const PICKER_WIDTH = REACTIONS.length * 48 + 16;
+export { REACTIONS };
+export const PICKER_WIDTH = REACTIONS.length * 48 + 16;
+
+// Style cache keyed by surface color to avoid recreating StyleSheets per render
+const styleCache = new Map<string, ReturnType<typeof makeStyles>>();
+function getCachedStyles(colors: Colors) {
+  const key = colors.surface;
+  if (!styleCache.has(key)) styleCache.set(key, makeStyles(colors));
+  return styleCache.get(key)!;
+}
 
 interface Props {
   post: Post;
   reaction: string | null;
   onReact: (post: Post, emoji: string | null) => void;
   onPress: (post: Post) => void;
+  onReactPress: (post: Post, buttonRef: React.RefObject<View>) => void;
   hideBadge?: boolean;
-  overrideGradient?: string;
-  animationIndex?: number;
+  colors: Colors;
+  lang: LangMode;
 }
 
-export const Card = React.memo(function Card({ post, reaction, onReact, onPress, hideBadge, animationIndex = 0 }: Props) {
-  const { colors } = useTheme();
-  const { lang } = useLang();
-  const styles = useMemo(() => makeStyles(colors), [colors]);
+export const Card = React.memo(function Card({ post, reaction, onPress, onReactPress, hideBadge, colors, lang }: Props) {
+  const styles = getCachedStyles(colors);
 
   const reactionEntries = useMemo(() => {
     const r = { ...(post.reactions ?? {}) };
@@ -39,42 +43,14 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
     : post.title).trim();
 
   const imgOpacity = useRef(new Animated.Value(0)).current;
-  const pickerAnim = useRef(new Animated.Value(0)).current;
-
-  const [pickerVisible, setPickerVisible] = useState(false);
-  const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 });
   const buttonRef = useRef<View>(null);
 
   useEffect(() => {
-    // Start visible — onLoad may not fire for cached images on remount
     imgOpacity.setValue(1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.imageUrl]);
 
-
-  function showPicker() {
-    buttonRef.current?.measureInWindow((x, y, w) => {
-      const screenW = Dimensions.get("window").width;
-      const centeredX = x + w / 2 - PICKER_WIDTH / 2;
-      const clampedX = Math.min(Math.max(8, centeredX), screenW - PICKER_WIDTH - 8);
-      setPickerPos({ x: clampedX, y: y - 60 });
-      setPickerVisible(true);
-      pickerAnim.setValue(0);
-      Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, bounciness: 10, speed: 18 }).start();
-    });
-  }
-
-  function hidePicker() {
-    Animated.timing(pickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setPickerVisible(false));
-  }
-
-  function handleSelect(emoji: string) {
-    onReact(post, reaction === emoji ? null : emoji);
-    hidePicker();
-  }
-
   return (
-    <>
     <TouchableOpacity
       onPress={() => onPress(post)}
       activeOpacity={0.88}
@@ -106,7 +82,7 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
           </Text>
           <View ref={buttonRef} collapsable={false}>
             <Pressable
-              onPress={(e) => { e.stopPropagation(); showPicker(); }}
+              onPress={(e) => { e.stopPropagation(); onReactPress(post, buttonRef); }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               style={styles.likeRow}
             >
@@ -124,33 +100,6 @@ export const Card = React.memo(function Card({ post, reaction, onReact, onPress,
         </View>
       </View>
     </TouchableOpacity>
-    <Modal visible={pickerVisible} transparent animationType="none" onRequestClose={hidePicker}>
-      <Pressable style={StyleSheet.absoluteFillObject} onPress={hidePicker}>
-        <Animated.View
-          style={[
-            styles.pickerRow,
-            {
-              position: "absolute",
-              left: pickerPos.x,
-              top: pickerPos.y,
-              opacity: pickerAnim,
-              transform: [{ scale: pickerAnim }],
-            },
-          ]}
-        >
-          {REACTIONS.map((emoji) => (
-            <TouchableOpacity
-              key={emoji}
-              onPress={() => handleSelect(emoji)}
-              style={[styles.pickerEmoji, reaction === emoji && styles.pickerEmojiActive]}
-            >
-              <Text style={styles.pickerEmojiText}>{emoji}</Text>
-            </TouchableOpacity>
-          ))}
-        </Animated.View>
-      </Pressable>
-    </Modal>
-    </>
   );
 });
 
@@ -213,6 +162,12 @@ function makeStyles(c: Colors) {
       fontSize: 10,
       color: c.textFaint,
     },
+  });
+}
+
+// Shared picker styles — used by CategoryFeedPage's single Modal
+export function makePickerStyles(c: Colors) {
+  return StyleSheet.create({
     pickerRow: {
       flexDirection: "row",
       alignItems: "center",

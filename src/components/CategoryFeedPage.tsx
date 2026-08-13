@@ -6,9 +6,14 @@ import {
   RefreshControl,
   StyleSheet,
   ScrollView,
+  Modal,
+  Pressable,
+  TouchableOpacity,
+  Animated,
+  Dimensions,
 } from "react-native";
 import { VirtualizedMasonryList } from "./VirtualizedMasonryList";
-import { Card } from "./Card";
+import { Card, REACTIONS, PICKER_WIDTH, makePickerStyles } from "./Card";
 import { AdCard } from "./AdCard";
 import { fetchPosts } from "../api";
 import { CATEGORY_GRADIENTS } from "../categories";
@@ -16,6 +21,8 @@ import { useTheme } from "../theme";
 import { useLang } from "../lang";
 import { t } from "../i18n";
 import type { Post, PageData } from "../types";
+import type { Colors } from "../theme";
+import type { LangMode } from "../lang";
 
 type FlatItem = Post | "ad";
 
@@ -36,12 +43,15 @@ interface CardCellProps {
   reaction: string | null;
   onReact: (post: Post, emoji: string | null) => void;
   onOpenPost: (post: Post) => void;
+  onReactPress: (post: Post, buttonRef: React.RefObject<View>) => void;
   hideBadge: boolean;
   overrideGradient?: string;
   columnWidth?: number;
+  colors: Colors;
+  lang: LangMode;
 }
 
-const CardCell = React.memo(function CardCell({ item, index, reaction, onReact, onOpenPost, hideBadge, overrideGradient, columnWidth }: CardCellProps) {
+const CardCell = React.memo(function CardCell({ item, index, reaction, onReact, onOpenPost, onReactPress, hideBadge, overrideGradient, columnWidth, colors, lang }: CardCellProps) {
   if (item === "ad") return <View style={styles.cell}><AdCard /></View>;
   return (
     <View style={styles.cell}>
@@ -50,9 +60,10 @@ const CardCell = React.memo(function CardCell({ item, index, reaction, onReact, 
         reaction={reaction}
         onReact={onReact}
         onPress={onOpenPost}
+        onReactPress={onReactPress}
         hideBadge={hideBadge}
-        overrideGradient={overrideGradient}
-        animationIndex={index}
+        colors={colors}
+        lang={lang}
       />
     </View>
   );
@@ -91,6 +102,28 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
 }: Props) {
   const { colors } = useTheme();
   const { lang } = useLang();
+  const pickerStyles = useMemo(() => makePickerStyles(colors), [colors]);
+
+  // Shared emoji picker state — single Modal for all cards in this feed
+  const [pickerPost, setPickerPost] = useState<Post | null>(null);
+  const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 });
+  const pickerAnim = useRef(new Animated.Value(0)).current;
+
+  const handleReactPress = useCallback((post: Post, buttonRef: React.RefObject<View>) => {
+    buttonRef.current?.measureInWindow((x, y, w) => {
+      const screenW = Dimensions.get("window").width;
+      const centeredX = x + w / 2 - PICKER_WIDTH / 2;
+      const clampedX = Math.min(Math.max(8, centeredX), screenW - PICKER_WIDTH - 8);
+      setPickerPos({ x: clampedX, y: y - 60 });
+      setPickerPost(post);
+      pickerAnim.setValue(0);
+      Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, bounciness: 10, speed: 18 }).start();
+    });
+  }, [pickerAnim]);
+
+  const hidePicker = useCallback(() => {
+    Animated.timing(pickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setPickerPost(null));
+  }, [pickerAnim]);
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
@@ -210,8 +243,11 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
     return estimateCardHeight(item, hideBadge);
   }, [hideBadge]);
 
+  const reactionsRef = useRef(reactions);
+  reactionsRef.current = reactions;
+
   const renderItem = useCallback(({ item, index, columnWidth }: { item: FlatItem; index: number; columnWidth: number }) => {
-    const reaction = item === "ad" ? null : (reactions[(item as Post).id] ?? null);
+    const reaction = item === "ad" ? null : (reactionsRef.current[(item as Post).id] ?? null);
     return (
       <CardCell
         item={item}
@@ -219,12 +255,15 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
         reaction={reaction}
         onReact={onReact}
         onOpenPost={onOpenPost}
+        onReactPress={handleReactPress}
         hideBadge={hideBadge}
         overrideGradient={overrideGradient}
         columnWidth={columnWidth}
+        colors={colors}
+        lang={lang}
       />
     );
-  }, [reactions, onReact, onOpenPost, hideBadge, overrideGradient]);
+  }, [onReact, onOpenPost, handleReactPress, hideBadge, overrideGradient, colors, lang]);
 
   if (posts.length === 0 && !loadCompleted) {
     return (
@@ -234,7 +273,39 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
     );
   }
 
+  const pickerReaction = pickerPost ? (reactions[pickerPost.id] ?? null) : null;
+
   return (
+    <>
+    <Modal visible={!!pickerPost} transparent animationType="none" onRequestClose={hidePicker}>
+      <Pressable style={StyleSheet.absoluteFillObject} onPress={hidePicker}>
+        <Animated.View
+          style={[
+            pickerStyles.pickerRow,
+            {
+              position: "absolute",
+              left: pickerPos.x,
+              top: pickerPos.y,
+              opacity: pickerAnim,
+              transform: [{ scale: pickerAnim }],
+            },
+          ]}
+        >
+          {REACTIONS.map((emoji) => (
+            <TouchableOpacity
+              key={emoji}
+              onPress={() => {
+                if (pickerPost) onReact(pickerPost, pickerReaction === emoji ? null : emoji);
+                hidePicker();
+              }}
+              style={[pickerStyles.pickerEmoji, pickerReaction === emoji && pickerStyles.pickerEmojiActive]}
+            >
+              <Text style={pickerStyles.pickerEmojiText}>{emoji}</Text>
+            </TouchableOpacity>
+          ))}
+        </Animated.View>
+      </Pressable>
+    </Modal>
     <VirtualizedMasonryList
       data={flatItems}
       numColumns={2}
@@ -262,6 +333,7 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
         loading ? <ActivityIndicator color={colors.brand} style={{ marginVertical: 20 }} /> : null
       }
     />
+    </>
   );
 });
 
