@@ -350,7 +350,6 @@ export default function FeedScreen() {
         })}
       </PagerView>
 
-      <MarqueeBanner colors={colors} />
 
       <ArticleSheet
         post={openPost}
