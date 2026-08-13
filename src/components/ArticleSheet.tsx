@@ -630,16 +630,17 @@ export function ArticleSheet({
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerPos, setPickerPos] = useState({ x: 0, y: 0 });
   const reactionBtnRef = useRef<View>(null);
-  const reactionBtnPosRef = useRef({ x: 0, y: 0, w: 0 }); // cached position, updated on layout
   const pickerAnim = useRef(new Animated.Value(0)).current;
 
   function showPicker() {
     if (!isAuthenticated) { onSignInRequired(); return; }
-    // Use cached position — avoids measureInWindow on touch which can freeze the UI
-    const { x, y, w } = reactionBtnPosRef.current;
-    const cx = x + w / 2 - PICKER_WIDTH / 2;
+    // Compute picker position from known layout — no measureInWindow needed (avoids freeze)
+    // Button is always top-right of article header: insets.top + header paddingVertical center
+    const btnY = insets.top + 24; // approx center of header (paddingVertical: 12 → height ~48)
+    const btnX = width - 16; // right edge of header (paddingHorizontal: 16)
+    const cx = btnX - PICKER_WIDTH / 2;
     const clampedX = Math.min(Math.max(8, cx), width - PICKER_WIDTH - 8);
-    setPickerPos({ x: clampedX, y: y - 60 });
+    setPickerPos({ x: clampedX, y: btnY + 4 });
     setPickerVisible(true);
     pickerAnim.setValue(0);
     Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, bounciness: 10, speed: 18 }).start();
@@ -905,11 +906,7 @@ export function ArticleSheet({
             </TouchableOpacity>
           </View>
           {post && (
-            <View ref={reactionBtnRef} collapsable={false} onLayout={() => {
-              reactionBtnRef.current?.measureInWindow((x, y, w) => {
-                reactionBtnPosRef.current = { x, y, w };
-              });
-            }}>
+            <View ref={reactionBtnRef} collapsable={false}>
               <TouchableOpacity onPress={showPicker} style={styles.likeBtn}>
                 <View style={styles.likeBtn}>
                   {reactionEntries.length > 0
