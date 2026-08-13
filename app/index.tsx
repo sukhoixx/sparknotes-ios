@@ -212,12 +212,9 @@ export default function FeedScreen() {
       return next;
     });
     const apiCall = emoji !== null ? upsertReaction(post.id, emoji) : deleteReaction(post.id);
-    apiCall.then(() => fetchPost(post.id)).then((updated) => {
-      if (updated) {
-        patchPostRef.current?.(updated);
-        setOpenPost((prev) => prev?.id === updated.id ? updated : prev);
-      }
-    }).catch(() => {});
+    // Fire and forget — reactions are already updated optimistically via setReactions.
+    // Avoid fetchPost which triggers a heavy re-render of 150+ feed cards.
+    apiCall.catch(() => {});
   }, [isAuthenticated]);
 
   function handleSignedIn() {
