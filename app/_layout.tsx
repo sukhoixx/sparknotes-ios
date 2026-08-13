@@ -12,6 +12,7 @@ import { LangProvider, useLang } from "../src/lang";
 import { EventProvider, useEvent } from "../src/event";
 import { CategoriesProvider } from "../src/categoriesContext";
 import { ForceUpgradeModal } from "../src/components/ForceUpgradeModal";
+import { remoteConfig } from "../src/config";
 import { useEffect, useRef, useState } from "react";
 
 Notifications.setNotificationHandler({
@@ -85,7 +86,6 @@ function AppShell() {
         if (compareVersions(current, min) < 0) setForceUpgrade(true);
         if (data.activeEvents?.length) setActiveEvents(data.activeEvents);
         if (typeof data.adFrequency === "number" && data.adFrequency > 0) {
-          const { remoteConfig } = await import("../src/config");
           remoteConfig.adFrequency = data.adFrequency;
         }
       })
