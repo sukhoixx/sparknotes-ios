@@ -84,6 +84,10 @@ function AppShell() {
         const min = data.minVersionIos ?? data.minVersion ?? "1.0.0";
         if (compareVersions(current, min) < 0) setForceUpgrade(true);
         if (data.activeEvents?.length) setActiveEvents(data.activeEvents);
+        if (typeof data.adFrequency === "number" && data.adFrequency > 0) {
+          const { remoteConfig } = await import("../src/config");
+          remoteConfig.adFrequency = data.adFrequency;
+        }
       })
       .catch(() => {});
 

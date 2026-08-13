@@ -17,6 +17,7 @@ import { Card, REACTIONS, PICKER_WIDTH, makePickerStyles } from "./Card";
 import { AdCard } from "./AdCard";
 import { fetchPosts } from "../api";
 import { CATEGORY_GRADIENTS } from "../categories";
+import { remoteConfig } from "../config";
 import { useTheme } from "../theme";
 import { useLang } from "../lang";
 import { t } from "../i18n";
@@ -233,7 +234,7 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
   const hideBadge = category !== "all" || !!eventSlug;
 
   const flatItems = useMemo<FlatItem[]>(() => {
-    const AD_EVERY = 10;
+    const AD_EVERY = remoteConfig.adFrequency;
     const result: FlatItem[] = [];
     posts.forEach((post, i) => {
       if (i > 0 && i % AD_EVERY === 0) result.push("ad");
