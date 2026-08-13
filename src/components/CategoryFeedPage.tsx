@@ -315,9 +315,6 @@ export const CategoryFeedPage = React.memo(function CategoryFeedPage({
       onEndReached={handleEndReached}
       onEndReachedThreshold={0.5}
       scrollRef={listRef}
-      onTapFallback={(item) => {
-        if (item !== "ad") onOpenPost(item as Post);
-      }}
       contentContainerStyle={styles.scrollContent}
       columnGap={0}
       rowGap={0}

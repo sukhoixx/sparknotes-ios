@@ -34,9 +34,6 @@ interface Props<T> {
   scrollRef?: RefObject<ScrollView | null>;
   columnGap?: number;
   rowGap?: number;
-  // Fallback: called when a tap lands on empty space (unmounted card).
-  // Receives the item at the tapped position so caller can open it directly.
-  onTapFallback?: (item: T) => void;
 }
 
 export function VirtualizedMasonryList<T>({
@@ -54,7 +51,6 @@ export function VirtualizedMasonryList<T>({
   scrollRef,
   columnGap = 0,
   rowGap = 0,
-  onTapFallback,
 }: Props<T>) {
   const [scrollY, setScrollY] = useState(0);
   const scrollYRef = useRef(0);
@@ -120,10 +116,6 @@ export function VirtualizedMasonryList<T>({
     []
   );
 
-  // Touch tracking for fallback tap detection on unmounted cards
-  const touchStartYRef = useRef<number | null>(null);
-  const touchStartScrollYRef = useRef(0);
-
   const totalHeightRef = useRef(0);
   totalHeightRef.current = totalHeight;
   const viewportHeightRef = useRef(SCREEN_HEIGHT);
@@ -139,10 +131,6 @@ export function VirtualizedMasonryList<T>({
     }
   }, [onEndReachedThreshold, onEndReached]);
 
-  // Only trigger a re-render when scroll position moves far enough that the visible
-  // window needs updating — prevents re-renders on every scroll tick.
-  const UPDATE_THRESHOLD = BUFFER / 2;
-
   const handleScroll = useCallback(
     (e: { nativeEvent: { contentOffset: { y: number }; layoutMeasurement: { height: number } } }) => {
       const y = e.nativeEvent.contentOffset.y;
@@ -151,9 +139,13 @@ export function VirtualizedMasonryList<T>({
       setViewportHeight(viewportH);
       scrollYRef.current = y;
       checkEndReached();
-      // Only update state (and re-render visible items) when position has moved
-      // enough that cards are entering/leaving the buffer zone.
-      if (Math.abs(y - scrollY) > UPDATE_THRESHOLD) {
+      // Proactively update the mounted window when approaching its bottom edge.
+      // This ensures cards below are always pre-mounted before the user reaches them.
+      // Without this, there's a lag window where cards at the bottom of the buffer
+      // aren't mounted yet when the user scrolls into them.
+      const mountedBottom = scrollY + viewportH + BUFFER;
+      const approachingEdge = y + viewportH > mountedBottom - BUFFER / 2;
+      if (approachingEdge || y < scrollY - BUFFER / 2) {
         setScrollY(y);
       }
     },
@@ -207,35 +199,6 @@ export function VirtualizedMasonryList<T>({
       onScroll={handleScroll}
       onMomentumScrollEnd={handleScrollEnd}
       onScrollEndDrag={handleScrollEnd}
-      onTouchStart={(e) => {
-        if (!onTapFallback) return;
-        touchStartYRef.current = e.nativeEvent.pageY;
-        touchStartScrollYRef.current = scrollYRef.current;
-      }}
-      onTouchEnd={(e) => {
-        if (!onTapFallback || touchStartYRef.current === null) return;
-        const endPageX = e.nativeEvent.pageX;
-        const endPageY = e.nativeEvent.pageY;
-        const verticalMove = Math.abs(endPageY - touchStartYRef.current);
-        const startScrollY = touchStartScrollYRef.current;
-        touchStartYRef.current = null;
-        if (verticalMove > 8 || Math.abs(scrollYRef.current - startScrollY) > 4) return;
-        // Measure ScrollView's actual screen position to compute content coordinates
-        (scrollRef as React.RefObject<ScrollView>)?.current?.measureInWindow((svX, svY) => {
-          const contentX = endPageX - svX;
-          const contentY = startScrollY + (endPageY - svY);
-          const tappedIndex = layouts.findIndex(
-            (l) =>
-              contentY >= l.top &&
-              contentY <= l.top + l.height &&
-              contentX >= l.left &&
-              contentX <= l.left + l.width
-          );
-          if (tappedIndex >= 0 && tappedIndex < data.length) {
-            onTapFallback(data[tappedIndex]);
-          }
-        });
-      }}
       refreshControl={refreshControl}
       onLayout={(e) => {
         setContainerWidth(e.nativeEvent.layout.width);
