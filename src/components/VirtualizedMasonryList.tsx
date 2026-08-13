@@ -133,6 +133,7 @@ export function VirtualizedMasonryList<T>({
   const isMomentumScrollingRef = useRef(false); // true while decelerating after a fling
   const tapHandledByCardRef = useRef(false); // set by mounted cards that handle their own tap
   const tapWasScrollStopRef = useRef(false); // true if this touch started during momentum scroll
+  const scrollViewScreenYRef = useRef(0); // cached ScrollView screen Y offset, updated on layout
 
   const totalHeightRef = useRef(0);
   totalHeightRef.current = totalHeight;
@@ -244,29 +245,25 @@ export function VirtualizedMasonryList<T>({
         if (verticalMove > 8) return;
         if (horizontalMove > 10) return; // horizontal swipe (tab change)
         if (Math.abs(scrollYRef.current - startScrollY) > 4) return;
-        if (tapHandledByCardRef.current || tapHandledRef?.current) return;
-        // Defer to next tick so card onPress handlers can set tapHandledRef first,
-        // preventing concurrent measureInWindow calls that can freeze the UI.
+        // Defer by 50ms so card onPress handlers can set tapHandledRef first
         const capturedPageX = endPageX;
         const capturedPageY = endPageY;
         const capturedStartScrollY = startScrollY;
         setTimeout(() => {
           if (tapHandledByCardRef.current || tapHandledRef?.current) return;
-          // Measure ScrollView's screen position for accurate content coordinates
-          (scrollRef as React.RefObject<ScrollView>)?.current?.measureInWindow((svX, svY) => {
-            const contentX = capturedPageX - svX;
-            const contentY = capturedStartScrollY + (capturedPageY - svY);
-            const tappedIndex = layouts.findIndex(
-              (l) =>
-                contentY >= l.top &&
-                contentY <= l.top + l.height &&
-                contentX >= l.left &&
-                contentX <= l.left + l.width
-            );
-            if (tappedIndex >= 0 && tappedIndex < data.length) {
-              onTapFallback(data[tappedIndex]);
-            }
-          });
+          // Use cached ScrollView screen Y offset — no measureInWindow needed (avoids freeze)
+          const contentX = capturedPageX - 4; // paddingHorizontal offset
+          const contentY = capturedStartScrollY + (capturedPageY - scrollViewScreenYRef.current);
+          const tappedIndex = layouts.findIndex(
+            (l) =>
+              contentY >= l.top &&
+              contentY <= l.top + l.height &&
+              contentX >= l.left &&
+              contentX <= l.left + l.width
+          );
+          if (tappedIndex >= 0 && tappedIndex < data.length) {
+            onTapFallback(data[tappedIndex]);
+          }
         }, 50);
       }}
       refreshControl={refreshControl}
@@ -274,6 +271,10 @@ export function VirtualizedMasonryList<T>({
         setContainerWidth(e.nativeEvent.layout.width);
         viewportHeightRef.current = e.nativeEvent.layout.height;
         setViewportHeight(e.nativeEvent.layout.height);
+        // Cache ScrollView screen Y offset for tap fallback coordinate calculation
+        (scrollRef as React.RefObject<ScrollView>)?.current?.measureInWindow((_x, y) => {
+          scrollViewScreenYRef.current = y;
+        });
       }}
     >
       {data.length === 0 && ListEmptyComponent}
