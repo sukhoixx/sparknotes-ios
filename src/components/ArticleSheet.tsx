@@ -572,7 +572,7 @@ export function ArticleSheet({
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const { lang } = useLang();
+  const { lang, setLang } = useLang();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const displayTitle = post
@@ -902,6 +902,17 @@ export function ArticleSheet({
             >
               <Text style={[styles.fontSizeBtnLabel, fontSizeIdx > 0 && { color: colors.brand }]}>
                 {fontSizeIdx === 0 ? "A" : fontSizeIdx === 1 ? "A+" : "A++"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                const next = lang === "en" ? "zh-TW" : lang === "zh-TW" ? "zh-CN" : "en";
+                setLang(next);
+              }}
+              style={[styles.fontSizeBtn]}
+            >
+              <Text style={[styles.fontSizeBtnLabel]}>
+                {lang === "en" ? "EN" : lang === "zh-TW" ? "繁" : "简"}
               </Text>
             </TouchableOpacity>
           </View>
