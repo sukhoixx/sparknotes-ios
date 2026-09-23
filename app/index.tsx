@@ -8,8 +8,6 @@ import {
   StyleSheet,
   Linking,
   Keyboard,
-  Animated,
-  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PagerView from "react-native-pager-view";
@@ -22,6 +20,7 @@ import { ArticleSheet } from "../src/components/ArticleSheet";
 import { SignInSheet } from "../src/components/SignInSheet";
 import { ProfileSheet } from "../src/components/ProfileSheet";
 import { fetchMyLikes, getJwt, fetchProfile, upsertReaction, deleteReaction, fetchPost } from "../src/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getGuestChosen, setGuestChosen as markGuestChosen, getGuestProfile, saveGuestProfile, clearGuestData } from "../src/guestProfile";
 import { useTheme } from "../src/theme";
 import { useLang, toTraditional, toSimplified } from "../src/lang";
@@ -31,54 +30,11 @@ import type { LangMode } from "../src/lang";
 import type { Post, UserProfile } from "../src/types";
 import type { Colors } from "../src/theme";
 
-const MARQUEE_TEXTS: Record<string, string> = {
-  en: "💛  Tap several ads per day to support us - it only takes a few seconds  •  ",
-  "zh-TW": "💛  每天點擊幾則廣告來支持我們 — 只需幾秒鐘  •  ",
-  "zh-CN": "💛  每天点击几则广告来支持我们 — 只需几秒钟  •  ",
-};
-
-function MarqueeBanner({ colors }: { colors: Colors }) {
-  const { width } = useWindowDimensions();
-  const { lang } = useLang();
-  const translateX = useRef(new Animated.Value(0)).current;
-  const marqueeText = MARQUEE_TEXTS[lang] ?? MARQUEE_TEXTS["en"];
-  const fullText = marqueeText.repeat(3);
-
-  useEffect(() => {
-    const textWidth = fullText.length * 7.5; // approximate char width
-    translateX.setValue(0);
-    const anim = Animated.loop(
-      Animated.timing(translateX, {
-        toValue: -textWidth / 3,
-        duration: 18000,
-        useNativeDriver: true,
-      })
-    );
-    anim.start();
-    return () => anim.stop();
-  }, [width, lang]);
-
-  return (
-    <View style={{ height: 20, overflow: "hidden", backgroundColor: colors.surfaceAlt, justifyContent: "center" }}>
-      <Animated.Text
-        numberOfLines={1}
-        style={{
-          transform: [{ translateX }],
-          fontSize: 11,
-          color: colors.textMuted,
-          width: fullText.length * 7.5,
-        }}
-      >
-        {fullText}
-      </Animated.Text>
-    </View>
-  );
-}
 
 export default function FeedScreen() {
   const { openPostId } = useLocalSearchParams<{ openPostId?: string }>();
   const { colors } = useTheme();
-  const { lang, setLang } = useLang();
+  const { lang } = useLang();
   const { activeEvents } = useEvent();
   const { categoryIds } = useCategories();
   const styles = useMemo(() => makeStyles(colors), [colors]);
@@ -155,16 +111,20 @@ export default function FeedScreen() {
         ]);
         if (p) {
           setProfile(p);
-          if (p.lang === "zh-TW" || p.lang === "zh-CN" || p.lang === "en") setLang(p.lang as LangMode);
         }
       } else {
-        const chosen = await getGuestChosen();
+        const [chosen, savedReactions] = await Promise.all([
+          getGuestChosen(),
+          AsyncStorage.getItem("guest_reactions").then((v) => v ? JSON.parse(v) as Record<number, string> : null),
+        ]);
+        if (savedReactions && Object.keys(savedReactions).length > 0) {
+          setReactions(savedReactions);
+        }
         if (chosen) {
           setGuestChosen(true);
           const gp = await getGuestProfile();
           if (gp) {
             setProfile({ screenName: gp.screenName, categories: gp.categories, lang: gp.lang as LangMode });
-            if (gp.lang === "zh-TW" || gp.lang === "zh-CN" || gp.lang === "en") setLang(gp.lang as LangMode);
           }
         }
       }
@@ -204,11 +164,13 @@ export default function FeedScreen() {
   }, []);
 
   const handleReact = useCallback((post: Post, emoji: string | null) => {
-    if (!isAuthenticated) { setSignInVisible(true); return; }
     setReactions((prev) => {
       const next = { ...prev };
       if (emoji === null) delete next[post.id];
       else next[post.id] = emoji;
+      if (!isAuthenticated) {
+        AsyncStorage.setItem("guest_reactions", JSON.stringify(next)).catch(() => {});
+      }
       return next;
     });
     const apiCall = emoji !== null ? upsertReaction(post.id, emoji) : deleteReaction(post.id);
@@ -219,10 +181,10 @@ export default function FeedScreen() {
 
   function handleSignedIn() {
     setIsAuthenticated(true);
+    AsyncStorage.removeItem("guest_reactions").catch(() => {});
     fetchProfile().then((p) => {
       if (p) {
         setProfile(p);
-        if (p.lang === "zh-TW" || p.lang === "zh-CN" || p.lang === "en") setLang(p.lang as LangMode);
       }
     });
     fetchMyLikes().then((r) => setReactions(r));
@@ -324,7 +286,7 @@ export default function FeedScreen() {
           if (pageId === HEADLINES_ID) {
             return (
               <View key={pageId} style={{ flex: 1 }}>
-                <HeadlinesPage isActive={idx === activePageIndex} />
+                <HeadlinesPage isActive={idx === activePageIndex} onOpenPost={handleOpenPost} />
               </View>
             );
           }

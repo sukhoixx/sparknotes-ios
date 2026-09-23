@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { ensureGuestId } from "./guestProfile";
 import type { Post, UserProfile, Comment, PageData } from "./types";
 
 export const BASE_URL = (
@@ -81,14 +82,20 @@ export async function fetchMyLikes(): Promise<Record<number, string>> {
 }
 
 export async function upsertReaction(postId: number, emoji: string): Promise<void> {
+  const guestId = await ensureGuestId();
   await apiFetch(`/api/posts/${postId}/like`, {
     method: "POST",
     body: JSON.stringify({ emoji }),
+    headers: { "X-Guest-Id": guestId },
   });
 }
 
 export async function deleteReaction(postId: number): Promise<void> {
-  await apiFetch(`/api/posts/${postId}/like`, { method: "DELETE" });
+  const guestId = await ensureGuestId();
+  await apiFetch(`/api/posts/${postId}/like`, {
+    method: "DELETE",
+    headers: { "X-Guest-Id": guestId },
+  });
 }
 
 export async function fetchComments(postId: number): Promise<Comment[]> {
@@ -257,8 +264,8 @@ export async function fetchAnswer(postId: number, question: string, lang: string
   }
 }
 
-export async function fetchHeadlines(): Promise<{ headlines: string[]; headlinesZh: string[]; headlinesCn: string[]; generatedAt: string | null }> {
-  const fallback = { headlines: [], headlinesZh: [], headlinesCn: [], generatedAt: null };
+export async function fetchHeadlines(): Promise<{ headlines: string[]; headlinesZh: string[]; headlinesCn: string[]; postIds: number[]; generatedAt: string | null }> {
+  const fallback = { headlines: [], headlinesZh: [], headlinesCn: [], postIds: [], generatedAt: null };
   try {
     const res = await apiFetch("/api/headlines");
     if (!res.ok) return fallback;

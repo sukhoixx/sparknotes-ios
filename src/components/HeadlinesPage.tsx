@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator, StyleSheet } from "react-native";
-import { fetchHeadlines } from "../api";
+import { View, Text, ScrollView, RefreshControl, ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
+import { fetchHeadlines, fetchPost } from "../api";
 import { useTheme } from "../theme";
 import { useLang } from "../lang";
 import type { Colors } from "../theme";
+import type { Post } from "../types";
 
 function makeStyles(colors: Colors) {
   return StyleSheet.create({
@@ -77,9 +78,10 @@ function makeStyles(colors: Colors) {
 
 interface Props {
   isActive: boolean;
+  onOpenPost: (post: Post) => void;
 }
 
-export function HeadlinesPage({ isActive }: Props) {
+export function HeadlinesPage({ isActive, onOpenPost }: Props) {
   const { colors } = useTheme();
   const { lang } = useLang();
   const styles = React.useMemo(() => makeStyles(colors), [colors]);
@@ -87,6 +89,7 @@ export function HeadlinesPage({ isActive }: Props) {
   const [headlines, setHeadlines] = useState<string[]>([]);
   const [headlinesZh, setHeadlinesZh] = useState<string[]>([]);
   const [headlinesCn, setHeadlinesCn] = useState<string[]>([]);
+  const [postIds, setPostIds] = useState<number[]>([]);
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -97,6 +100,7 @@ export function HeadlinesPage({ isActive }: Props) {
     setHeadlines(data.headlines as string[]);
     setHeadlinesZh(data.headlinesZh as string[]);
     setHeadlinesCn(data.headlinesCn as string[]);
+    setPostIds((data.postIds as number[]) ?? []);
     setGeneratedAt(data.generatedAt);
     setLoading(false);
     setRefreshing(false);
@@ -144,12 +148,20 @@ export function HeadlinesPage({ isActive }: Props) {
             <Text style={styles.title}>{pageTitle}</Text>
             {updatedLabel && <Text style={styles.subtitle}>{updatedLabel}</Text>}
           </View>
-          {displayHeadlines.map((h, i) => (
-            <View key={i} style={styles.item}>
-              <Text style={styles.number}>{i + 1}</Text>
-              <Text style={styles.headline}>{h}</Text>
-            </View>
-          ))}
+          {displayHeadlines.map((h, i) => {
+            const postId = postIds[i];
+            return (
+              <TouchableOpacity
+                key={i}
+                style={styles.item}
+                activeOpacity={postId ? 0.6 : 1}
+                onPress={postId ? () => fetchPost(postId).then((post) => { if (post) onOpenPost(post); }) : undefined}
+              >
+                <Text style={styles.number}>{i + 1}</Text>
+                <Text style={styles.headline}>{h}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </>
       )}
     </ScrollView>

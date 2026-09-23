@@ -550,6 +550,21 @@ async function getPreferredVoice(locale: string): Promise<string | undefined> {
   }
 }
 
+function MidArticleAd({ postId }: { postId: number }) {
+  const [loaded, setLoaded] = React.useState(false);
+  return (
+    <View style={loaded ? { alignItems: "center", marginVertical: 12 } : { height: 0, overflow: "hidden" }}>
+      <BannerAd
+        key={postId}
+        unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
+        size={BannerAdSize.MEDIUM_RECTANGLE}
+        requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+        onAdLoaded={() => setLoaded(true)}
+      />
+    </View>
+  );
+}
+
 function stripHtmlForSpeech(html: string): string {
   return html
     .replace(/<[^>]*>/g, " ")
@@ -633,7 +648,6 @@ export function ArticleSheet({
   const pickerAnim = useRef(new Animated.Value(0)).current;
 
   function showPicker() {
-    if (!isAuthenticated) { onSignInRequired(); return; }
     // Compute picker position from known layout — no measureInWindow needed (avoids freeze)
     // Button is always top-right of article header: insets.top + header paddingVertical center
     const btnY = insets.top + 24; // approx center of header (paddingVertical: 12 → height ~48)
@@ -833,7 +847,6 @@ export function ArticleSheet({
 
   async function handleComment() {
     if (!post || !commentText.trim() || submitting) return;
-    if (!isAuthenticated) { onSignInRequired(); return; }
     setSubmitting(true);
     const comment = await postComment(post.id, commentText.trim());
     if (comment) {
@@ -871,8 +884,8 @@ export function ArticleSheet({
                 key={post?.id}
                 unitId={__DEV__ ? TestIds.ADAPTIVE_BANNER : "ca-app-pub-2618352557321545/6335999163"}
                 size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-                requestOptions={{ requestNonPersonalizedAdsOnly: false }}
-                onAdLoaded={() => Animated.timing(adOpacity, { toValue: 1, duration: 1000, useNativeDriver: true }).start()}
+                requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+                onAdLoaded={() => Animated.timing(adOpacity, { toValue: 1, duration: 500, useNativeDriver: true }).start()}
               />
             </NativeViewGestureHandler>
           </Animated.View>
@@ -992,6 +1005,9 @@ export function ArticleSheet({
                     {renderHtmlAsText(displayFunFact, "#92400e", "#92400e", FONT_SIZES[fontSizeIdx].body - 2, FONT_SIZES[fontSizeIdx].line - 4)}
                   </View>
                 )}
+
+                {/* Mid-article video ad — only show container once ad loads */}
+                {post && <MidArticleAd postId={post.id} />}
 
                 {/* AI Questions */}
                 {(questions.length > 0 || post) && (
@@ -1166,12 +1182,11 @@ export function ArticleSheet({
           <TextInput
             ref={commentInputRef}
             style={styles.input}
-            placeholder={isAuthenticated ? t("addComment", lang) : t("signInToComment", lang)}
+            placeholder={t("addComment", lang)}
             placeholderTextColor={colors.textMuted}
             value={commentText}
             onChangeText={setCommentText}
-            onFocus={() => { if (!isAuthenticated) onSignInRequired(); }}
-            editable={isAuthenticated && !!post}
+            editable={!!post}
             multiline
             maxLength={500}
             onTouchEnd={Platform.OS === "android" ? () => requestAnimationFrame(() => commentInputRef.current?.focus()) : undefined}

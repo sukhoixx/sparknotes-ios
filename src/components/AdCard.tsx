@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from "react-native";
+import { View, Text, StyleSheet, Animated } from "react-native";
 import { NativeAd, NativeAdView, NativeAsset, NativeAssetType, NativeMediaView, TestIds } from "react-native-google-mobile-ads";
 import { useTheme } from "../theme";
 import type { Colors } from "../theme";
@@ -18,7 +18,7 @@ export function AdCard() {
 
   useEffect(() => {
     let cancelled = false;
-    NativeAd.createForAdRequest(AD_UNIT_ID).then((ad) => {
+    NativeAd.createForAdRequest(AD_UNIT_ID, { requestNonPersonalizedAdsOnly: true }).then((ad) => {
       if (cancelled) { ad.destroy(); return; }
       adRef.current = ad;
       setNativeAd(ad);
@@ -31,34 +31,18 @@ export function AdCard() {
     };
   }, []);
 
-  if (!nativeAd) return <View style={{ height: 260 }} />;
+  if (!nativeAd) return <View style={{ height: 200 }} />;
 
   return (
     <Animated.View style={{ opacity }}>
       <NativeAdView nativeAd={nativeAd} style={styles.container}>
-        {nativeAd.mediaContent && (
-          <NativeMediaView style={styles.media} resizeMode="cover" />
-        )}
-        <View style={styles.content}>
+        <NativeMediaView style={styles.media} resizeMode="cover" />
+        <View style={styles.overlay}>
           <NativeAsset assetType={NativeAssetType.HEADLINE}>
-            <Text style={styles.title} numberOfLines={3}>{nativeAd.headline}</Text>
+            <Text style={styles.title} numberOfLines={1}>{nativeAd.headline}</Text>
           </NativeAsset>
-          {!!nativeAd.body && (
-            <NativeAsset assetType={NativeAssetType.BODY}>
-              <Text style={styles.body} numberOfLines={2}>{nativeAd.body}</Text>
-            </NativeAsset>
-          )}
-          <View style={styles.footer}>
-            {!!nativeAd.callToAction && (
-              <NativeAsset assetType={NativeAssetType.CALL_TO_ACTION}>
-                <TouchableOpacity style={styles.ctaButton} activeOpacity={0.8}>
-                  <Text style={styles.ctaText}>{nativeAd.callToAction}</Text>
-                </TouchableOpacity>
-              </NativeAsset>
-            )}
-            <View style={styles.adBadge}>
-              <Text style={styles.adBadgeText}>Ad</Text>
-            </View>
+          <View style={styles.adBadge}>
+            <Text style={styles.adBadgeText}>Ad</Text>
           </View>
         </View>
       </NativeAdView>
@@ -69,7 +53,7 @@ export function AdCard() {
 function makeStyles(c: Colors) {
   return StyleSheet.create({
     container: {
-      height: 260,
+      height: 200,
       borderRadius: 14,
       overflow: "hidden",
       marginBottom: 4,
@@ -77,47 +61,30 @@ function makeStyles(c: Colors) {
     },
     media: {
       width: "100%",
-      height: 140,
+      height: "100%",
     },
-    content: {
-      paddingHorizontal: 10,
-      paddingTop: 8,
-      paddingBottom: 10,
-      minHeight: 80,
-    },
-    title: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: c.text,
-      lineHeight: 19,
-      marginBottom: 6,
-    },
-    body: {
-      fontSize: 12,
-      color: c.textMuted,
-      lineHeight: 17,
-      marginBottom: 8,
-    },
-    footer: {
+    overlay: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      marginTop: 4,
-    },
-    ctaButton: {
-      backgroundColor: c.brand,
-      borderRadius: 6,
       paddingHorizontal: 10,
-      paddingVertical: 4,
+      paddingVertical: 6,
+      backgroundColor: "rgba(0,0,0,0.35)",
     },
-    ctaText: {
-      fontSize: 11,
+    title: {
+      flex: 1,
+      fontSize: 12,
       fontWeight: "600",
       color: "#fff",
+      marginRight: 8,
     },
     adBadge: {
       borderWidth: 1,
-      borderColor: c.textFaint,
+      borderColor: "rgba(255,255,255,0.6)",
       borderRadius: 4,
       paddingHorizontal: 4,
       paddingVertical: 1,
@@ -125,7 +92,7 @@ function makeStyles(c: Colors) {
     adBadgeText: {
       fontSize: 9,
       fontWeight: "600",
-      color: c.textFaint,
+      color: "rgba(255,255,255,0.8)",
     },
   });
 }
