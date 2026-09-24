@@ -34,6 +34,8 @@ ErrorUtils.setGlobalHandler((e, fatal) => {
 
 MobileAds().initialize();
 
+fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/analytics/app-open`, { method: "POST" }).catch(() => {});
+
 GoogleSignin.configure({
   iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
