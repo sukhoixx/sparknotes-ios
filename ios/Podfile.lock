@@ -103,6 +103,8 @@ PODS:
     - ExpoModulesCore
   - ExpoSpeech (55.0.15):
     - ExpoModulesCore
+  - ExpoSplashScreen (55.0.25):
+    - ExpoModulesCore
   - ExpoSymbols (55.0.9):
     - ExpoModulesCore
   - FBLazyVector (0.83.6)
@@ -2053,7 +2055,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNGestureHandler (2.30.1):
+  - RNGestureHandler (2.32.0):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2205,6 +2207,7 @@ DEPENDENCIES:
   - ExpoRouter (from `../node_modules/expo-router/ios`)
   - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
   - ExpoSpeech (from `../node_modules/expo-speech/ios`)
+  - ExpoSplashScreen (from `../node_modules/expo-splash-screen/ios`)
   - ExpoSymbols (from `../node_modules/expo-symbols/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
@@ -2350,6 +2353,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-secure-store/ios"
   ExpoSpeech:
     :path: "../node_modules/expo-speech/ios"
+  ExpoSplashScreen:
+    :path: "../node_modules/expo-splash-screen/ios"
   ExpoSymbols:
     :path: "../node_modules/expo-symbols/ios"
   FBLazyVector:
@@ -2541,6 +2546,7 @@ SPEC CHECKSUMS:
   ExpoRouter: e0e2aa4b03843e7abfa3e63e0cdd6c642d74780f
   ExpoSecureStore: f495a3e0ab65683be8427a96f694726a88048f46
   ExpoSpeech: f9cebf83938d03098cb03b4b9eaa41a7304fd797
+  ExpoSplashScreen: b7c56a0ae848fb5e34c6217255a5ac211ffa261a
   ExpoSymbols: 896159288ad708e1a32dc12c92fe5f90bff01126
   FBLazyVector: 427fa1856a481856091061293ce865a75aa4f20f
   Google-Mobile-Ads-SDK: 2171620c6497804b57dc88b95644cc82e7dfb5b0
@@ -2627,7 +2633,7 @@ SPEC CHECKSUMS:
   ReactCommon: ba28cd4e7d9e24014d2772a80e32da020c732b00
   ReactNativeDependencies: 47566a2b36927ca5eb27c784ba540c642b135b10
   RNCAsyncStorage: 3a4f5e2777dae1688b781a487923a08569e27fe4
-  RNGestureHandler: 0ea8153746a92b3744d4eaadade647debedf646e
+  RNGestureHandler: ef375d2123e4360183ee184b66c998918c9487e1
   RNGoogleMobileAds: f7aeb5dcf5362fe82d61ffa2c66671f85bbf20aa
   RNGoogleSignin: d5987c06a615fb7e0717814da46f07de29cf81e6
   RNScreens: 02e62f995ceb94ea465864b3bf4d4767b87f0362
@@ -2638,6 +2644,6 @@ SPEC CHECKSUMS:
   SwiftUIIntrospect: fee9aa07293ee280373a591e1824e8ddc869ba5d
   Yoga: e41d64347f52d634dd8c2f6bac33f95081959fd3
 
-PODFILE CHECKSUM: e0487e45be23a0108229426ec31d956059523d2d
+PODFILE CHECKSUM: b9a3250be25fd1c9ee85a99540d2253ccb7b12ee
 
 COCOAPODS: 1.16.2
