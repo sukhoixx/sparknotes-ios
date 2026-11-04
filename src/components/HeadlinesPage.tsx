@@ -155,7 +155,15 @@ export function HeadlinesPage({ isActive, onOpenPost }: Props) {
                 key={i}
                 style={styles.item}
                 activeOpacity={postId ? 0.6 : 1}
-                onPress={postId ? () => fetchPost(postId).then((post) => { if (post) onOpenPost(post); }) : undefined}
+                onPress={
+                  postId
+                    ? () =>
+                        fetchPost(postId).then((post) => {
+                          if (post) onOpenPost(post);
+                          else console.warn(`[headlines] postId ${postId} did not resolve to a post`);
+                        })
+                    : undefined
+                }
               >
                 <Text style={styles.number}>{i + 1}</Text>
                 <Text style={styles.headline}>{h}</Text>
