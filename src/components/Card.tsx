@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useMemo } from "react";
 import { Animated, View, Text, TouchableOpacity, Pressable, StyleSheet } from "react-native";
 import { toSimplified } from "../lang";
 import { t } from "../i18n";
+import { useCategories } from "../categoriesContext";
 import type { Colors } from "../theme";
 import type { LangMode } from "../lang";
 import type { Post } from "../types";
@@ -32,6 +33,7 @@ interface Props {
 
 export const Card = React.memo(function Card({ post, reaction, onPress, onReactPress, onTapHandled, hideBadge, colors, lang }: Props) {
   const styles = getCachedStyles(colors);
+  const { getLabel } = useCategories();
 
   const reactionEntries = useMemo(() => {
     const r = { ...(post.reactions ?? {}) };
@@ -60,7 +62,7 @@ export const Card = React.memo(function Card({ post, reaction, onPress, onReactP
       renderToHardwareTextureAndroid={true}
     >
       {!hideBadge && (
-        <Text style={styles.badge}>{t(`cat_${post.category}`, lang)}</Text>
+        <Text style={styles.badge}>{getLabel(post.category, lang)}</Text>
       )}
       {!!post.imageUrl && (
         <Animated.Image
