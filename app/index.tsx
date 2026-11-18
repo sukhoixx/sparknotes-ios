@@ -164,6 +164,8 @@ export default function FeedScreen() {
   }, []);
 
   const handleReact = useCallback((post: Post, emoji: string | null) => {
+    const prevReaction = reactions[post.id] ?? null;
+
     setReactions((prev) => {
       const next = { ...prev };
       if (emoji === null) delete next[post.id];
@@ -173,11 +175,24 @@ export default function FeedScreen() {
       }
       return next;
     });
+
+    // Optimistically patch the aggregate reaction counts so the feed card and
+    // article sheet both reflect the change immediately, instead of only after
+    // a refetch (e.g. on closing the article). Diff old vs new reaction rather
+    // than assuming the count starts at 0, so switching/removing an existing
+    // reaction adjusts the count correctly even when others have already reacted.
+    const counts = { ...(post.reactions ?? {}) };
+    if (prevReaction) counts[prevReaction] = Math.max(0, (counts[prevReaction] ?? 0) - 1);
+    if (emoji) counts[emoji] = (counts[emoji] ?? 0) + 1;
+    const patchedPost: Post = { ...post, reactions: counts };
+    patchPostRef.current?.(patchedPost);
+    if (openPost?.id === post.id) setOpenPost(patchedPost);
+
     const apiCall = emoji !== null ? upsertReaction(post.id, emoji) : deleteReaction(post.id);
-    // Fire and forget — reactions are already updated optimistically via setReactions.
+    // Fire and forget — reactions are already updated optimistically above.
     // Avoid fetchPost which triggers a heavy re-render of 150+ feed cards.
     apiCall.catch(() => {});
-  }, [isAuthenticated]);
+  }, [isAuthenticated, reactions, openPost]);
 
   function handleSignedIn() {
     setIsAuthenticated(true);

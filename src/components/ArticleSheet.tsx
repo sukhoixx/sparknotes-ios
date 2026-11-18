@@ -619,10 +619,8 @@ export function ArticleSheet({
   const adOpacity = useRef(new Animated.Value(0)).current;
 
   const reactionEntries = useMemo(() => {
-    const r = { ...(post?.reactions ?? {}) };
-    if (reaction && !r[reaction]) r[reaction] = 1;
-    return Object.entries(r).filter(([, n]) => n > 0);
-  }, [post?.reactions, reaction]);
+    return Object.entries(post?.reactions ?? {}).filter(([, n]) => n > 0);
+  }, [post?.reactions]);
 
   const [autoReadToastMsg, setAutoReadToastMsg] = useState("");
   const [voiceHelpVisible, setVoiceHelpVisible] = useState(false);

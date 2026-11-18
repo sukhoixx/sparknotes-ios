@@ -36,10 +36,8 @@ export const Card = React.memo(function Card({ post, reaction, onPress, onReactP
   const { getLabel } = useCategories();
 
   const reactionEntries = useMemo(() => {
-    const r = { ...(post.reactions ?? {}) };
-    if (reaction && !r[reaction]) r[reaction] = 1;
-    return Object.entries(r).filter(([, n]) => n > 0);
-  }, [post.reactions, reaction]);
+    return Object.entries(post.reactions ?? {}).filter(([, n]) => n > 0);
+  }, [post.reactions]);
 
   const displayTitle = (lang !== "en" && post.zhTitle
     ? (lang === "zh-CN" ? (post.zhTitleCn ?? toSimplified(post.zhTitle)) : post.zhTitle)
